@@ -58,4 +58,4 @@ with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None
     assert "d2fps.dll" not in z.namelist()
     for entry in entries:assert hashlib.sha256(z.read(entry["name"])).hexdigest()==entry["sha256"]
-print(json.dumps({"zip":str(archive),"bytes":archive.stat().st_size(),"sha256":hashlib.sha256(archive.read_bytes()).hexdigest()},indent=2))
+print(json.dumps({"zip":str(archive),"bytes":archive.stat().st_size,"sha256":hashlib.sha256(archive.read_bytes()).hexdigest()},indent=2))
