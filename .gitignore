@@ -1,5 +1,8 @@
 /build/
 /dist/
+/external/
+/build-dx12/
+/dx12-*.log
 **/target/
 **/.vs/
 **/__pycache__/

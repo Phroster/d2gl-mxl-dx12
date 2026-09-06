@@ -29,7 +29,7 @@
 #include "win32.h"
 
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
 
 namespace d2gl {
@@ -37,93 +37,12 @@ namespace d2gl {
 bool automapenabled;
 Context::Context()
 {
-	PIXELFORMATDESCRIPTOR pfd;
-	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-	pfd.nVersion = 1;
-	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_GENERIC_ACCELERATED;
-	pfd.iPixelType = PFD_TYPE_RGBA;
-	pfd.cColorBits = 32;
-	pfd.cDepthBits = 24;
-	pfd.cStencilBits = 8;
-	pfd.iLayerType = PFD_MAIN_PLANE;
-
-	SetPixelFormat(App.hdc, ChoosePixelFormat(App.hdc, &pfd), &pfd);
-
-	HGLRC context = wglCreateContext(App.hdc);
-	wglMakeCurrent(App.hdc, context);
-
-	if (glewInit() != GLEW_OK) {
-		MessageBoxA(NULL, "OpenGL loader failed!", "OpenGL failed!", MB_OK);
-		exit(1);
-	}
-
-	wglMakeCurrent(NULL, NULL);
-	wglDeleteContext(context);
-
-	std::vector<glm::vec<2, uint8_t>> versions = { { 4, 6 }, { 4, 5 }, { 4, 4 }, { 4, 3 }, { 4, 2 }, { 4, 1 }, { 4, 0 }, { 3, 3 } };
-	for (auto& version : versions) {
-		if (App.gl_ver.x < version.x)
-			continue;
-		if (App.gl_ver.y < version.y)
-			continue;
-
-		int attribs[] = {
-			WGL_CONTEXT_MAJOR_VERSION_ARB, version.x,
-			WGL_CONTEXT_MINOR_VERSION_ARB, version.y,
-			WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-			WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB, 0
-		};
-		if (App.debug)
-			attribs[5] |= WGL_CONTEXT_DEBUG_BIT_ARB;
-
-		if (m_context = wglCreateContextAttribsARB(App.hdc, 0, attribs)) {
-			App.gl_ver = version;
-			break;
-		}
-	}
-
-	if (!m_context) {
-		MessageBoxA(App.hwnd, "Requires OpenGL 3.3 or newer!", "Unsupported OpenGL version!", MB_OK | MB_ICONERROR);
-		error_log("Requires OpenGL 3.3 or newer! exiting.");
-		exit(1);
-	}
-
-	wglMakeCurrent(App.hdc, m_context);
-	glewInit();
-
-	GLint major_version, minor_version;
-	glGetIntegerv(GL_MAJOR_VERSION, &major_version);
-	glGetIntegerv(GL_MINOR_VERSION, &minor_version);
-
-	char version_str[50] = { 0 };
-	sprintf_s(version_str, "%d.%d", major_version, minor_version);
-	trace_log("OpenGL: %s (%s | %s)", version_str, glGetString(GL_RENDERER), glGetString(GL_VENDOR));
-	trace_log("OpenGL: Shading Language: %s", version_str, glGetString(GL_SHADING_LANGUAGE_VERSION));
-	App.gl_ver_str = version_str;
-
-	GLint max_texture_unit;
-	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_unit);
-	trace_log("OpenGL: GL_MAX_TEXTURE_IMAGE_UNITS = %d", max_texture_unit);
-
-	if ((App.debug || App.log) && glewIsSupported("GL_KHR_debug")) {
-		glEnable(GL_DEBUG_OUTPUT);
-		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-		glDebugMessageCallback(Context::debugMessageCallback, nullptr);
-		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-		trace_log("OpenGL: GL_KHR_debug enabled!");
-	}
-
-	if (App.use_compute_shader && (glewIsSupported("GL_VERSION_4_3") || glewIsSupported("GL_ARB_compute_shader"))) {
-		App.gl_caps.compute_shader = true;
-		trace_log("OpenGL: Compute shader available.");
-	}
-
-	if (glewIsSupported("GL_VERSION_4_0")) {
-		App.gl_caps.independent_blending = true;
-		trace_log("OpenGL: Independent blending available.");
-	}
-
+    mxl::dx12::initialize(App.hwnd);
+    App.gl_ver = {4, 5}; // Shader-source language level, not an OpenGL context.
+    App.gl_ver_str = "DirectX 12";
+    App.gl_caps.compute_shader = App.use_compute_shader;
+    App.gl_caps.independent_blending = true;
+    trace_log("Native DirectX 12 adapter: %s", mxl::dx12::gpu().adapter_name().c_str());
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_STENCIL_TEST);
@@ -320,8 +239,9 @@ Context::Context()
 	modules::HDText::Instance();
 	modules::HDCursor::Instance();
 
-	wglMakeCurrent(NULL, NULL);
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Context::renderThread, reinterpret_cast<void*>(this), 0, NULL);
+    mxl::dx12::gpu().flush(true);
+    m_render_thread = CreateThread(NULL, 0, Context::renderThread, this, 0, NULL);
+    if (!m_render_thread) throw std::runtime_error("DX12 render thread could not start.");
 }
 
 Context::~Context()
@@ -330,10 +250,11 @@ Context::~Context()
 	for (uint32_t i = 0; i < MAX_FRAME_LATENCY; i++)
 		ReleaseSemaphore(m_semaphore_cpu[i], 1, NULL);
 
-	for (uint32_t i = 0; i < MAX_FRAME_LATENCY; i++)
-		WaitForSingleObject(m_semaphore_gpu[i], INFINITE);
-
-	wglMakeCurrent(App.hdc, m_context);
+    if (m_render_thread) {
+        WaitForSingleObject(m_render_thread, INFINITE);
+        CloseHandle(m_render_thread);
+    }
+    mxl::dx12::gpu().wait_idle();
 	imguiDestroy();
 
 	glDeleteBuffers(1, &m_pixel_buffer);
@@ -341,21 +262,25 @@ Context::~Context()
 	glDeleteBuffers(1, &m_index_buffer);
 	glDeleteVertexArrays(1, &m_vertex_array);
 
-	wglMakeCurrent(NULL, NULL);
-	wglDeleteContext(m_context);
+    for (uint32_t i = 0; i < MAX_FRAME_LATENCY; ++i) {
+        CloseHandle(m_semaphore_cpu[i]);
+        CloseHandle(m_semaphore_gpu[i]);
+    }
 }
 
-void Context::renderThread(void* context)
+DWORD WINAPI Context::renderThread(void* context)
 {
 	Context* ctx = reinterpret_cast<Context*>(context);
-	wglMakeCurrent(App.hdc, ctx->m_context);
+    try {
+
 	uint32_t frame_index = 0;
 
 	glBindBuffer(GL_ARRAY_BUFFER, ctx->m_vertex_buffer);
 	Vertex::enableAttribArray();
 
 	while (ctx->m_rendering) {
-		WaitForSingleObject(ctx->m_semaphore_cpu[frame_index], INFINITE);
+        WaitForSingleObject(ctx->m_semaphore_cpu[frame_index], INFINITE);
+        if (!ctx->m_rendering) break;
 		const auto cmd = &ctx->m_command_buffer[frame_index];
 
 		if (cmd->m_resized)
@@ -525,14 +450,10 @@ void Context::renderThread(void* context)
 			glDrawElements(GL_TRIANGLES, cmd->m_vertex_mod_count / 4 * 6, GL_UNSIGNED_INT, 0);
 		}
 
-		GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-		glFlush();
-		glClientWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-		glDeleteSync(sync);
 
 		ReleaseSemaphore(ctx->m_semaphore_gpu[frame_index], 1, NULL);
 		option::Menu::instance().draw();
-		SwapBuffers(App.hdc);
+        mxl::dx12::present(App.vsync);
 
 		if (ctx->m_limiter.active) {
 			WaitForSingleObject(ctx->m_limiter.timer, (DWORD)ctx->m_limiter.frame_len_ms + 1);
@@ -543,13 +464,24 @@ void Context::renderThread(void* context)
 		frame_index = (frame_index + 1) % (App.frame_latency + 1);
 	}
 
-	wglMakeCurrent(NULL, NULL);
-	for (uint32_t i = 0; i < 2; i++)
-		ReleaseSemaphore(ctx->m_semaphore_gpu[i], 1, NULL);
+    mxl::dx12::gpu().flush(false);
+    for (uint32_t i = 0; i < MAX_FRAME_LATENCY; i++)
+        ReleaseSemaphore(ctx->m_semaphore_gpu[i], 1, NULL);
+    return 0;
+    } catch (const std::exception& error) {
+        error_log("DX12 rendering failed: %s", error.what());
+        ctx->m_rendering = false;
+        App.ready = false;
+        for (uint32_t i = 0; i < MAX_FRAME_LATENCY; ++i)
+            ReleaseSemaphore(ctx->m_semaphore_gpu[i], 1, NULL);
+        PostMessageW(App.hwnd, WM_CLOSE, 0, 0);
+        return 1;
+    }
 }
 
 void Context::onResize(glm::uvec2 w_size, glm::uvec2 g_size, uint32_t bpp)
 {
+    mxl::dx12::resize(w_size.x, w_size.y);
 	static glm::uvec2 game_size = { 0, 0 };
 	static uint32_t color_bpp = 8;
 	bool game_resized = game_size != g_size || color_bpp != bpp;
@@ -767,6 +699,7 @@ void Context::bindDefaultFrameBuffer()
 
 void Context::presentFrame()
 {
+    if (!m_rendering) return;
 	flushVertices();
 	setVertexFlagW(0);
 	m_command_buffer[m_frame_index].pushCommand(CommandType::Submit);
@@ -896,7 +829,7 @@ void Context::appendDelayedObjects()
 
 void Context::toggleVsync()
 {
-	wglSwapIntervalEXT(App.vsync);
+    // V-Sync is selected by DXGI Present for each frame.
 	resetFileTime();
 }
 
@@ -933,19 +866,27 @@ void Context::imguiInit()
 {
 	ImGui::CreateContext();
 	ImGui_ImplWin32_Init(App.hwnd);
-	ImGui_ImplOpenGL3_Init("#version 150");
+    D3D12_DESCRIPTOR_HEAP_DESC desc{};
+    desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    desc.NumDescriptors = 1;
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    mxl::dx12::check(mxl::dx12::gpu().native()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imgui_heap)), "Create UI font heap");
+    if (!ImGui_ImplDX12_Init(mxl::dx12::gpu().native(), mxl::dx12::Device::FrameCount,
+        DXGI_FORMAT_R8G8B8A8_UNORM, m_imgui_heap.Get(),
+        m_imgui_heap->GetCPUDescriptorHandleForHeapStart(), m_imgui_heap->GetGPUDescriptorHandleForHeapStart()))
+        throw std::runtime_error("DX12 menu initialization failed.");
 }
 
 void Context::imguiDestroy()
 {
-	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 }
 
 void Context::imguiStartFrame()
 {
-	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 }
@@ -953,7 +894,15 @@ void Context::imguiStartFrame()
 void Context::imguiRender()
 {
 	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    auto& backend = mxl::dx12::gpu();
+    auto& output = backend.back_buffer();
+    backend.transition(output, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    auto rtv = backend.rtv(output);
+    auto* commands = backend.commands();
+    commands->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
+    ID3D12DescriptorHeap* heaps[] = {m_imgui_heap.Get()};
+    commands->SetDescriptorHeaps(1, heaps);
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commands);
 }
 
 void APIENTRY Context::debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* data)

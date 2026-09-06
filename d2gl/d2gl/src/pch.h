@@ -38,8 +38,8 @@
 #include <thread>
 #include <unordered_map>
 
-#include <GL/glew.h>
-#include <GL/wglew.h>
+#include "gl_api.h"
+#include <atomic>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
