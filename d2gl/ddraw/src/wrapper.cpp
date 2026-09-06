@@ -72,7 +72,12 @@ HRESULT Wrapper::setCooperativeLevel(HWND hwnd, DWORD flags)
 	win32::setWindow(hwnd);
 	win32::setWindowRect();
 
-	App.context = std::make_unique<Context>();
+    try { App.context = std::make_unique<Context>(); }
+    catch (const std::exception& error) {
+        error_log("DX12 initialization failed: %s", error.what());
+        MessageBoxA(App.hwnd, error.what(), "MXL DX12 experiment", MB_OK | MB_ICONERROR);
+        return E_FAIL;
+    }
 	DDrawWrapper = std::make_unique<Wrapper>();
 	App.ready = true;
 

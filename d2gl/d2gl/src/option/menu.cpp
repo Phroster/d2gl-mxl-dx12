@@ -17,6 +17,7 @@
 */
 
 #include "pch.h"
+#include "fps_menu.h"
 #include "mxl_smoothing.h"
 #include "menu.h"
 #include "d2/common.h"
@@ -113,7 +114,7 @@ Menu::Menu()
 	m_fonts[12] = font2.size ? io.Fonts->AddFontFromMemoryTTF((void*)font2.data, font2.size, 12.0f) : io.Fonts->Fonts[0];
 
 	App.menu_title += (ISGLIDE3X() ? " (Glide / " : " (DDraw / ");
-	App.menu_title += "OpenGL: " + App.gl_ver_str + " / D2LoD: " + helpers::getVersionString() + " / " + helpers::getLangString() + ")";
+	App.menu_title += "Renderer: " + App.gl_ver_str + " / D2LoD: " + helpers::getVersionString() + " / " + helpers::getLangString() + ")";
 }
 
 void Menu::toggle(bool force)
@@ -480,6 +481,14 @@ void Menu::draw()
 			tabEnd();
 		}
 #endif
+        if (tabBegin("FPS", 4, &active_tab)) {
+            childBegin("##dx12-fps", false, true);
+            ImGui::PushFont(m_fonts[17]);
+            mxl::dx12::draw_fps_settings();
+            ImGui::PopFont();
+            childEnd();
+            tabEnd();
+        }
 		ImGui::EndTabBar();
 	}
 	ImGui::PopFont();

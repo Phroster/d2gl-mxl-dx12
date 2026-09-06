@@ -309,7 +309,12 @@ GrContext_t Wrapper::grSstWinOpen(FxU32 hwnd, GrScreenResolution_t screen_resolu
 	win32::setWindowRect();
 	win32::setWindowMetrics();
 
-	App.context = std::make_unique<Context>();
+    try { App.context = std::make_unique<Context>(); }
+    catch (const std::exception& error) {
+        error_log("DX12 initialization failed: %s", error.what());
+        MessageBoxA(App.hwnd, error.what(), "MXL DX12 experiment", MB_OK | MB_ICONERROR);
+        return 0;
+    }
 	GlideWrapper = std::make_unique<Wrapper>();
 	App.ready = true;
 

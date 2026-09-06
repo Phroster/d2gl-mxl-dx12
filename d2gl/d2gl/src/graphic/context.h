@@ -107,11 +107,12 @@ struct GLCaps {
 };
 
 class Context {
-	HGLRC m_context = nullptr;
+    HANDLE m_render_thread = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imgui_heap;
 	HANDLE m_semaphore_cpu[MAX_FRAME_LATENCY];
 	HANDLE m_semaphore_gpu[MAX_FRAME_LATENCY];
 	CommandBuffer m_command_buffer[MAX_FRAME_LATENCY];
-	bool m_rendering = true;
+	std::atomic_bool m_rendering{true};
 
 	GLuint m_pixel_buffer;
 	GLuint m_index_buffer;
@@ -167,7 +168,7 @@ public:
 	Context();
 	~Context();
 
-	static void renderThread(void* context);
+	static DWORD WINAPI renderThread(void* context);
 
 	void onResize(glm::uvec2 w_size, glm::uvec2 g_size, uint32_t bpp = 8);
 	void onShaderChange();

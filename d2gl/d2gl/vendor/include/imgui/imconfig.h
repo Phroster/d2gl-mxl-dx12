@@ -118,3 +118,6 @@ namespace ImGui
     void MyFunction(const char* name, const MyMatrix44& v);
 }
 */
+
+// DX12 GPU descriptors are 64-bit even in the 32-bit game.
+#define ImTextureID ImU64
