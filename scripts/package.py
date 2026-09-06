@@ -19,6 +19,7 @@ files = {
     "README.md": root / "README.md",
     "docs/SETTINGS.md": root / "docs/SETTINGS.md",
     "docs/ARCHITECTURE.md": root / "docs/ARCHITECTURE.md",
+    "docs/UPSTREAM.json": root / "docs/UPSTREAM.json",
     "docs/VALIDATION.md": root / "docs/VALIDATION.md",
     "docs/NATIVE-TESTS.txt": root / "docs/NATIVE-TESTS.txt",
     "docs/D2FPS-SOURCE-TESTS.txt": root / "docs/D2FPS-SOURCE-TESTS.txt",

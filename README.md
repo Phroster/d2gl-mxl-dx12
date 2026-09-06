@@ -50,7 +50,7 @@ Close the game and launcher, then run `restore.ps1` from the backup directory pr
 
 ## Build
 
-Install Visual Studio 2022 C++ Build Tools and a Windows SDK, then run `./build.ps1`. It runs native smoothing tests and builds both renderer DLLs without deploying them to a game.
+Clone this repository or extract the corresponding source archive, install Visual Studio 2022 C++ Build Tools and a Windows SDK, then run `./build.ps1` from the source root. It runs native smoothing tests and builds both renderer DLLs without deploying them to a game.
 
 Run `python scripts/package.py` to create the ZIP under `dist/`. The D2FPS workspace can also be built separately with `d2fps/build-mxl.ps1`; that is an optional development build, not the runtime DLL shipped by this package.
 
