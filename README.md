@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.svg" alt="MXL Smooth Motion DX12" width="880">
+  <img src="docs/banner-dx12.svg" alt="MXL Smooth Motion DX12" width="880">
 </p>
 
 **Does Median XL feel a little choppy online, even with high FPS?** This helps smooth out those small pauses in movement. It also includes D2GL's graphics options. The game stays at its normal speed.
