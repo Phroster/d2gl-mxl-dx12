@@ -2,15 +2,17 @@
   <img src="docs/banner.svg" alt="MXL Smooth Motion DX12" width="880">
 </p>
 
-**DirectX 12 graphics and smoother movement for Median XL.** Keeps the familiar **Ctrl+O menu**, adds easy FPS settings, and works with **ReShade for DirectX**. The multiplayer smoothing fix turns on by itself.
+**Does Median XL feel a little choppy online, even with high FPS?** This helps smooth out those small pauses in movement. It also includes D2GL's graphics options. The game stays at its normal speed.
+
+Now with **DX12**, the same **Ctrl+O menu**, and **ReShade support**.
 
 ### [Download MXL Smooth Motion DX12 1.0](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip)
 
 ## Install — copy, paste, play
 
-1. **Open the Median XL launcher.** Let updates finish. Choose **Glide or DirectDraw** and turn **Windowed** off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**:
+1. **Open the Median XL launcher.** Let it finish updating. Choose **Glide or DirectDraw** and turn **Windowed** off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**, like this:
 
-   ![Tick both custom graphics DLLs](docs/launcher-settings.png)
+   ![Tick Glide3x.dll and Ddraw.dll under Unofficial Graphic Drivers](docs/launcher-settings.png)
 
 2. **Close the game and launcher.** Download the ZIP above and extract it.
 3. **Copy these five files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
@@ -23,31 +25,37 @@
    d2fps.ini
    ```
 
-4. **Start the game and play.** Everything is already set up.
+4. **Start the game and play.** The smoothing fix turns on by itself.
 
-Both launcher choices use **DX12** with this mod. Leave the existing **`d2fps.dll`** alone — the game still needs it.
+**That's it. You don't need to edit any settings or run an installer.**
 
-Back up your files first if you have custom settings. Copying the INIs replaces those settings with ours. [Keep your settings instead](docs/INSTALL.md#keep-your-existing-settings).
+Leave the existing **`d2fps.dll`** alone — the game still needs it.
 
-## Your settings are in Ctrl+O
+Already changed your graphics settings? Back up your files first. The included INIs replace those settings with ours. [How to keep your settings](docs/INSTALL.md#keep-your-existing-settings).
 
-- **Picture:** shaders, sharpening, bloom, HD text and cursor.
-- **FPS tab:** change your FPS limit and movement settings. Save, then restart the game.
-- **Smoothing status:** look for **Multiplayer Smoothing Fix: On**.
-- **Windowed/fullscreen:** press **Alt+Enter** after starting.
+## Check it or tweak it
 
-The default FPS target follows your monitor. The INI files are still available if you prefer editing them.
+- **Check it's working:** press **Ctrl+O**. Look for **Multiplayer Smoothing Fix: On**.
+- **Change the picture:** use the same Ctrl+O menu.
+- **Play in a window:** press **Alt+Enter** after starting. Keep Windowed off in the launcher.
+- **Change the FPS limit:** open the **FPS tab** in Ctrl+O. Save, then restart the game. By default, it follows your monitor.
 
-## ReShade works too
+You can still edit `d2gl.ini` and `d2fps.ini` in Notepad if you prefer.
 
-Use [ReShade](https://reshade.me) with **DirectX 10/11/12** selected for `Game.exe`. Keep your existing preset and shader folder. If you previously used ReShade for OpenGL, switch that installation to DirectX too. ReShade is optional and is not included in this download.
+[More settings and help](docs/SETTINGS.md)
 
-[Settings and help](docs/SETTINGS.md) · [Report a problem](https://github.com/Phroster/mxl-smooth-motion-dx12/issues)
+## ReShade
 
-For **Windows 10+ with a DX12-capable GPU**, using the supported **Median XL 2.14.0 / Diablo II: Lord of Destruction 1.13c** files. The game stays at its normal speed.
+Choose **DirectX 10/11/12** in the [ReShade installer](https://reshade.me) for `Game.exe`. If you used ReShade with OpenGL before, switch it to DirectX. Keep your preset and shader folder. ReShade is optional and is not included.
+
+## Which game is this for?
+
+**Median XL 2.14.0 with Diablo II: Lord of Destruction 1.13c, on Windows 10 or newer.** Your graphics card must support **DX12**. Future game updates may need an updated fix.
+
+If the status says **Unavailable**, [ask for help here](https://github.com/Phroster/mxl-smooth-motion-dx12/issues).
 
 ## Credits
 
-Built on work by **Bayaraa, Pooquer, GavinK88 and Jarcho**, with DX12 integration and the smoothing fix by **Phroster**. Community release.
+Built on work by **Bayaraa, Pooquer, GavinK88 and Jarcho**, with the smoothing fix by **Phroster**. This is a community release.
 
-[How it works](docs/ARCHITECTURE.md) · [Build from source](docs/BUILD.md) · [Checks performed](docs/VALIDATION.md) · [License](LICENSE)
+[How it works](docs/ARCHITECTURE.md) · [Source/build guide](docs/BUILD.md) · [Checks performed](docs/VALIDATION.md) · [Original projects](docs/UPSTREAM.json) · [License](LICENSE)
