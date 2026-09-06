@@ -1,6 +1,6 @@
 # Make it feel and look right
 
-Start with the supplied settings, or keep your current visual setup. **Close the game before editing an INI**, save it, then start the game again.
+The five-file installation already supplies working settings. Everything on this page is optional. **Close the game before editing an INI**, save it, then start the game again.
 
 ## FPS and movement — d2fps.ini
 
@@ -24,7 +24,7 @@ Use the normal **Ctrl+O** graphics menu to adjust shaders, sharpening, bloom, HD
 
 - **Too soft or too sharp?** Adjust the upscale shader and sharpening.
 - **Too bright or glowing?** Adjust bloom or switch it off.
-- **Prefer a window?** Change fullscreen in the menu; Alt+Enter also switches window mode.
+- **Prefer a window?** Change fullscreen in the menu or use Alt+Enter after startup. Leave the launcher's Windowed option off and remove `-w` from custom shortcuts.
 - **Want V-Sync?** Use the menu's V-Sync option. It stays available.
 
 Existing visual settings are kept by the installer. If you use the supplied template, it starts with xBRZ scaling, HD text/cursor, sharpening, FXAA and bloom. Adjust these to your taste.
@@ -73,6 +73,7 @@ It holds the fonts, textures and shaders used by D2GL. Keep the included MPQ bes
 
 | Problem | What to check |
 |---|---|
+| The game refuses `-w` or the new renderer does not activate | Select Glide or DirectDraw and turn Windowed off in the launcher. Remove `-w` from custom shortcuts; use Alt+Enter after startup. |
 | The launcher replaces the renderer | Enable Unofficial Graphics Drivers for Glide and DirectDraw, then reinstall the package files after the launcher finishes updating. |
 | The launcher restores `d2fps.dll` | Keep it. The official file supplies the FPS engine; our D2GL applies the fix at startup. Restoring the supported official file is expected. |
 | The fix says Unavailable | Confirm you used the folder with `Game.exe` and `D2Sigma.dll`. Read `mxl-smoothing.log`; newer game files may need an updated release. |

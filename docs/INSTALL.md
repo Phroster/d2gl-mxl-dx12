@@ -1,10 +1,28 @@
 # Installation and restoring a backup
 
-The [player guide](../README.md#install-in-six-steps) covers copying the files manually. This page explains the optional installer.
+The [player guide](../README.md#install--copy-paste-play) is the normal installation: copy five files and play. This page is only for keeping custom settings, using the optional backup installer, or restoring a backup.
+
+## Keep your existing settings
+
+If you already have a custom setup, back up your files before changing them.
+
+After configuring the launcher as shown in the player guide, close the game and launcher. Copy only `glide3x.dll`, `ddraw.dll` and `d2gl.mpq`, and keep your existing INIs.
+
+In `d2fps.ini`, make sure these existing lines are enabled:
+
+```ini
+menu-fps=true
+game-fps=true
+motion-smoothing=true
+```
+
+Keep your preferred `fps` value. Use `arcane-bg=false` for the supported MXL setup. The [settings guide](SETTINGS.md) explains the remaining options.
+
+Alternatively, the optional installer below preserves visual preferences and applies the package's FPS defaults for you.
 
 ## Optional installer
 
-1. Let the Median XL launcher update the game. Enable Unofficial Graphics Drivers for Glide and DirectDraw.
+1. Let the Median XL launcher update the game. Select Glide or DirectDraw, enable Unofficial Graphics Drivers for that mode, and turn Windowed off.
 2. Close both the game and launcher.
 3. Extract `mxl-smooth-motion-1.0.zip` into a separate folder.
 4. Open PowerShell in that extracted folder.
@@ -38,7 +56,7 @@ Only the supported official file is accepted.
 
 ## After installation
 
-Launch normally and press **Ctrl+O**. Look for **Multiplayer Smoothing Fix: On**.
+Launch in Glide or DirectDraw without `-w` and press **Ctrl+O**. Look for **Multiplayer Smoothing Fix: On**. Use Alt+Enter afterward if you prefer a window.
 
 Keep `d2gl.mpq` and the official `d2fps.dll` in the game folder. Use [the settings guide](SETTINGS.md) to adjust your FPS and picture.
 
