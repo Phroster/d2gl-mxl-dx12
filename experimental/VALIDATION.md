@@ -13,10 +13,12 @@
 - Both x86 renderer DLLs preserve the stable wrapper's exported names and ordinals. They import D3D12, DXGI and D3DCompiler; neither imports OpenGL.
 - The separate Median XL game copy started with the native DX12 adapter and all six original smoothing changes verified. The user reported that the main menu looked normal. Fullscreen/windowed transitions were also recorded in that run.
 - Normal-install file hashes remained unchanged during the isolated test.
+- After the owner reported the experiment working and requested promotion, the tested DX12 DLLs were installed in the main game folder. ReShade 6.6.2.2082 was switched from its OpenGL loader name to `dxgi.dll` while retaining its existing settings and preset.
+- That main-folder startup recorded native DX12 adapter creation, ReShade hooks on the D3D12 device and DXGI swap chain, and successful application/readback of all six smoothing changes. The six selected ReShade effects (Layer, Colourfulness, Deband, Levels, Tonemap and Curves) compiled successfully.
 
 ## Scope of the experiment
 
-Actual single-player and realm-multiplayer gameplay have not yet been confirmed. No numerical performance improvement, universal visual parity or G-Sync behaviour is claimed.
+The owner accepted the experiment as working. The separately documented visual check covers the main menu; no controlled single-player/realm comparison or performance benchmark has been recorded. No numerical performance improvement, universal visual parity or G-Sync behaviour is claimed.
 
 The Windows DX12 debug layer was unavailable on the test machine, so the GPU checks use exact readback results rather than claiming a clean debug-layer run.
 
@@ -31,3 +33,5 @@ Cross-compilation initializes undefined shader values. The bundled legacy EGA pr
 ## Records
 
 Detailed local build/test logs, the readback image and extracted shader fixtures stay in ignored build directories. The isolated game copy and proprietary game files are not part of the source or mod package.
+
+The [2026-09-06 checkpoint manifest](checkpoints/2026-09-06.json) preserves exact renderer identities and redacted installation verification. Personal presets, local paths and full runtime logs are not included.
