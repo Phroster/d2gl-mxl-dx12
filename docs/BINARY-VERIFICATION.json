@@ -1,6 +1,6 @@
 {
   "glide3x.dll": {
-    "sha256": "16ee69b3e50e4965f800885391e3cf3e629f2ea880422e4ad6568498dfb7b0ec",
+    "sha256": "039659e21b86fef856badb8a1b4b6032fae1657aa0fb02fa6bdd616f07756a48",
     "bytes": 2845696,
     "exports": [
       "_d2glConfigQueryImpl@4",
@@ -88,7 +88,7 @@
     ]
   },
   "ddraw.dll": {
-    "sha256": "1936665335fdd31f343afeb2f012757d7c15793d62685d50fedd1d4378946e3d",
+    "sha256": "1a6e9f7b6e1892e40b0aa918d044e08bffdc821465315472a42dade49ae2a6d5",
     "bytes": 2820096,
     "exports": [
       "DirectDrawCreate",
