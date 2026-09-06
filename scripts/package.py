@@ -1,4 +1,4 @@
-"""Route packaging to the DX12 experiment; never package the stable renderer here."""
+"""Run the main DX12 package builder."""
 from pathlib import Path
 import runpy
 runpy.run_path(str(Path(__file__).resolve().parents[1] / "experimental/package.py"), run_name="__main__")

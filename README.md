@@ -1,31 +1,53 @@
-# MXL Smooth Motion — DX12 experiment 0.1
+<p align="center">
+  <img src="docs/banner.svg" alt="MXL Smooth Motion DX12" width="880">
+</p>
 
-This branch contains a **native DirectX 12 renderer** for the supported Median XL / Diablo II 1.13c setup. It keeps the D2GL graphics menu, adds a D2FPS settings tab, and retains the original multiplayer timing fix.
+**DirectX 12 graphics and smoother movement for Median XL.** Keeps the familiar **Ctrl+O menu**, adds easy FPS settings, and works with **ReShade for DirectX**. The multiplayer smoothing fix turns on by itself.
 
-**[Experiment instructions](experimental/README.md)** · [Validation](experimental/VALIDATION.md) · [Design](DX12-EXPERIMENT.md)
+### [Download MXL Smooth Motion DX12 1.0](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip)
 
-The normal public 1.0 release is separate. This experiment has not been published as a replacement.
+## Install — copy, paste, play
 
-## Build
+1. **Open the Median XL launcher.** Let updates finish. Choose **Glide or DirectDraw** and turn **Windowed** off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**:
 
-Install Visual Studio 2022 C++ Build Tools, a Windows SDK, CMake and Git, then run:
+   ![Tick both custom graphics DLLs](docs/launcher-settings.png)
 
-```powershell
-.\build.ps1 -BuildDirectory 'C:\MXL-DX12-Build'
-```
+2. **Close the game and launcher.** Download the ZIP above and extract it.
+3. **Copy these five files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
 
-This fetches pinned shader compiler sources and builds both x86 renderer DLLs and verification programs. It does not install files into a game. Use the CMake build for this branch; the imported Visual Studio project files document the original renderer.
+   ```text
+   glide3x.dll
+   ddraw.dll
+   d2gl.mpq
+   d2gl.ini
+   d2fps.ini
+   ```
 
-To create a mod-only ZIP:
+4. **Start the game and play.** Everything is already set up.
 
-```powershell
-python .\experimental\package.py --build-dir 'C:\MXL-DX12-Build'
-```
+Both launcher choices use **DX12** with this mod. Leave the existing **`d2fps.dll`** alone — the game still needs it.
 
-Use a separate game copy for testing. The package includes the renderer DLLs, unchanged MPQ, INI defaults and license notices; it uses Median XL's official D2FPS.
+Back up your files first if you have custom settings. Copying the INIs replaces those settings with ours. [Keep your settings instead](docs/INSTALL.md#keep-your-existing-settings).
 
-## What has been checked?
+## Your settings are in Ctrl+O
 
-The native GPU image tests, actual Glide shader test, menu test, original timing tests and shader compilation checks passed. The isolated game started successfully and the user confirmed its main menu looked normal. Gameplay and performance still need testing.
+- **Picture:** shaders, sharpening, bloom, HD text and cursor.
+- **FPS tab:** change your FPS limit and movement settings. Save, then restart the game.
+- **Smoothing status:** look for **Multiplayer Smoothing Fix: On**.
+- **Windowed/fullscreen:** press **Alt+Enter** after starting.
 
-Original D2GL, MXL adaptations and D2FPS credits and licenses are retained. Experimental integration by Phroster.
+The default FPS target follows your monitor. The INI files are still available if you prefer editing them.
+
+## ReShade works too
+
+Use [ReShade](https://reshade.me) with **DirectX 10/11/12** selected for `Game.exe`. Keep your existing preset and shader folder. If you previously used ReShade for OpenGL, switch that installation to DirectX too. ReShade is optional and is not included in this download.
+
+[Settings and help](docs/SETTINGS.md) · [Report a problem](https://github.com/Phroster/mxl-smooth-motion-dx12/issues)
+
+For **Windows 10+ with a DX12-capable GPU**, using the supported **Median XL 2.14.0 / Diablo II: Lord of Destruction 1.13c** files. The game stays at its normal speed.
+
+## Credits
+
+Built on work by **Bayaraa, Pooquer, GavinK88 and Jarcho**, with DX12 integration and the smoothing fix by **Phroster**. Community release.
+
+[How it works](docs/ARCHITECTURE.md) · [Build from source](docs/BUILD.md) · [Checks performed](docs/VALIDATION.md) · [License](LICENSE)

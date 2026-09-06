@@ -1,36 +1,39 @@
-# MXL Smooth Motion architecture
+# MXL Smooth Motion DX12 architecture
 
-The repository contains the full MXL D2GL source under `d2gl/`, the D2FPS source workspace under `d2fps/`, an integrated C timing module compiled into both D2GL renderer DLLs, editable config templates, build/package scripts and a reversible installer.
+The main renderer converts the game's Glide or DirectDraw calls into native Direct3D 12 work. Both wrapper DLLs contain the same multiplayer timing correction.
 
-## Runtime
+## Rendering
 
-Only the renderer selected by the existing D2GL startup logic initializes. It reads the INI, loads the official D2FPS through its normal `_Init@0` entry, loads additional user DLLs, and applies the guarded timing correction. Duplicate standard D2FPS initializer entries are skipped by the D2GL loader after successful initialization. Sigma's later initializer call retains D2FPS's normal initialization guard.
+- DX12 textures, buffers, pipeline states, command lists and resource barriers.
+- Reusable upload memory, fenced resource lifetimes and cached binding state.
+- DXGI flip presentation, a short frame queue, and V-Sync/tearing support.
+- D2GL's original graphics options and assets, including the unchanged MPQ.
+- Native DX12 rendering for Dear ImGui and the Ctrl+O menu.
+- An FPS tab that saves D2FPS settings for the next game launch.
 
-The source D2FPS fork is included as maintained source/reference and an optional standalone development build. The launcher-compatible package does not statically link or run a second copy of that engine. The deployed engine is the official D2FPS file, with the corrections applied in process by D2GL. This is what preserves the launcher's expected on-disk D2FPS checksum.
+Shader sources are translated through glslang and SPIRV-Cross, then compiled to DirectX bytecode. The source's internal OpenGL-shaped calls are implemented by the DX12 backend; no OpenGL driver context is created.
 
-The integrated correction replaces five clock operands and the 12-byte upper interpolation clamp: four D2Client clock references, D2FPS's non-SP clock reference, and its realm-only clamp. It retains the nominal 40 ms simulation interval, the original negative-time path, SP/LAN clamp behavior and post-draw restoration of authoritative positions.
+## Timing and D2FPS
 
-## Exact supported files
+The official `d2fps.dll` stays on disk and supplies the FPS engine. The renderer loads it and applies the guarded correction in memory. This preserves the Median XL launcher's normal D2FPS file check.
+
+The correction replaces five clock operands and extends the upper interpolation bound only for realm multiplayer. The original 40 ms simulation interval, negative-time path, SP/LAN bound and authoritative position restoration are retained.
+
+Exact supported SHA-256 hashes:
 
 | File | SHA-256 |
 |---|---|
 | D2Client.dll | `dd8bc6025de921216a97c17f97cd1a50fbb85926e838ec60e13451448836d906` |
 | Official d2fps.dll | `db9de4d4d320a7b70e66fe6b4aaa0e6f1560a5300a4993cc81cf4512ab1240c1` |
 
-D2Sigma must be loaded. PE identity, all six original instruction regions, the existing precise-clock imports and the 40 ms interval are validated before writes. A failed preflight leaves the patch sites unchanged. Writes are read back and instruction-cache/page-protection handling is retained. The menu reports On only after successful application; otherwise it reports Unavailable and the startup log explains why.
+D2Sigma must be loaded. File identity, patch instructions, clock imports and the simulation interval are checked before applying the fix. The status reports On after successful application and readback.
 
-No launcher code, update manifest, graphics-driver setting or global Windows timer configuration is altered by the new timing module. D2GL's existing multimedia timer request remains upstream behavior.
+## Launcher and ReShade
 
-## Launcher compatibility
+Enable both custom graphics DLL checkboxes under the launcher's **Unofficial Graphic Drivers** section. The unchanged MPQ matches the inspected official distribution.
 
-The inspected Median XL launcher allows custom `glide3x.dll` and `ddraw.dll` when both checkboxes under Unofficial Graphic Drivers are enabled. It continues checking the ordinary D2FPS file against the official SHA-1. The installer preserves/restores that exact official file instead of trying to make a modified D2FPS pass as the original.
+ReShade uses its DirectX installation. ReShade 6.6.2.2082 was verified locally through `dxgi.dll`, retaining the existing preset. ReShade and personal presets are not bundled with the mod.
 
-Official D2FPS may be downloaded directly from the existing MXL 2.14.0 distribution endpoint during installation. It is checked against the exact SHA-256 before any game files are replaced. It is not redistributed inside this repository or package.
+The `d2fps/` source workspace remains for development/reference. It is not loaded as a second FPS engine.
 
-The INIs are not managed by the inspected release manifest. `d2gl.mpq` is managed and the bundled archive matches its official SHA-1 exactly. The launcher settings should be selected through the launcher's normal interface. Unknown game/D2FPS updates cause the integrated correction to refuse activation until reviewed.
-
-## Packaging and ownership
-
-The installer changes six named game files, backs up each existing file, stages every replacement first and checks the results. It preserves appearance values while applying a small set of pacing/compatibility defaults. A local-copy option avoids the network when the official D2FPS file is already available. Rollback checks binary identities and preserves later INI edits before restoring originals.
-
-Game binaries, save files and runtime logs are excluded from source distribution. D2GL's existing MPQ and vendored build dependencies are retained with their upstream license notices.
+[Build](BUILD.md) · [Validation](VALIDATION.md) · [Upstream versions](UPSTREAM.json)

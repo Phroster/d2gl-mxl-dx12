@@ -1,6 +1,8 @@
 # Make it feel and look right
 
-The five-file installation already supplies working settings. Everything on this page is optional. **Close the game before editing an INI**, save it, then start the game again.
+The five-file installation already supplies working settings. Everything on this page is optional. Use **Ctrl+O** for graphics and its **FPS** tab for D2FPS settings. Save FPS changes, then restart the game.
+
+If you prefer editing INIs, close the game first, save your edits, then start it again.
 
 ## FPS and movement — d2fps.ini
 
@@ -27,7 +29,7 @@ Use the normal **Ctrl+O** graphics menu to adjust shaders, sharpening, bloom, HD
 - **Prefer a window?** Change fullscreen in the menu or use Alt+Enter after startup. Leave the launcher's Windowed option off and remove `-w` from custom shortcuts.
 - **Want V-Sync?** Use the menu's V-Sync option. It stays available.
 
-Existing visual settings are kept by the installer. If you use the supplied template, it starts with xBRZ scaling, HD text/cursor, sharpening, FXAA and bloom. Adjust these to your taste.
+If you copy the supplied INIs, they start with xBRZ scaling, HD text/cursor, sharpening, FXAA and bloom. Adjust these to your taste, or keep your existing INIs when upgrading.
 
 ## Keep the frame controls in one place
 
@@ -69,6 +71,10 @@ The normal entry is recognized and is not initialized twice by D2GL. Keep other 
 
 It holds the fonts, textures and shaders used by D2GL. Keep the included MPQ beside the renderer DLLs. It is the unchanged matching asset archive; you only need the menu and INIs to configure the game.
 
+## ReShade
+
+Use the official [ReShade installer](https://reshade.me) for your `Game.exe` and choose **DirectX 10/11/12**. Keep your preset and shader folder. An existing OpenGL ReShade installation needs to be switched to DirectX; the verified setup loads ReShade as `dxgi.dll`.
+
 ## Troubleshooting
 
 | Problem | What to check |
@@ -83,6 +89,6 @@ It holds the fonts, textures and shaders used by D2GL. Keep the included MPQ bes
 | FPS is lower after Alt-Tab | `bg-fps=25` applies while the game is in the background. |
 | G-Sync or FreeSync behaves differently with another monitor | This package does not change driver settings. Display/driver behavior is separate from the movement correction. |
 
-For help, [open an issue](https://github.com/Phroster/mxl-smooth-motion/issues) with the game version, Glide or DirectDraw mode, and the relevant smoothing log lines.
+For help, [open an issue](https://github.com/Phroster/mxl-smooth-motion-dx12/issues) with the game version, Glide or DirectDraw mode, and the relevant smoothing log lines.
 
 [Back to the player guide](../README.md)

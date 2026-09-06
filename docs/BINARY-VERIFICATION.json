@@ -1,7 +1,9 @@
 {
   "glide3x.dll": {
-    "sha256": "039659e21b86fef856badb8a1b4b6032fae1657aa0fb02fa6bdd616f07756a48",
-    "bytes": 2845696,
+    "sha256": "76919c0b3938b1717af6e15f42fd03b617268f5c23aa37ed1f541993762ab196",
+    "bytes": 3526144,
+    "architecture": "x86",
+    "rendering_api": "Direct3D 12",
     "exports": [
       "_d2glConfigQueryImpl@4",
       "_grAADrawTriangle@24",
@@ -60,36 +62,37 @@
     ],
     "imports": [
       "ADVAPI32.dll",
-      "KERNEL32.dll",
+      "VERSION.dll",
+      "WINMM.dll",
       "USER32.dll",
       "GDI32.dll",
       "SHELL32.dll",
-      "OPENGL32.dll",
-      "VERSION.dll",
-      "WINMM.dll",
-      "MSVCP140.dll",
       "IMM32.dll",
+      "d3d12.dll",
+      "dxgi.dll",
+      "D3DCOMPILER_47.dll",
+      "KERNEL32.dll",
+      "MSVCP140.dll",
       "VCRUNTIME140.dll",
       "api-ms-win-crt-runtime-l1-1-0.dll",
-      "api-ms-win-crt-string-l1-1-0.dll",
-      "api-ms-win-crt-stdio-l1-1-0.dll",
       "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
       "api-ms-win-crt-math-l1-1-0.dll",
       "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
       "api-ms-win-crt-time-l1-1-0.dll",
       "api-ms-win-crt-filesystem-l1-1-0.dll",
       "api-ms-win-crt-utility-l1-1-0.dll",
       "api-ms-win-crt-locale-l1-1-0.dll"
     ],
-    "product_name": "MXL Smooth Motion",
-    "product_version": "1.0.0.0",
-    "pdb_references": [
-      "glide3x.pdb"
-    ]
+    "windows_file_version": "0.1.0.0",
+    "note": "Exact accepted DX12 checkpoint binary; promoted without rebuilding."
   },
   "ddraw.dll": {
-    "sha256": "1a6e9f7b6e1892e40b0aa918d044e08bffdc821465315472a42dade49ae2a6d5",
-    "bytes": 2820096,
+    "sha256": "8d5cd57a8cccfd5c6e19bd2397572f9c93dcdc9d599ff6f81b367c48a73a55cc",
+    "bytes": 3502080,
+    "architecture": "x86",
+    "rendering_api": "Direct3D 12",
     "exports": [
       "DirectDrawCreate",
       "DirectDrawEnumerateA",
@@ -98,40 +101,31 @@
     ],
     "imports": [
       "ADVAPI32.dll",
-      "KERNEL32.dll",
+      "VERSION.dll",
+      "WINMM.dll",
       "USER32.dll",
       "GDI32.dll",
       "SHELL32.dll",
-      "OPENGL32.dll",
-      "VERSION.dll",
-      "WINMM.dll",
-      "MSVCP140.dll",
       "IMM32.dll",
+      "d3d12.dll",
+      "dxgi.dll",
+      "D3DCOMPILER_47.dll",
+      "KERNEL32.dll",
+      "MSVCP140.dll",
       "VCRUNTIME140.dll",
       "api-ms-win-crt-runtime-l1-1-0.dll",
-      "api-ms-win-crt-string-l1-1-0.dll",
-      "api-ms-win-crt-stdio-l1-1-0.dll",
       "api-ms-win-crt-heap-l1-1-0.dll",
       "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
       "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
       "api-ms-win-crt-time-l1-1-0.dll",
       "api-ms-win-crt-filesystem-l1-1-0.dll",
       "api-ms-win-crt-utility-l1-1-0.dll",
       "api-ms-win-crt-locale-l1-1-0.dll"
     ],
-    "product_name": "MXL Smooth Motion",
-    "product_version": "1.0.0.0",
-    "pdb_references": [
-      "ddraw.pdb"
-    ]
-  },
-  "launcher_manifest_compatibility": {
-    "glide3x.dll": "permitted custom renderer with enabled setting",
-    "ddraw.dll": "permitted custom renderer with enabled setting",
-    "d2gl.mpq": "official manifest SHA-1 matches",
-    "d2gl.ini": "not managed by the inspected manifest",
-    "d2fps.ini": "not managed by the inspected manifest",
-    "d2fps.dll": "official manifest SHA-1 matches"
+    "windows_file_version": "0.1.0.0",
+    "note": "Exact accepted DX12 checkpoint binary; promoted without rebuilding."
   },
   "mpq_sha256": "f6c85e6f0b77df3524dd7f4aafa66fd81ddf505907e363b531a6d47b0a7d201a"
 }

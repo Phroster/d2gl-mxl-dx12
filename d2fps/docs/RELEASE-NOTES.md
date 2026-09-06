@@ -2,7 +2,7 @@
 
 This source workspace contains the Rust timing integration that preceded the combined **[MXL Smooth Motion package](../../README.md)**. It is retained for development and comparison.
 
-The old standalone release has been retired. Use the [current 1.0 release](https://github.com/Phroster/mxl-smooth-motion/releases/tag/v1.0) for player downloads. The combined package runs the official D2FPS engine and applies the correction through D2GL.
+The old standalone release has been retired. Use the [current 1.0 release](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/tag/v1.0) for player downloads. The combined package runs the official D2FPS engine and applies the correction through D2GL.
 
 Historical standalone build identity:
 
