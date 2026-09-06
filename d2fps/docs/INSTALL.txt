@@ -1,44 +1,9 @@
-D2FPS - MEDIAN XL MULTIPLAYER SMOOTHING 1.0
+D2FPS SOURCE COMPONENT - DEVELOPER REFERENCE
 
-WHAT IT DOES
+This directory is part of MXL Smooth Motion. It is not a separate player download.
+The current package uses the official D2FPS DLL, with the timing correction in D2GL.
 
-Helps reduce the tiny movement pauses that can make online play feel less
-smooth than single player. It improves movement timing and fills short gaps
-between game updates. Your FPS and graphics settings are kept, and the game
-still plays at its normal speed.
+For player installation and settings:
+https://github.com/Phroster/mxl-smooth-motion
 
-FOR
-
-Median XL on Windows 10 or newer, using Diablo II 1.13c with D2GL and D2FPS
-already installed. This is a community update for a supported game version.
-See the repository for the supported game version and checks performed.
-
-INSTALL
-
-1. Close the game.
-2. Find your Median XL folder containing Game.exe and d2fps.dll.
-   Back up your current d2fps.dll somewhere outside that folder.
-3. Copy this package's d2fps.dll into the game folder and choose Replace.
-4. Launch normally. Keep your own d2fps.ini and graphics settings.
-
-For an existing D2FPS setup, replacing that one file is all you need.
-
-CHECK
-
-Open d2fps.log after launching. Look for MXL timing ACTIVE.
-If it is missing or says MXL timing REFUSED, the extra fix has not activated.
-Check the game folder and supported version. A launcher update may restore
-the original file or require an updated fix.
-
-UNDO
-
-Close the game and put your backed-up d2fps.dll back.
-
-Downloads, supported version and help:
-https://github.com/Phroster/d2fps-mxl-smoothing
-
-Matching source code:
-https://github.com/Phroster/d2fps-mxl-smoothing/tree/v1.0
-
-Based on Jarcho's D2FPS. Timing changes by Phroster.
-License files and download checksums are included.
+See the root README.md and docs/INSTALL.md in this repository or release package.

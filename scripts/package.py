@@ -8,7 +8,7 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-package = root / "dist" / "d2gl-d2fps-mxl-1.0"
+package = root / "dist" / "mxl-smooth-motion-1.0"
 package.mkdir(parents=True, exist_ok=True)
 files = {
     "glide3x.dll": root / "build/bin/glide3x.dll",
@@ -17,10 +17,16 @@ files = {
     "d2gl.ini": root / "defaults/d2gl.ini",
     "d2fps.ini": root / "defaults/d2fps.ini",
     "README.md": root / "README.md",
+    "START-HERE.txt": root / "START-HERE.txt",
+    "docs/banner.svg": root / "docs/banner.svg",
+    "docs/INSTALL.md": root / "docs/INSTALL.md",
+    "docs/BUILD.md": root / "docs/BUILD.md",
+    "docs/RELEASE-NOTES.md": root / "docs/RELEASE-NOTES.md",
     "docs/SETTINGS.md": root / "docs/SETTINGS.md",
     "docs/ARCHITECTURE.md": root / "docs/ARCHITECTURE.md",
     "docs/UPSTREAM.json": root / "docs/UPSTREAM.json",
     "docs/VALIDATION.md": root / "docs/VALIDATION.md",
+    "docs/RUNTIME-CHECK.txt": root / "docs/RUNTIME-CHECK.txt",
     "docs/NATIVE-TESTS.txt": root / "docs/NATIVE-TESTS.txt",
     "docs/D2FPS-SOURCE-TESTS.txt": root / "docs/D2FPS-SOURCE-TESTS.txt",
     "docs/INSTALLER-TESTS.txt": root / "docs/INSTALLER-TESTS.txt",
@@ -50,7 +56,8 @@ assert next(x["sha256"] for x in entries if x["name"] == "d2gl.mpq") == "f6c85e6
 revision = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True, capture_output=True)
 manifest = {
     "version": "1.0",
-    "source_repository": "https://github.com/Phroster/d2gl-d2fps-mxl",
+    "product": "MXL Smooth Motion",
+    "source_repository": "https://github.com/Phroster/mxl-smooth-motion",
     "source_commit": revision.stdout.strip() if revision.returncode == 0 else "uncommitted-local-build",
     "official_d2fps_sha256": "db9de4d4d320a7b70e66fe6b4aaa0e6f1560a5300a4993cc81cf4512ab1240c1",
     "files": entries,

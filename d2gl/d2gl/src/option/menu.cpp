@@ -184,7 +184,7 @@ void Menu::draw()
 		ImGui::SetCursorPos({ 450.0f, 74.0f });
 		ImGui::PushFont(m_fonts[14]);
 		ImGui::PushStyleColor(ImGuiCol_Text, m_colors[Color::Gray]);
-		ImGui::Text("D2GL v%s by Bayaraa. MXL v%s", App.version_str.c_str(), App.mxl_ver.c_str());
+		ImGui::Text("MXL Smooth Motion %s | D2GL %s by Bayaraa", App.mxl_ver.c_str(), App.version_str.c_str());
 		ImGui::PopStyleColor();
 		ImGui::PopFont();	
 		// ImGui::SetTabItemClosed("Screen");

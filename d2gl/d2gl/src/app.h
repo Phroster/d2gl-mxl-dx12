@@ -38,12 +38,12 @@ struct D2GLApp {
 	bool ready = false;
 	bool direct = false;
 
-	std::string menu_title = "D2GL + D2FPS MXL";
+	std::string menu_title = "MXL Smooth Motion";
 	std::string version_str = "1.3.3";
 	std::string ini_file = "d2gl.ini";
 	std::string mpq_file = "d2gl.mpq";
 	std::string log_file = "d2gl.log";
-	std::string mxl_ver = "1.0-combined";
+	std::string mxl_ver = "1.0";
 
 	Api api = Api::Glide;
 	std::unique_ptr<Context> context;

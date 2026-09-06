@@ -1,6 +1,6 @@
 # Build and compatibility details
 
-The [player guide](../README.md) contains the normal one-file installation steps. This page keeps implementation and build details out of those instructions.
+This page describes the retained standalone development build and its historical validation. Players should use the [MXL Smooth Motion guide](../../README.md); the current package keeps the official D2FPS engine and applies the correction through D2GL.
 
 ## Supported game
 

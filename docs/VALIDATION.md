@@ -6,7 +6,7 @@ The included Rust D2FPS source workspace also compiled in its new location and p
 
 The installer and restore script were executed against an isolated fixture, not the user's game. Checks confirmed official D2FPS restoration, recommended pacing values, preserved custom visuals, optional foreground-FPS preservation, byte-exact rollback, preservation of later INI edits, refusal of an unsupported D2FPS input before game writes, and refusal to overwrite an externally changed binary during rollback.
 
-Both wrappers are x86. Glide's 54 exported names/ordinals match the user's working GavinK88 renderer. DirectDraw exposes the imported fork's expected four entry points and provides the game's required `DirectDrawCreate`. Its optional vendor interface differs from the currently installed MXL DirectDraw wrapper; it is not claimed to be the same binary/API implementation. Runtime DirectDraw validation remains part of the installation test.
+Both wrappers are x86. Glide's 54 exported names/ordinals match the previously working GavinK88 renderer. DirectDraw exposes the imported fork's expected four entry points and provides the game's required `DirectDrawCreate`. Its optional vendor interface differs from the official MXL DirectDraw wrapper. The public 1.0 rebuild retains the combined preview's export names, ordinals and imports.
 
 The multiplayer correction is included directly in each renderer. No separate runtime correction DLL is produced. The menu status is read-only and reports On only after the patch application/readback succeeds.
 
@@ -16,6 +16,10 @@ The current launcher's manifest and inspected exception logic were compared with
 
 Concise records: [embedded tests](NATIVE-TESTS.txt), [D2FPS source tests](D2FPS-SOURCE-TESTS.txt), [installer tests](INSTALLER-TESTS.txt), and [binary/manifest checks](BINARY-VERIFICATION.json). Build warnings were in inherited renderer code and missing vendor-library PDBs; both release builds completed.
 
-This build has not been installed into the user's game during preparation. End-to-end game startup, both rendering modes and launcher update behavior must be assessed during the installation test. Build/static checks alone are not evidence of in-game activation.
+The combined implementation was installed in the supported Median XL game folder and started successfully. Its startup log on 2026-09-06 confirms all six timing regions were applied and read back, with the simulation interval still 40 ms. D2FPS's log confirms the official engine, motion smoothing and automatic monitor-refresh target were active. See the [redacted runtime record](RUNTIME-CHECK.txt).
+
+Public release 1.0 rebuilds that implementation with the MXL Smooth Motion menu, log and Windows product labels. Timing calculations and patch guards are unchanged. Absolute build-machine paths were removed from the renderer PDB references. The native timing tests passed again after rebuilding.
+
+Evidence scope: successful guarded startup of the pre-branding combined implementation, native tests and package/installer checks. This is not a measured FPS/frametime comparison or a claim that every renderer, display configuration and future launcher update has been tested.
 
 Detailed build logs and executable test results remain under the ignored `build/` directory. Only concise verification summaries are included in source/release documentation; original game DLLs and personal paths are not published.

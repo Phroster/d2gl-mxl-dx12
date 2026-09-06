@@ -1,0 +1,57 @@
+MXL SMOOTH MOTION 1.0
+D2GL + D2FPS for Median XL
+
+Helps reduce small pauses in online movement, even when the FPS counter is high.
+The multiplayer fix turns on automatically. The game keeps its normal speed.
+
+For Windows 10+ and the supported Median XL / Diablo II 1.13c setup
+using the files from MXL 2.14.0.
+
+INSTALL
+
+1. Let the Median XL launcher finish updating. In its settings, enable
+   Unofficial Graphics Drivers for Glide and DirectDraw.
+2. Close the game and launcher. Find the folder with Game.exe and D2Sigma.dll.
+   Back up its glide3x.dll, ddraw.dll, d2gl.mpq, d2gl.ini and d2fps.ini.
+3. Copy these three files from this package into that game folder:
+      glide3x.dll
+      ddraw.dll
+      d2gl.mpq
+   Choose Replace.
+4. Keep your own INI files. Copy a supplied INI only if yours is missing.
+   Open d2fps.ini in Notepad and edit the existing lines to:
+      fps=0
+      bg-fps=25
+      menu-fps=true
+      game-fps=true
+      motion-smoothing=true
+      arcane-bg=false
+5. Start normally. Press Ctrl+O and check Multiplayer Smoothing Fix: On.
+
+Keep the launcher's official d2fps.dll in the game folder.
+This build loads it automatically. No separate fix DLL is needed.
+Keep the MPQ beside the renderer DLLs.
+
+CONFIGURE
+
+fps=0 follows your monitor refresh rate. A number such as fps=120 sets a target.
+bg-fps=25 reduces rendering while the game is in the background.
+Use Ctrl+O for graphics, fullscreen, shaders, sharpening, bloom and HD text.
+Read docs/SETTINGS.md for more settings and troubleshooting.
+
+OPTIONAL INSTALLER
+
+See docs/INSTALL.md for the PowerShell installer with automatic backups.
+The manual steps above do not require running a script.
+
+UNDO
+
+Close the game and launcher, then restore the files you backed up.
+If you used the installer, use restore.ps1 in the backup folder it printed.
+
+Help, updates and source:
+https://github.com/Phroster/mxl-smooth-motion
+
+Independent community release.
+Based on D2GL by Bayaraa, MXL adaptations by Pooquer/GavinK88, and D2FPS by Jarcho.
+Smoothing integration and packaging by Phroster. Licenses are included.

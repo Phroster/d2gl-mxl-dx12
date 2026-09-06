@@ -1,0 +1,28 @@
+MXL Smooth Motion - runtime evidence
+
+Supported Median XL installation, startup on 2026-09-06.
+This record describes the combined implementation before the public name change.
+Personal paths, addresses and unrelated module logs are omitted.
+
+mxl-smoothing.log:
+  D2Client client step time: applied, readback verified.
+  D2Client paused update time: applied, readback verified.
+  D2Client paused draw time: applied, readback verified.
+  D2Client client loop time: applied, readback verified.
+  D2FPS multiplayer interpolation clock: applied, readback verified.
+  D2FPS realm-only bounded interpolation: applied, readback verified.
+  SUCCESS: 6 regions changed and verified; simulation interval remains 40 ms.
+  Realm type 3: maximum extra visual prediction is 20 ms. SP/LAN: original clamp.
+
+d2fps.log:
+  fps: 0
+  bg-fps: 25
+  Detected game version: v1.13c
+  Applied feature: motion smoothing
+  reapply-patches: true
+  integrity-checks: true
+  Official D2FPS file version: 1.0.1.0
+  Monitor refresh detection succeeded.
+
+The public name/resource changes preserve the timing calculations and guards.
+This is startup evidence, not a benchmark or coverage of all renderer modes.

@@ -1,4 +1,4 @@
-# Combined architecture
+# MXL Smooth Motion architecture
 
 The repository contains the full MXL D2GL source under `d2gl/`, the D2FPS source workspace under `d2fps/`, an integrated C timing module compiled into both D2GL renderer DLLs, editable config templates, build/package scripts and a reversible installer.
 

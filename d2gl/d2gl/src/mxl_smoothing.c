@@ -208,7 +208,7 @@ void __stdcall MxlSmoothing_Initialize(void) {
     log_file=CreateFileW(log_path,GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,
                         CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
     SYSTEMTIME now; GetLocalTime(&now);
-    log_line("MXL combined smoothing 1.0 / x86 / %04u-%02u-%02u %02u:%02u:%02u",
+    log_line("MXL Smooth Motion 1.0 / x86 / %04u-%02u-%02u %02u:%02u:%02u",
               now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond);
     HMODULE client=GetModuleHandleW(L"D2Client.dll"), fps=GetModuleHandleW(L"d2fps.dll");
     if (!check_module(client,directory,"dd8bc6025de921216a97c17f97cd1a50fbb85926e838ec60e13451448836d906",0x135000,0x4b95ca3e) ||

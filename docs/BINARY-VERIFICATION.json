@@ -1,6 +1,6 @@
 {
   "glide3x.dll": {
-    "sha256": "a6ea64b0e0184cfd44d216f8d7c84d6821c608541a4847a2be82df37fe8b84b1",
+    "sha256": "16ee69b3e50e4965f800885391e3cf3e629f2ea880422e4ad6568498dfb7b0ec",
     "bytes": 2845696,
     "exports": [
       "_d2glConfigQueryImpl@4",
@@ -80,11 +80,16 @@
       "api-ms-win-crt-filesystem-l1-1-0.dll",
       "api-ms-win-crt-utility-l1-1-0.dll",
       "api-ms-win-crt-locale-l1-1-0.dll"
+    ],
+    "product_name": "MXL Smooth Motion",
+    "product_version": "1.0.0.0",
+    "pdb_references": [
+      "glide3x.pdb"
     ]
   },
   "ddraw.dll": {
-    "sha256": "e23dbf94fd3d65f9db963a587bc10f30efa0a52dbb2e55f7b2df9a94d2e32a30",
-    "bytes": 2820608,
+    "sha256": "1936665335fdd31f343afeb2f012757d7c15793d62685d50fedd1d4378946e3d",
+    "bytes": 2820096,
     "exports": [
       "DirectDrawCreate",
       "DirectDrawEnumerateA",
@@ -113,6 +118,11 @@
       "api-ms-win-crt-filesystem-l1-1-0.dll",
       "api-ms-win-crt-utility-l1-1-0.dll",
       "api-ms-win-crt-locale-l1-1-0.dll"
+    ],
+    "product_name": "MXL Smooth Motion",
+    "product_version": "1.0.0.0",
+    "pdb_references": [
+      "ddraw.pdb"
     ]
   },
   "launcher_manifest_compatibility": {

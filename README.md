@@ -1,59 +1,110 @@
-# D2GL + D2FPS for Median XL
+<p align="center">
+  <img src="docs/banner.svg" alt="MXL Smooth Motion — D2GL + D2FPS for Median XL" width="880">
+</p>
 
-Private combined project for smoother multiplayer movement, with normal editable INI files and the existing D2GL graphics menu.
+<p align="center">
+  <strong>Smoother online movement. Your familiar graphics menu.</strong><br>
+  A community project combining D2GL, D2FPS and an automatic multiplayer smoothing fix.
+</p>
 
-**Multiplayer Smoothing Fix is built in and enabled automatically. There is no switch.** The D2GL menu shows its actual status. If the supported-file checks fail, it reports **Unavailable** and records the reason in `mxl-smoothing.log`.
+<p align="center">
+  <a href="https://github.com/Phroster/mxl-smooth-motion/releases/download/v1.0/mxl-smooth-motion-1.0.zip"><strong>Download 1.0</strong></a> ·
+  <a href="docs/SETTINGS.md">Settings guide</a> ·
+  <a href="https://github.com/Phroster/mxl-smooth-motion/issues">Get help</a>
+</p>
 
-## What gets installed
+## What does it do?
 
-| File | Purpose |
+Does Median XL feel smooth in single player, but slightly choppy online even with a high FPS counter? **MXL Smooth Motion** is aimed at those small pauses in movement.
+
+Diablo II updates movement in steps. D2FPS draws the movement between those steps. This fix uses more precise timing and allows movement to continue briefly when the next online update arrives a little late. The game still plays at its normal speed.
+
+You get D2GL's graphics, D2FPS's higher frame rates and movement smoothing, and the multiplayer fix in one package. **The extra fix is on automatically**, with no switch to hunt for. It does not fix connection lag or server delays.
+
+## Before you install
+
+For **Windows 10 or newer**, with the supported **Median XL / Diablo II: Lord of Destruction 1.13c** setup. The supported files are from the Median XL **2.14.0** distribution. This is a community project for the classic game, not Diablo II: Resurrected.
+
+Keep the launcher's official **`d2fps.dll`**. It still provides the FPS engine. The fix is built into this package's D2GL files and is applied each time the game starts, so the launcher restoring the supported official D2FPS does not undo the fix. Both projects' source code is included here.
+
+## Install in six steps
+
+1. **Let the Median XL launcher finish updating.** This also restores the official D2FPS if you used an older custom version.
+2. In the launcher settings, enable **Unofficial Graphics Drivers** for **Glide** and **DirectDraw**. This lets you keep these custom graphics files.
+3. **Close the game and launcher.** Find the actual game folder containing `Game.exe` and `D2Sigma.dll`. Back up its `glide3x.dll`, `ddraw.dll`, `d2gl.mpq`, `d2gl.ini` and `d2fps.ini` somewhere separate.
+4. [Download **mxl-smooth-motion-1.0.zip**](https://github.com/Phroster/mxl-smooth-motion/releases/download/v1.0/mxl-smooth-motion-1.0.zip) and extract it. Copy **`glide3x.dll`, `ddraw.dll` and `d2gl.mpq`** into the game folder, choosing **Replace**.
+5. **Keep your existing INI files.** Copy a supplied INI only if yours is missing. Open `d2fps.ini` in Notepad and set the values below; edit existing lines rather than adding duplicates.
+6. Start the game normally. Press **Ctrl+O** and look for **Multiplayer Smoothing Fix: On**.
+
+```ini
+fps=0
+bg-fps=25
+menu-fps=true
+game-fps=true
+motion-smoothing=true
+arcane-bg=false
+```
+
+`fps=0` follows your monitor's refresh rate. You can use a number instead, such as `fps=120`. See the [settings guide](docs/SETTINGS.md) for FPS, picture quality and troubleshooting.
+
+**Already using the private combined build?** Replace the two renderer DLLs with this release and keep your matching MPQ and INIs.
+
+<details>
+<summary>Optional installer with automatic backup</summary>
+
+Extract the release ZIP into a separate folder. With the game and launcher closed, open PowerShell there and run the following, replacing the example path with your game folder:
+
+```powershell
+.\scripts\install.ps1 -GameDirectory 'C:\Games\Median XL\median-xl'
+```
+
+It checks compatibility, keeps or obtains the supported official D2FPS, preserves your visual settings and applies the FPS defaults above. Add `-PreserveFrameRate` to keep your existing FPS target. It prints the backup folder and includes a restore script.
+
+See [installation and restore details](docs/INSTALL.md).
+
+</details>
+
+## Configure it your way
+
+| What you want to change | Where to change it |
 |---|---|
-| `glide3x.dll` | D2GL for Glide mode, with the built-in smoothing correction |
-| `ddraw.dll` | D2GL for DirectDraw mode, with the same correction |
-| `d2gl.mpq` | D2GL's fonts, textures and shaders; keep this beside the DLLs |
-| `d2gl.ini` | Your editable graphics and window settings |
-| `d2fps.ini` | Your editable FPS and movement settings |
+| FPS target or FPS while Alt-Tabbed | `d2fps.ini` |
+| Sharpening, bloom, shaders, HD text or fullscreen | **Ctrl+O**, or `d2gl.ini` |
+| Check the multiplayer fix | **Ctrl+O → Multiplayer Smoothing Fix** |
 
-The normal **official `d2fps.dll` remains in the game folder**. The installer obtains the supported official build if needed and verifies it. D2GL loads that engine, then applies the timing correction while the game runs. The launcher can continue checking the official file normally.
+D2FPS handles the frame limit and movement smoothing automatically. The extra D2GL limiters and motion prediction are disabled when D2FPS loads.
 
-Both source trees are included here. The launcher-compatible package uses the official D2FPS engine with the integrated correction; the source D2FPS fork is also retained for development and comparison. It is not loaded as a second FPS engine.
+D2FPS also loads automatically. An existing line like this in `d2gl.ini` is supported and can stay:
 
-## Install
+```ini
+load_dlls_early=d2fps.dll:stdcall:_Init@0
+```
 
-1. In the Median XL launcher settings, enable **Unofficial Graphics Drivers** for the renderer you use (`glide3x.dll` or `ddraw.dll`). Enable both if you want to switch between them. Close the game and launcher.
-2. Extract the combined ZIP into a separate folder.
-3. Run its installer from PowerShell, supplying your actual game folder:
+You do not need to add it for this build. Keep any other entries you already use.
 
-   ```powershell
-   .\scripts\install.ps1 -GameDirectory 'G:\Median XL\median-xl'
-   ```
+## What is in the download?
 
-4. Start the game normally. For Glide, use the launcher's Glide/fullscreen settings or your usual `-3dfx` shortcut without `-w`; Alt+Enter still changes window mode in game. Open the D2GL menu with **Ctrl+O** to see the smoothing status.
+| File | What it is for |
+|---|---|
+| `glide3x.dll` | D2GL for Glide, with the multiplayer fix |
+| `ddraw.dll` | D2GL for DirectDraw, with the same fix |
+| `d2gl.mpq` | The matching fonts, textures and shaders |
+| `d2gl.ini` / `d2fps.ini` | Editable settings templates |
+| `START-HERE.txt` / `docs/` | Installation and settings help |
+| `scripts/` | Optional installer and restore tool |
 
-The installer backs up everything it replaces. It preserves existing visual settings and applies the pacing defaults described below. To keep your existing foreground FPS target, add `-PreserveFrameRate` to the install command. An optional `-OfficialD2FpsPath` accepts a local copy of the supported official DLL; its hash is checked too.
+**The MPQ stays beside the DLLs.** You do not need to edit it. The official `d2fps.dll` comes from the Median XL launcher, so it is not included in the ZIP.
 
-For manual installation, use the official D2FPS already supplied by the launcher, copy the two renderer DLLs and `d2gl.mpq`, and use the supplied INIs as templates. Do not overwrite your own visual settings without a backup.
+## Need help or want to undo it?
 
-## Editable defaults
+If the status says **Unavailable**, check `mxl-smoothing.log` in the game folder. A game update can change the supported files. [Open an issue](https://github.com/Phroster/mxl-smooth-motion/issues) with your game version, rendering mode and the relevant log lines.
 
-- D2FPS follows the monitor refresh rate (`fps=0`) and limits background rendering to 25 FPS.
-- D2FPS is the single FPS limiter and movement smoother. D2GL's duplicate limiter/prediction options stay off.
-- Frame latency stays at 1. The default templates preserve the tested HD text and visual profile.
-- D2FPS's optional Arcane background patch is disabled because it does not match the tested MXL client; it was already being disabled automatically in the previous setup.
-- Existing shader, bloom, sharpening and other appearance choices remain editable. See [settings](docs/SETTINGS.md).
+To undo a manual installation, close the game and launcher and restore your backed-up files. If you used the installer, follow the [restore guide](docs/INSTALL.md#restore-an-installer-backup).
 
-These are conservative defaults, not a claimed percentage performance gain. No NVIDIA profile or Windows display setting is changed.
+## Credits and source
 
-## Restore the previous setup
+Built on **D2GL by Bayaraa**, the **Median XL adaptations by Pooquer and GavinK88**, and **D2FPS by Jarcho**. Multiplayer smoothing integration and packaging by **Phroster**. This is an independent community release.
 
-Close the game and launcher, then run `restore.ps1` from the backup directory printed by the installer. Later INI edits are preserved in that backup directory before the original configuration is restored. If another program has changed a DLL since installation, the restore script stops for version review.
+[How the fix works](docs/ARCHITECTURE.md) · [Build from source](docs/BUILD.md) · [Validation](docs/VALIDATION.md) · [Upstream versions](docs/UPSTREAM.json) · [GPL-3.0 license](LICENSE)
 
-## Build
-
-Clone this repository or extract the corresponding source archive, install Visual Studio 2022 C++ Build Tools and a Windows SDK, then run `./build.ps1` from the source root. It runs native smoothing tests and builds both renderer DLLs without deploying them to a game.
-
-Run `python scripts/package.py` to create the ZIP under `dist/`. The D2FPS workspace can also be built separately with `d2fps/build-mxl.ps1`; that is an optional development build, not the runtime DLL shipped by this package.
-
-[Architecture and compatibility](docs/ARCHITECTURE.md) · [Build/test evidence](docs/VALIDATION.md) · [Source versions](docs/UPSTREAM.json)
-
-Based on D2GL by Bayaraa, the MXL work by Pooquer/GavinK88, and D2FPS by Jarcho, with the smoothing integration by Phroster. Original licenses and third-party notices remain in each source tree and the package.
+Original project licenses, authorship and third-party notices are retained. The release includes the corresponding source archive.

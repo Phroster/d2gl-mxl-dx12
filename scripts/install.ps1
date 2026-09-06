@@ -101,7 +101,7 @@ foreach ($taskName in @('d2gl.ini','d2fps.ini')) {
 }
 
 $taskNames=@('d2fps.dll','glide3x.dll','ddraw.dll','d2gl.mpq','d2gl.ini','d2fps.ini')
-$taskBackup=Join-Path $taskGame ('mxl-combined-backups\'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
+$taskBackup=Join-Path $taskGame ('mxl-smooth-motion-backups\'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $taskBackup -Force | Out-Null
 $taskEntries=@()
 foreach ($taskName in $taskNames) {

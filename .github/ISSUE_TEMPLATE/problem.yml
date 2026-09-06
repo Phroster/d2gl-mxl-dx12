@@ -1,0 +1,49 @@
+name: Report a problem
+description: Get help with installation, settings or movement.
+title: "[Problem] "
+body:
+  - type: markdown
+    attributes:
+      value: "Please check the README and settings guide first. Share only the relevant log lines; remove personal paths or account details."
+  - type: input
+    id: version
+    attributes:
+      label: Median XL and MXL Smooth Motion versions
+      placeholder: "MXL 2.14.0, Smooth Motion 1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Rendering mode
+      options:
+        - Glide
+        - DirectDraw
+        - Unsure
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Multiplayer Smoothing Fix status in Ctrl+O
+      options:
+        - "On"
+        - Unavailable
+        - Cannot find the status
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happens?
+      description: "Describe the problem and how to reproduce it. For movement issues, mention online, LAN or single player."
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant mxl-smoothing.log lines
+      render: text
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings and other graphics mods
+      description: "Include your FPS target, monitor refresh rate and any other graphics mods that might matter."
