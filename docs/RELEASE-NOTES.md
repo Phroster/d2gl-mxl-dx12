@@ -1,58 +1,42 @@
 # MXL Smooth Motion 1.0
 
-**D2GL + D2FPS for Median XL, with smoother online movement.**
+**Helps Median XL feel smoother online, even when your FPS is already high.**
 
-This community release brings the graphics wrapper and multiplayer smoothing fix together in one package. It is aimed at the tiny movement pauses that can make online play feel less smooth than single player, even with high FPS.
+### [Download mxl-smooth-motion-1.0.zip](https://github.com/Phroster/mxl-smooth-motion/releases/download/v1.0/mxl-smooth-motion-1.0.zip)
 
-## Download
+## Copy, paste, play
 
-**Choose [mxl-smooth-motion-1.0.zip](https://github.com/Phroster/mxl-smooth-motion/releases/download/v1.0/mxl-smooth-motion-1.0.zip)** for the game files and instructions.
+1. Open the Median XL launcher and let it finish updating. Choose **Glide or DirectDraw** and turn **Windowed** off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**, like this:
 
-The source ZIP is for developers. `SHA256SUMS.txt` contains the download checksums.
+   ![Tick Glide3x.dll and Ddraw.dll under Unofficial Graphic Drivers](https://raw.githubusercontent.com/Phroster/mxl-smooth-motion/v1.0/docs/launcher-settings.png)
 
-## What is included?
+2. Close the game and launcher. Download and extract the ZIP.
+3. Copy these **five files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
 
-- D2GL for **Glide and DirectDraw**, with the multiplayer fix built in.
-- **Automatic activation**, with **Multiplayer Smoothing Fix: On** shown in the Ctrl+O menu.
-- Matching `d2gl.mpq` for fonts, textures and shaders.
-- Editable `d2gl.ini` and `d2fps.ini`, plus a plain-language settings guide.
-- Optional installer with backups and a restore tool.
-- Complete corresponding source and original license notices.
+   ```text
+   glide3x.dll
+   ddraw.dll
+   d2gl.mpq
+   d2gl.ini
+   d2fps.ini
+   ```
 
-The package uses the launcher's **official `d2fps.dll`** as its FPS engine. Keep that file even if the launcher restores it: our D2GL applies the fix at each startup. It is not included in the ZIP.
+4. **Start the game and play.** The smoothing fix turns on by itself.
 
-## Install
+**No settings to edit and no installer to run.** Leave the existing **`d2fps.dll`** alone — the game still needs it.
 
-1. Let the Median XL launcher finish updating. Enable **Unofficial Graphics Drivers** for **Glide** and **DirectDraw**.
-2. Close the game and launcher. Back up your current renderer DLLs, MPQ and INIs.
-3. Extract the ZIP. Copy **`glide3x.dll`, `ddraw.dll` and `d2gl.mpq`** into the actual game folder containing `Game.exe` and `D2Sigma.dll`, choosing **Replace**.
-4. Keep your own INIs; copy a supplied INI only if yours is missing. In `d2fps.ini`, use:
+Already have custom settings? Back up your files first. Copying the INIs replaces them with ours. [Keep your settings instead](https://github.com/Phroster/mxl-smooth-motion/blob/codex/combined/docs/INSTALL.md#keep-your-existing-settings).
 
-```ini
-fps=0
-bg-fps=25
-menu-fps=true
-game-fps=true
-motion-smoothing=true
-arcane-bg=false
-```
+## Check it or tweak it
 
-5. Launch normally. Press **Ctrl+O** and check **Multiplayer Smoothing Fix: On**.
+Press **Ctrl+O** and look for **Multiplayer Smoothing Fix: On**. That menu also lets you change the picture.
 
-`fps=0` follows your monitor refresh rate. Change it to a number if you prefer a fixed FPS target. Graphics settings remain available in Ctrl+O.
+Want a window? Press **Alt+Enter** after starting. Keep Windowed off in the launcher.
 
-D2FPS loads automatically. An existing `d2gl.ini` entry can stay:
+[Full guide and help](https://github.com/Phroster/mxl-smooth-motion)
 
-```ini
-load_dlls_early=d2fps.dll:stdcall:_Init@0
-```
+For **Median XL 2.14.0 / Diablo II 1.13c on Windows 10+**.
 
-**Upgrading from the private combined preview?** Replace the two renderer DLLs and keep your matching MPQ and INIs.
+Still version **1.0**. Only the instructions changed; existing 1.0 users do not need to reinstall. The source ZIP below is for developers.
 
-## Compatibility and help
-
-For **Windows 10+ and the supported Median XL / Diablo II 1.13c files from MXL 2.14.0**. The game stays at its normal speed. This targets visual movement pauses, not connection lag, server delays or G-Sync behavior. Future game updates may need an updated release.
-
-[Player guide](https://github.com/Phroster/mxl-smooth-motion#install-in-six-steps) · [Settings](https://github.com/Phroster/mxl-smooth-motion/blob/codex/combined/docs/SETTINGS.md) · [Report a problem](https://github.com/Phroster/mxl-smooth-motion/issues)
-
-Based on D2GL by Bayaraa, Median XL adaptations by Pooquer/GavinK88, and D2FPS by Jarcho. Smoothing integration and packaging by Phroster. Independent community release.
+Community release based on work by Bayaraa, Pooquer, GavinK88 and Jarcho. Smoothing fix by Phroster.

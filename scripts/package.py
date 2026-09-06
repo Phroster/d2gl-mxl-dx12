@@ -19,6 +19,7 @@ files = {
     "README.md": root / "README.md",
     "START-HERE.txt": root / "START-HERE.txt",
     "docs/banner.svg": root / "docs/banner.svg",
+    "docs/launcher-settings.png": root / "docs/launcher-settings.png",
     "docs/INSTALL.md": root / "docs/INSTALL.md",
     "docs/BUILD.md": root / "docs/BUILD.md",
     "docs/RELEASE-NOTES.md": root / "docs/RELEASE-NOTES.md",
