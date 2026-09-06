@@ -1,0 +1,2 @@
+PASS: install/restore in an isolated fixture; official D2FPS restored, defaults applied, visuals preserved, all prior bytes restored and later INI edits retained.
+PASS: unsupported official-FPS input leaves all game files unchanged; requested foreground FPS preserved; rollback refuses externally changed binaries without partial writes.

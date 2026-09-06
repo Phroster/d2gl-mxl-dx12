@@ -1,0 +1,9 @@
+/build/
+/dist/
+**/target/
+**/.vs/
+**/__pycache__/
+*.pyc
+*.pdb
+.env
+.env.*
