@@ -4,7 +4,7 @@
     "commit": "6284091f4923b6c5a617b9f4caedac292064aae4"
   },
   "d2fps": {
-    "repository": "https://github.com/Phroster/mxl-smooth-motion",
+    "repository": "https://github.com/Phroster/mxl-smooth-motion-dx12",
     "source_directory": "d2fps",
     "snapshot_note": "Imported from the retired standalone fork; commit below identifies that preserved source snapshot.",
     "commit": "f32b1cb4a5039fd751cf821ce0a0b94a2b2ba8e8",
@@ -12,5 +12,5 @@
     "upstream_commit": "177fb5a9d723005ca7fc6c084330997d8c15df51"
   },
   "mpq_sha256": "f6c85e6f0b77df3524dd7f4aafa66fd81ddf505907e363b531a6d47b0a7d201a",
-  "runtime_design": "D2GL carries the timing correction; official D2FPS remains on disk and provides the FPS engine."
+  "runtime_design": "Native DX12 renderer with the timing correction built in; official D2FPS remains on disk and supplies the FPS engine."
 }

@@ -1,77 +1,25 @@
-# Installation and restoring a backup
+# Keeping your settings and restoring a backup
 
-The [player guide](../README.md#install--copy-paste-play) is the normal installation: copy five files and play. This page is only for keeping custom settings, using the optional backup installer, or restoring a backup.
+The [main guide](../README.md#install--copy-paste-play) is the normal installation: copy five files and play.
 
 ## Keep your existing settings
 
-If you already have a custom setup, back up your files before changing them.
+Back up your current files. After setting the launcher options in the main guide and closing the game and launcher, copy only **`glide3x.dll`, `ddraw.dll` and `d2gl.mpq`**. Keep your own `d2gl.ini` and `d2fps.ini`.
 
-After configuring the launcher as shown in the player guide, close the game and launcher. Copy only `glide3x.dll`, `ddraw.dll` and `d2gl.mpq`, and keep your existing INIs.
+Open **Ctrl+O → FPS** and make sure high FPS in game, high FPS in menus and smooth movement are enabled. Save any changes and restart. Keep your preferred FPS target.
 
-In `d2fps.ini`, make sure these existing lines are enabled:
+If you have no INIs, use the two included in the download.
 
-```ini
-menu-fps=true
-game-fps=true
-motion-smoothing=true
-```
+## ReShade
 
-Keep your preferred `fps` value. Use `arcane-bg=false` for the supported MXL setup. The [settings guide](SETTINGS.md) explains the remaining options.
+Run the official [ReShade installer](https://reshade.me), select your game folder's `Game.exe`, and choose **DirectX 10/11/12**. Keep your existing preset and shader folder.
 
-Alternatively, the optional installer below preserves visual preferences and applies the package's FPS defaults for you.
+If ReShade was previously installed for OpenGL, switch that installation to DirectX. The verified setup uses ReShade 6.6.2.2082 as `dxgi.dll`. ReShade is not included in the mod download.
 
-## Optional installer
+## Undo an installation
 
-1. Let the Median XL launcher update the game. Select Glide or DirectDraw and turn Windowed off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**.
-2. Close both the game and launcher.
-3. Extract `mxl-smooth-motion-1.0.zip` into a separate folder.
-4. Open PowerShell in that extracted folder.
-5. Run the command below, replacing the example path with the folder containing your `Game.exe` and `D2Sigma.dll`:
+Close the game and launcher, then restore the files you backed up. If you changed ReShade's API as well, restore its previous installation too.
 
-```powershell
-.\scripts\install.ps1 -GameDirectory 'C:\Games\Median XL\median-xl'
-```
+Older scripted-install backups include their own `restore.ps1`. Use the script inside the matching backup; it checks whether the files still match before restoring them.
 
-The installer backs up the files it replaces, keeps your visual preferences and applies the documented FPS defaults. It verifies the supported game files first. If necessary, it downloads the matching official D2FPS directly from Median XL and checks it before changing the game folder.
-
-If Windows does not allow PowerShell scripts on your PC, use the manual installation steps in the player guide.
-
-### Keep your current FPS target
-
-```powershell
-.\scripts\install.ps1 -GameDirectory 'C:\Games\Median XL\median-xl' -PreserveFrameRate
-```
-
-All other documented installer defaults still apply.
-
-### Use an existing official D2FPS copy
-
-The installer automatically uses the copy in the game folder if it matches. To supply a copy from somewhere else:
-
-```powershell
-.\scripts\install.ps1 -GameDirectory 'C:\Games\Median XL\median-xl' -OfficialD2FpsPath 'C:\Downloads\d2fps.dll'
-```
-
-Only the supported official file is accepted.
-
-## After installation
-
-Launch in Glide or DirectDraw without `-w` and press **Ctrl+O**. Look for **Multiplayer Smoothing Fix: On**. Use Alt+Enter afterward if you prefer a window.
-
-Keep `d2gl.mpq` and the official `d2fps.dll` in the game folder. Use [the settings guide](SETTINGS.md) to adjust your FPS and picture.
-
-## Restore an installer backup
-
-1. Close the game and launcher.
-2. Open the backup folder printed by the installer, under `mxl-smooth-motion-backups` in the game folder.
-3. Open PowerShell in that backup folder and run:
-
-```powershell
-.\restore.ps1
-```
-
-Later INI edits are saved in the backup folder before the original settings are restored. If a DLL was replaced again after installation, the restore tool stops so it does not overwrite an unrelated update.
-
-Backups made by the earlier private package remain under `mxl-combined-backups`. Use the restore script inside that particular backup.
-
-For a manual installation, restore the copies you made before installing.
+Your saves are not part of this graphics package.

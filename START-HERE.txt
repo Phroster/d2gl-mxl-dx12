@@ -1,18 +1,17 @@
-MXL SMOOTH MOTION 1.0
-Helps Median XL feel smoother online.
+MXL SMOOTH MOTION DX12 1.0
+DX12 graphics, smoother movement and your familiar Ctrl+O menu.
 
 COPY, PASTE, PLAY
 
-1. Open the Median XL launcher and let it finish updating.
-   Choose Glide or DirectDraw.
-   Under Unofficial Graphic Drivers, tick BOTH boxes:
+1. Open the Median XL launcher and let updates finish.
+   Choose Glide or DirectDraw. Turn Windowed off.
+   Under Unofficial Graphic Drivers, tick BOTH:
       Glide3x.dll (D2GL, D2DX)
       Ddraw.dll (D2GL, CNC-DDRAW)
-   Turn Windowed off.
 
 2. Close the game and launcher.
 
-3. Copy these FIVE files into your Median XL game folder, next to Game.exe:
+3. Copy these FIVE files into your game folder, next to Game.exe:
       glide3x.dll
       ddraw.dll
       d2gl.mpq
@@ -20,26 +19,24 @@ COPY, PASTE, PLAY
       d2fps.ini
    Choose Replace.
 
-4. Start the game and play. The smoothing fix turns on by itself.
+4. Start playing. The smoothing fix turns on by itself.
 
-That's it. No settings to edit and no installer to run.
-Leave the existing d2fps.dll alone - the game still needs it.
+Leave the official d2fps.dll alone - the game still needs it.
+Back up your files first if you have custom graphics or FPS settings.
 
-Already have custom settings? Back up your files first.
-Copying the INIs replaces those settings with ours.
-Read docs/INSTALL.md if you want to keep your settings instead.
+CTRL+O
+Change graphics and check Multiplayer Smoothing Fix: On.
+The FPS tab changes FPS and movement settings.
+Save FPS changes, then restart.
+Alt+Enter switches fullscreen/windowed mode.
 
-CHECK IT OR TWEAK IT
+RESHADE
+Choose DirectX 10/11/12 in the ReShade installer.
+Keep your existing preset and shader folder.
+Switch an old OpenGL ReShade installation to DirectX too.
+ReShade is optional and is not included in this ZIP.
 
-Press Ctrl+O. Look for: Multiplayer Smoothing Fix: On
-Use that same menu to change the picture.
-Want a window? Press Alt+Enter after starting.
-Keep Windowed off in the launcher.
+For Windows 10+, a DX12-capable GPU and supported MXL 2.14.0 / Diablo II 1.13c.
 
-For Median XL 2.14.0 / Diablo II 1.13c on Windows 10+.
-
-Help:
-https://github.com/Phroster/mxl-smooth-motion
-
-Community release based on work by Bayaraa, Pooquer, GavinK88 and Jarcho.
-Smoothing fix by Phroster. Original licenses are included.
+Guide and help:
+https://github.com/Phroster/mxl-smooth-motion-dx12
