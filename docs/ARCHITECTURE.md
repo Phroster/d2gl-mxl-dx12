@@ -23,7 +23,7 @@ No launcher code, update manifest, graphics-driver setting or global Windows tim
 
 ## Launcher compatibility
 
-The inspected Median XL launcher allows custom `glide3x.dll` and `ddraw.dll` when the corresponding Unofficial Graphics Drivers settings are enabled. It continues checking the ordinary D2FPS file against the official SHA-1. The installer preserves/restores that exact official file instead of trying to make a modified D2FPS pass as the original.
+The inspected Median XL launcher allows custom `glide3x.dll` and `ddraw.dll` when both checkboxes under Unofficial Graphic Drivers are enabled. It continues checking the ordinary D2FPS file against the official SHA-1. The installer preserves/restores that exact official file instead of trying to make a modified D2FPS pass as the original.
 
 Official D2FPS may be downloaded directly from the existing MXL 2.14.0 distribution endpoint during installation. It is checked against the exact SHA-256 before any game files are replaced. It is not redistributed inside this repository or package.
 

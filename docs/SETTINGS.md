@@ -74,7 +74,7 @@ It holds the fonts, textures and shaders used by D2GL. Keep the included MPQ bes
 | Problem | What to check |
 |---|---|
 | The game refuses `-w` or the new renderer does not activate | Select Glide or DirectDraw and turn Windowed off in the launcher. Remove `-w` from custom shortcuts; use Alt+Enter after startup. |
-| The launcher replaces the renderer | Enable Unofficial Graphics Drivers for Glide and DirectDraw, then reinstall the package files after the launcher finishes updating. |
+| The launcher replaces the renderer | Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**, then copy the package files again after updates finish. |
 | The launcher restores `d2fps.dll` | Keep it. The official file supplies the FPS engine; our D2GL applies the fix at startup. Restoring the supported official file is expected. |
 | The fix says Unavailable | Confirm you used the folder with `Game.exe` and `D2Sigma.dll`. Read `mxl-smoothing.log`; newer game files may need an updated release. |
 | Movement still looks unsmoothed | Check `game-fps=true` and `motion-smoothing=true` in `d2fps.ini`, then restart. |

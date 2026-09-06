@@ -6,7 +6,10 @@
 
 ## Copy, paste, play
 
-1. Open the Median XL launcher and let it finish updating. Choose **Glide or DirectDraw**, turn on **Unofficial Graphics Drivers** for that choice, and turn **Windowed** off.
+1. Open the Median XL launcher and let it finish updating. Choose **Glide or DirectDraw** and turn **Windowed** off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**, like this:
+
+   ![Tick Glide3x.dll and Ddraw.dll under Unofficial Graphic Drivers](https://raw.githubusercontent.com/Phroster/mxl-smooth-motion/v1.0/docs/launcher-settings.png)
+
 2. Close the game and launcher. Download and extract the ZIP.
 3. Copy these **five files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
 

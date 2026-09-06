@@ -5,7 +5,9 @@ COPY, PASTE, PLAY
 
 1. Open the Median XL launcher and let it finish updating.
    Choose Glide or DirectDraw.
-   Turn on Unofficial Graphics Drivers for that choice.
+   Under Unofficial Graphic Drivers, tick BOTH boxes:
+      Glide3x.dll (D2GL, D2DX)
+      Ddraw.dll (D2GL, CNC-DDRAW)
    Turn Windowed off.
 
 2. Close the game and launcher.

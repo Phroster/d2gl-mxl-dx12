@@ -22,7 +22,7 @@ Alternatively, the optional installer below preserves visual preferences and app
 
 ## Optional installer
 
-1. Let the Median XL launcher update the game. Select Glide or DirectDraw, enable Unofficial Graphics Drivers for that mode, and turn Windowed off.
+1. Let the Median XL launcher update the game. Select Glide or DirectDraw and turn Windowed off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**.
 2. Close both the game and launcher.
 3. Extract `mxl-smooth-motion-1.0.zip` into a separate folder.
 4. Open PowerShell in that extracted folder.
