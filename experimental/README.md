@@ -30,6 +30,8 @@ If you use the Median XL launcher with this copy, enable both custom graphics DL
 
 OpenGL ReShade files are not part of this experiment. They cannot provide their OpenGL effects to a DX12 renderer.
 
+For ReShade, use its DirectX installation for this game. The checkpoint was verified with ReShade 6.6.2.2082 loaded as `dxgi.dll`, keeping the existing preset. ReShade is not bundled with the experiment.
+
 The game still updates its simulation at the original rate. This changes how frames are drawn, not the game's speed.
 
 ## Build
