@@ -1,4 +1,6 @@
-# Private diagnostic beta 5
+# Private diagnostic beta 5 — development history
+
+These notes describe pre-release testing. **Release 1.1 keeps the fixes and makes performance recording opt-in.** See [the current settings guide](docs/SETTINGS.md#optional-performance-recording). The historical startup instructions below applied to the beta builds.
 
 This keeps the current DX12 renderer, ReShade support and multiplayer smoothing fix, and adds measurements for the remaining crowded-combat drops. It is a private test build, separate from public 1.0.
 

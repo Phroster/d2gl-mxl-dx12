@@ -1,10 +1,12 @@
 #include "auto_reveal.h"
 #include "diagnostics.h"
+#include "audio_diagnostics.h"
 #include <array>
 #include <vector>
 #include <thread>
 #include <iostream>
 #include <stdexcept>
+#include <filesystem>
 
 namespace {
 std::vector<uint8_t> sigma(0x400000);
@@ -52,7 +54,19 @@ void setup(){
 }
 int wmain(int argc,wchar_t** argv){
     try {
-        require(argc==2 && mxl::diag::start(nullptr,argv[1]),"Start diagnostics.");
+        require(argc==2 || argc==3,"Pass a test directory and optional --logging-off or --logging-on.");
+        const bool logging_off=argc==3 && !wcscmp(argv[2],L"--logging-off");
+        if(logging_off){
+            // Run a copy named Game.exe in an isolated directory to exercise the
+            // actual production startup default, not the test-directory bypass.
+            wchar_t exe[32768]{};GetModuleFileNameW(nullptr,exe,32768);
+            require(std::filesystem::path(exe).filename()==L"Game.exe","Off test must be named Game.exe.");
+            require(!mxl::diag::start(nullptr) && !mxl::diag::enabled() && !mxl::diag::audio_enabled(),"Recording should be off.");
+            require(mxl::diag::audio_hook_count()==0,"Off startup installed audio hooks.");
+            require(!std::filesystem::exists(std::filesystem::path(exe).parent_path()/L"mxl-diagnostics"),"Off startup created a log directory.");
+        }else if(argc==3 && !wcscmp(argv[2],L"--logging-on")){
+            require(mxl::diag::start(nullptr) && mxl::diag::enabled(),"Explicit INI opt-in did not start recording.");
+        }else require(mxl::diag::start(nullptr,argv[1]),"Start diagnostics.");
         setup();owner=GetCurrentThreadId();
         WNDCLASSW wc{};wc.lpfnWndProc=procedure;wc.hInstance=GetModuleHandleW(nullptr);wc.lpszClassName=L"MXLAutoRevealTest";
         require(RegisterClassW(&wc)!=0,"Register test window.");

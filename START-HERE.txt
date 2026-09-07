@@ -1,5 +1,10 @@
-MXL SMOOTH MOTION DX12 1.0
-DX12 graphics, smoother movement and your familiar Ctrl+O menu.
+MXL SMOOTH MOTION DX12 1.1
+Smoother gameplay and sharper visuals for Median XL.
+
+NEW IN 1.1
+Smoother crowded fights and automatic map reveal when you enter an act.
+The reveal may briefly pause on entry; pressing T afterward should be instant.
+Performance recording is off by default. The fixes stay on.
 
 COPY, PASTE, PLAY
 
@@ -11,12 +16,13 @@ COPY, PASTE, PLAY
 
 2. Close the game and launcher.
 
-3. Copy these FIVE files into your game folder, next to Game.exe:
+3. Copy these SIX files into your game folder, next to Game.exe:
       glide3x.dll
       ddraw.dll
       d2gl.mpq
       d2gl.ini
       d2fps.ini
+      mxl-diagnostics.ini
    Choose Replace.
 
 4. Start playing. The smoothing fix turns on by itself.

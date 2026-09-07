@@ -1,7 +1,7 @@
 {
   "glide3x.dll": {
-    "sha256": "76919c0b3938b1717af6e15f42fd03b617268f5c23aa37ed1f541993762ab196",
-    "bytes": 3526144,
+    "sha256": "5700cd6f4c74e6fbec36f9dc64e550967a62e70fe89444ebcbd9d3d88ef96748",
+    "bytes": 3595776,
     "architecture": "x86",
     "rendering_api": "Direct3D 12",
     "exports": [
@@ -85,12 +85,12 @@
       "api-ms-win-crt-utility-l1-1-0.dll",
       "api-ms-win-crt-locale-l1-1-0.dll"
     ],
-    "windows_file_version": "0.1.0.0",
-    "note": "Exact accepted DX12 checkpoint binary; promoted without rebuilding."
+    "windows_file_version": "1.1.0.0",
+    "note": "Release 1.1: tested upload fix and act-entry reveal; optional performance recording defaults off."
   },
   "ddraw.dll": {
-    "sha256": "8d5cd57a8cccfd5c6e19bd2397572f9c93dcdc9d599ff6f81b367c48a73a55cc",
-    "bytes": 3502080,
+    "sha256": "fc626eeb8163ba2e0d15fa01b77e204b9464815f074b05dbbefdfdfc2c6c0511",
+    "bytes": 3572224,
     "architecture": "x86",
     "rendering_api": "Direct3D 12",
     "exports": [
@@ -124,8 +124,8 @@
       "api-ms-win-crt-utility-l1-1-0.dll",
       "api-ms-win-crt-locale-l1-1-0.dll"
     ],
-    "windows_file_version": "0.1.0.0",
-    "note": "Exact accepted DX12 checkpoint binary; promoted without rebuilding."
+    "windows_file_version": "1.1.0.0",
+    "note": "Release 1.1: tested upload fix and act-entry reveal; optional performance recording defaults off."
   },
   "mpq_sha256": "f6c85e6f0b77df3524dd7f4aafa66fd81ddf505907e363b531a6d47b0a7d201a"
 }

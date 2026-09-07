@@ -11,7 +11,7 @@ if (-not (Test-Path -LiteralPath $taskManifestPath)) { throw 'Run this installer
 $taskManifest = Get-Content -LiteralPath $taskManifestPath -Raw | ConvertFrom-Json
 $taskExpectedClient = 'DD8BC6025DE921216A97C17F97CD1A50FBB85926E838EC60E13451448836D906'
 $taskExpectedFps = 'DB9DE4D4D320A7B70E66FE6B4AAA0E6F1560A5300A4993CC81CF4512AB1240C1'
-$taskPayloadNames = @('glide3x.dll','ddraw.dll','d2gl.mpq','d2gl.ini','d2fps.ini')
+$taskPayloadNames = @('glide3x.dll','ddraw.dll','d2gl.mpq','d2gl.ini','d2fps.ini','mxl-diagnostics.ini')
 
 function Assert-GameClosed {
     if (Get-Process -Name Game,'Diablo II' -ErrorAction SilentlyContinue) { throw 'Close Diablo II before installing.' }
@@ -76,7 +76,7 @@ if ($OfficialD2FpsPath) {
 }
 if ((Get-Hash $taskOfficial) -ne $taskExpectedFps) { throw 'The official D2FPS download does not match the supported build. No game files changed.' }
 
-foreach ($taskName in @('glide3x.dll','ddraw.dll','d2gl.mpq')) {
+foreach ($taskName in @('glide3x.dll','ddraw.dll','d2gl.mpq','mxl-diagnostics.ini')) {
     Copy-Item -LiteralPath (Join-Path $taskPackage $taskName) -Destination (Join-Path $taskStage $taskName)
 }
 $taskUtf8 = [Text.UTF8Encoding]::new($false,$true)
@@ -100,7 +100,7 @@ foreach ($taskName in @('d2gl.ini','d2fps.ini')) {
     [IO.File]::WriteAllText((Join-Path $taskStage $taskName),$taskText,$taskEncoding)
 }
 
-$taskNames=@('d2fps.dll','glide3x.dll','ddraw.dll','d2gl.mpq','d2gl.ini','d2fps.ini')
+$taskNames=@('d2fps.dll','glide3x.dll','ddraw.dll','d2gl.mpq','d2gl.ini','d2fps.ini','mxl-diagnostics.ini')
 $taskBackup=Join-Path $taskGame ('mxl-smooth-motion-backups\'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $taskBackup -Force | Out-Null
 $taskEntries=@()

@@ -25,4 +25,21 @@ foreach($taskTest in $taskTests){
     if($LASTEXITCODE -ne 0){throw "Verification failed: $taskTest"}
 }
 Write-Output "DX12 DLLs: $taskBuild\Release"
+if(-not $SkipGpuTests){
+    # The real default-off path includes the Game.exe identity guard. Use an
+    # isolated synthetic test, with no game DLLs, for absent and disabled INIs.
+    foreach($taskMode in @('missing-ini','disabled-ini','enabled-ini')){
+        $taskOffTest=Join-Path $taskBuild ('logging-off-'+$taskMode+'-'+[guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $taskOffTest | Out-Null
+        Copy-Item -LiteralPath (Join-Path $taskBuild 'Release\dx12_auto_reveal_test.exe') -Destination (Join-Path $taskOffTest 'Game.exe')
+        if($taskMode -eq 'disabled-ini'){Copy-Item -LiteralPath (Join-Path $taskRoot 'mxl-diagnostics.ini') -Destination $taskOffTest}
+        $taskArgument='--logging-off'
+        if($taskMode -eq 'enabled-ini'){
+            (Get-Content -LiteralPath (Join-Path $taskRoot 'mxl-diagnostics.ini') -Raw).Replace('enabled=0','enabled=1') | Set-Content -LiteralPath (Join-Path $taskOffTest 'mxl-diagnostics.ini') -Encoding ascii
+            $taskArgument='--logging-on'
+        }
+        & (Join-Path $taskOffTest 'Game.exe') (Join-Path $taskOffTest 'unused') $taskArgument
+        if($LASTEXITCODE -ne 0){throw "Logging-off verification failed: $taskMode"}
+    }
+}
 Write-Output 'This build does not install files into your game.'

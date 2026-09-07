@@ -1,12 +1,18 @@
 <p align="center">
-  <img src="docs/banner-dx12.svg" alt="MXL Smooth Motion DX12" width="880">
+  <img src="docs/banner-dx12-v1.1.svg" alt="MXL Smooth Motion DX12" width="880">
 </p>
 
 **Does Median XL feel a little choppy online, even with high FPS?** This helps smooth out those small pauses in movement. It also includes D2GL's graphics options. The game stays at its normal speed.
 
-Now with **DX12**, the same **Ctrl+O menu**, and **ReShade support**.
+**DX12 graphics, smoother gameplay and ReShade support.**
 
-### [Download MXL Smooth Motion DX12 1.0](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip)
+## New in 1.1
+
+- **Smoother crowded fights.** Fixes extra graphics work that was causing big FPS drops in busy areas.
+- **Automatic map reveal.** The act reveals when you enter it, so pressing T afterward no longer causes the same long pause. A short pause can still happen on entry.
+- **Performance recording is off.** It is still available if needed to investigate a problem.
+
+### [Download MXL Smooth Motion DX12 1.1](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip)
 
 ## Install — copy, paste, play
 
@@ -15,7 +21,7 @@ Now with **DX12**, the same **Ctrl+O menu**, and **ReShade support**.
    ![Tick Glide3x.dll and Ddraw.dll under Unofficial Graphic Drivers](docs/launcher-settings.png)
 
 2. **Close the game and launcher.** Download the ZIP above and extract it.
-3. **Copy these five files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
+3. **Copy these six files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
 
    ```text
    glide3x.dll
@@ -23,6 +29,7 @@ Now with **DX12**, the same **Ctrl+O menu**, and **ReShade support**.
    d2gl.mpq
    d2gl.ini
    d2fps.ini
+   mxl-diagnostics.ini
    ```
 
 4. **Start the game and play.** The smoothing fix turns on by itself.
@@ -42,7 +49,7 @@ Already changed your graphics settings? Back up your files first. The included I
 
 You can still edit `d2gl.ini` and `d2fps.ini` in Notepad if you prefer.
 
-[More settings and help](docs/SETTINGS.md)
+[More settings and help](docs/SETTINGS.md) · [Optional performance recording](docs/SETTINGS.md#optional-performance-recording)
 
 ## ReShade
 
