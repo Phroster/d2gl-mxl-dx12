@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
+#include <vector>
 
 using namespace mxl::diag;
 alignas(4) std::array<uint8_t,0x240> level_data{};
@@ -18,6 +19,16 @@ alignas(4) std::array<uint8_t,0x2da00> lookup_image{};
 constexpr DWORD incoming_error=0x10203040, outgoing_error=0x4142;
 enum class ThrowAt { None, Root, Build, Dt1, Grid };
 ThrowAt throw_at=ThrowAt::None;
+alignas(4) std::array<uint8_t,0x3fb000> preselection_image{};
+alignas(4) std::array<uint8_t,0xc80> preselection_tables{};
+alignas(4) std::array<uint8_t,44*0x9c> preselection_rows{};
+alignas(4) std::array<uint8_t,0x240> nested_level_data{};
+uint32_t preselection_tables_global=0;
+uintptr_t preselection_return_address=0;
+bool preselection_mode=false,preselection_nested=false,preselection_forward_only=false,preselection_throw=false;
+uint32_t current_layer=7,selector_calls=0,cache_transitions=0,nested_entry_layer=0,forward_count=0;
+void* forwarded_level=nullptr;
+std::vector<std::pair<uint32_t,uint32_t>> map_draws;
 void require(bool ok,const char* reason){if(!ok)throw std::runtime_error(reason);}
 void write32(uint8_t* data,size_t offset,uint32_t value){memcpy(data+offset,&value,4);}
 void check_error(){require(GetLastError()==incoming_error,"Incoming last-error changed.");}
@@ -119,7 +130,18 @@ __declspec(noinline) uintptr_t __fastcall lookup_mock(void* misc,uint32_t level)
     check_error();require(misc==misc_data.data() && level==42,"Lookup fastcall arguments changed.");SetLastError(outgoing_error);return reinterpret_cast<uintptr_t>(level_data.data());
 }
 __declspec(noinline) uintptr_t __fastcall layer_mock(uint32_t layer) {
+    if(preselection_mode){
+        check_error();++selector_calls;
+        if(current_layer!=layer){++cache_transitions;current_layer=layer;}
+        SetLastError(outgoing_error);return 0x1005;
+    }
     check_error();require(layer==17,"Layer fastcall argument changed.");SetLastError(outgoing_error);return 0x1005;
+}
+void native_map_callback(uint32_t id,uint32_t target,uint32_t room) {
+    const auto saved=current_layer;volatile RevealLayerFn select=layer_mock;
+    SetLastError(incoming_error);finished(select(target),0x1005);
+    map_draws.emplace_back(id*16+room,current_layer);
+    SetLastError(incoming_error);finished(select(saved),0x1005);
 }
 __declspec(noinline) uintptr_t __fastcall preset_mock(void* level) {
     check_error();require(level==level_data.data(),"Preset argument changed.");
@@ -131,6 +153,23 @@ __declspec(noinline) uintptr_t __fastcall preset_mock(void* level) {
     SetLastError(outgoing_error);return 0x1006;
 }
 __declspec(noinline) uintptr_t __stdcall init_mock(void* level) {
+    if(preselection_mode){
+        check_error();++forward_count;forwarded_level=level;
+        if(preselection_forward_only){SetLastError(outgoing_error);return 0x2468;}
+        if(preselection_throw)throw std::runtime_error("simulated preselected generation error");
+        require(level==level_data.data() || level==nested_level_data.data(),"Preselection changed the level argument.");
+        if(level==nested_level_data.data()){
+            nested_entry_layer=current_layer;
+            native_map_callback(43,23,0);
+        }else{
+            if(preselection_nested){
+                volatile RevealInitFn nested=init_mock;
+                SetLastError(incoming_error);finished(nested(nested_level_data.data()),0x2468);
+            }
+            for(uint32_t room=0;room<3;++room)native_map_callback(42,17,room);
+        }
+        SetLastError(outgoing_error);return 0x2468;
+    }
     check_error();require(level==level_data.data(),"Init argument changed.");volatile RevealNodeFn preset=preset_mock;
     SetLastError(incoming_error);finished(preset(level),0x1006);SetLastError(outgoing_error);return 0x2468;
 }
@@ -153,10 +192,129 @@ __declspec(noinline) uintptr_t __cdecl root_mock() {
     SetLastError(incoming_error);finished(level(level_data.data()),0x3579);
     SetLastError(outgoing_error);return 0x98765432;
 }
+// A real CALL instruction exposes its post-call label before entering the hook.
+// The unoptimized baseline publishes that label, which becomes the only allowed
+// return address in the test configuration for all subsequent calls.
+__declspec(naked) uintptr_t __stdcall invoke_preselection_site(void* level) {
+    __asm {
+        mov eax,offset after_init
+        mov preselection_return_address,eax
+        mov eax,dword ptr [esp+4]
+        push eax
+        call init_mock
+    after_init:
+        ret 4
+    }
+}
+__declspec(noinline) uintptr_t __stdcall invoke_unrelated_site(void* level) {
+    volatile RevealInitFn init=init_mock;return init(level);
+}
+void reset_preselection_fixture() {
+    preselection_image.fill(0);preselection_tables.fill(0);preselection_rows.fill(0);
+    memcpy(preselection_image.data()+reveal_generation_order_site.rva,reveal_generation_order_site.bytes,32);
+    memcpy(preselection_image.data()+reveal_sites[12].rva,reveal_sites[12].bytes,32);
+    preselection_tables_global=uint32_t(reinterpret_cast<uintptr_t>(preselection_tables.data()));
+    write32(preselection_image.data(),0x3fa958,uint32_t(reinterpret_cast<uintptr_t>(&preselection_tables_global)));
+    write32(preselection_tables.data(),0xc5c,44);
+    write32(preselection_tables.data(),0xc60,uint32_t(reinterpret_cast<uintptr_t>(preselection_rows.data())));
+    write32(level_data.data(),0x1d0,42);write32(nested_level_data.data(),0x1d0,43);
+    for(const auto id:{42u,43u}){
+        write32(preselection_rows.data(),id*0x9c+8,id==42?17:23);
+        write32(preselection_rows.data(),id*0x9c+0xc,32);
+        write32(preselection_rows.data(),id*0x9c+0x18,32);
+    }
+}
+struct MapResult {
+    uint32_t calls,transitions,final_layer,nested_layer;
+    std::vector<std::pair<uint32_t,uint32_t>> draws;
+};
+MapResult map_cycle(bool allowed,bool nested=false,uint32_t initial_layer=7) {
+    current_layer=initial_layer;selector_calls=cache_transitions=0;map_draws.clear();nested_entry_layer=0;
+    preselection_nested=nested;preselection_forward_only=false;preselection_throw=false;
+    const auto saved_player_layer=current_layer;
+    volatile uint32_t canary=0x10293847;
+    SetLastError(incoming_error);
+    finished(allowed?invoke_preselection_site(level_data.data()):invoke_unrelated_site(level_data.data()),0x2468);
+    require(canary==0x10293847,"Preselection caller stack changed.");
+    // Mirror Sigma's existing next selection, room draws, and root restoration.
+    volatile RevealLayerFn select=layer_mock;
+    SetLastError(incoming_error);finished(select(17),0x1005);
+    for(uint32_t room=0;room<3;++room)map_draws.emplace_back(42*16+room,current_layer);
+    SetLastError(incoming_error);finished(select(saved_player_layer),0x1005);
+    return {selector_calls,cache_transitions,current_layer,nested_entry_layer,map_draws};
+}
+void native_fallback(void* level) {
+    selector_calls=0;preselection_forward_only=true;const auto before=forward_count;
+    SetLastError(incoming_error);finished(invoke_preselection_site(level),0x2468);
+    require(selector_calls==0 && forward_count==before+1 && forwarded_level==level,"Invalid preselection input did not forward natively.");
+    preselection_forward_only=false;
+}
+void preselection_scenarios() {
+    preselection_mode=true;reset_preselection_fixture();
+    test_reveal_preselection(0,0);
+    const auto baseline=map_cycle(true);
+    const auto image=reinterpret_cast<uintptr_t>(preselection_image.data());
+    require(preselection_return_address && baseline.calls==8 && baseline.transitions==8 && baseline.final_layer==7 && baseline.draws.size()==6,"Native automap fixture is invalid.");
+    require(test_reveal_preselection(image,preselection_return_address),"Supported preselection guard rejected.");
+    const auto optimized=map_cycle(true);
+    require(optimized.calls==9 && optimized.transitions==2 && optimized.final_layer==baseline.final_layer && optimized.draws==baseline.draws,"Preselection changed map output or retained redundant cache transitions.");
+    const auto unrelated=map_cycle(false);
+    require(unrelated.calls==baseline.calls && unrelated.transitions==baseline.transitions && unrelated.draws==baseline.draws,"Unrelated InitLevel caller was changed.");
+    const auto nested=map_cycle(true,true);
+    require(nested.calls==11 && nested.transitions==4 && nested.nested_layer==17 && nested.draws.size()==7 && nested.draws.front()==std::make_pair(43u*16,23u) && nested.final_layer==7,"Nested generation was preselected or its map output changed.");
+    const auto already_selected=map_cycle(true,false,17);
+    require(already_selected.calls==9 && already_selected.transitions==0 && already_selected.draws==baseline.draws && already_selected.final_layer==17,"Already-selected layer performed cache work.");
+
+    // Every ordering opcode/operand except the relocated IAT address is exact.
+    for(size_t i=0;i<21;++i){
+        auto& byte=preselection_image[reveal_generation_order_site.rva+i];byte^=1;
+        const bool accepted=test_reveal_preselection(image,preselection_return_address);
+        require(accepted==(reveal_generation_order_site.mask[i]==0),"Ordering signature mask accepted an unknown instruction.");byte^=1;
+    }
+    preselection_image[reveal_sites[12].rva]^=1;
+    require(!test_reveal_preselection(image,preselection_return_address),"Unknown layer selector accepted for preselection.");
+    const auto unsupported=map_cycle(true);
+    require(unsupported.calls==8 && unsupported.transitions==8 && unsupported.draws==baseline.draws,"Unsupported guard did not retain native ordering.");
+    preselection_image[reveal_sites[12].rva]^=1;
+    require(test_reveal_preselection(image,preselection_return_address),"Restored preselection guard rejected.");
+
+    native_fallback(nullptr);native_fallback(reinterpret_cast<void*>(1));
+    write32(level_data.data(),0x1d0,0);native_fallback(level_data.data());
+    write32(level_data.data(),0x1d0,44);native_fallback(level_data.data());
+    write32(level_data.data(),0x1d0,42);
+    write32(preselection_tables.data(),0xc5c,4097);native_fallback(level_data.data());
+    write32(preselection_tables.data(),0xc5c,44);
+    write32(preselection_image.data(),0x3fa958,0);native_fallback(level_data.data());
+    write32(preselection_image.data(),0x3fa958,uint32_t(reinterpret_cast<uintptr_t>(&preselection_tables_global)));
+    preselection_tables_global=0;native_fallback(level_data.data());
+    preselection_tables_global=uint32_t(reinterpret_cast<uintptr_t>(preselection_tables.data()));
+    write32(preselection_tables.data(),0xc60,0);native_fallback(level_data.data());
+    write32(preselection_tables.data(),0xc60,1);native_fallback(level_data.data());
+    write32(preselection_tables.data(),0xc60,0xfffffff0);native_fallback(level_data.data());
+    write32(preselection_tables.data(),0xc60,uint32_t(reinterpret_cast<uintptr_t>(preselection_rows.data())));
+    write32(preselection_rows.data(),42*0x9c+0xc,0);native_fallback(level_data.data());
+    write32(preselection_rows.data(),42*0x9c+0xc,32);
+    write32(preselection_rows.data(),42*0x9c+0x18,0);native_fallback(level_data.data());
+    write32(preselection_rows.data(),42*0x9c+0x18,32);
+    preselection_throw=true;bool caught=false;SetLastError(incoming_error);
+    try{invoke_preselection_site(level_data.data());}catch(const std::runtime_error& error){caught=std::string(error.what())=="simulated preselected generation error";}
+    require(caught,"Preselected generation exception was swallowed.");
+    preselection_throw=false;test_reveal_preselection(0,0);preselection_mode=false;
+}
 int wmain(int argc,wchar_t** argv) {
     try {
         const bool omit_lookup=argc==3 && !wcscmp(argv[2],L"--skip-lookup");
-        require((argc==2 || omit_lookup) && start(nullptr,argv[1]),"Start test diagnostics.");
+        const bool preselection_only=argc==3 && !wcscmp(argv[2],L"--preselection-only");
+        require(argc==2 || omit_lookup || preselection_only,"Unexpected test arguments.");
+        if(preselection_only){
+            require(!enabled(),"Preselection-only test unexpectedly started recording.");
+            RevealDeepFns deep{preset_mock,build_mock,prepare_mock,reinterpret_cast<void*>(&dt1_mock),reinterpret_cast<void*>(&grid_mock),lookup_mock,layer_mock};
+            require(test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,deep,1u<<3),"Install only gameplay InitLevel hook.");
+            preselection_scenarios();require(!enabled(),"Gameplay optimization enabled recording.");
+            std::cout<<"PASS: InitLevel-only preselection without diagnostics, exact caller/signature guards, identical map draws, native nested/invalid forwarding, cache-transition reduction and exception propagation.\n";
+            return 0;
+        }
+        require(start(nullptr,argv[1]),"Start test diagnostics.");
         const uint32_t sites=((1u<<13)-1)&~(omit_lookup?(1u<<11):0u);
         const auto lookup_base=reinterpret_cast<uintptr_t>(lookup_image.data());
         memcpy(lookup_image.data()+0x2d9b0,reveal_sites[11].bytes,32);
@@ -188,9 +346,11 @@ int wmain(int argc,wchar_t** argv) {
             SetLastError(incoming_error);finished(layer(17),0x1005);
         }
         SetLastError(incoming_error);finished(root(),0x98765432);
+        preselection_scenarios();
         stop(true);
         // Installed detours must become transparent when diagnostics stop.
         SetLastError(incoming_error);finished(root(),0x98765432);
+        preselection_scenarios();
         std::ifstream file(std::filesystem::path(argv[1])/"reveal.csv");
         std::string line;size_t rows=0;bool coordinates=false,layer_identity=false;std::map<std::string,size_t> phases;
         std::getline(file,line);while(std::getline(file,line)){

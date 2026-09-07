@@ -23,6 +23,9 @@ bool start_reveal_probe(HWND window=nullptr);
 void reveal_event(uint64_t trace,const char* phase,uint64_t began,uint64_t ended,int32_t act,int32_t level,int32_t x,int32_t y,bool resident) noexcept;
 #ifdef MXL_REVEAL_TEST
 bool test_reveal_lookup_signature(uintptr_t base);
+// Disabled by default; the test supplies a real assembly caller's return label
+// after placing the supported ordering/layer signatures in a synthetic image.
+bool test_reveal_preselection(uintptr_t sigma,uintptr_t caller);
 bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload,const RevealDeepFns& deep,uint32_t sites=(1u<<13)-1);
 #endif
 }

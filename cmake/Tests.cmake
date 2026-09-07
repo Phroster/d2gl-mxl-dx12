@@ -45,6 +45,9 @@ foreach(test IN LISTS mxl_plain_tests)
   add_test(NAME ${test} COMMAND $<TARGET_FILE:${test}>)
   set_tests_properties(${test} PROPERTIES TIMEOUT 60)
 endforeach()
+add_test(NAME reveal_preselection_without_logging COMMAND $<TARGET_FILE:dx12_reveal_probe_test>
+  "${CMAKE_BINARY_DIR}/test-output/preselection-only" --preselection-only)
+set_tests_properties(reveal_preselection_without_logging PROPERTIES TIMEOUT 30)
 set(mxl_log_tests dx12_diagnostics_test dx12_upload_cache_test dx12_input_profile_test dx12_reveal_probe_test dx12_auto_reveal_test)
 foreach(test IN LISTS mxl_log_tests)
   add_test(NAME ${test} COMMAND ${CMAKE_COMMAND}
