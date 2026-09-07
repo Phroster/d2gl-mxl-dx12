@@ -271,6 +271,10 @@ bool lookup_signature(uintptr_t base) noexcept {
 bool preselection_signature(uintptr_t base) noexcept {
     return signature(base,reveal_generation_order_site) && signature(base,reveal_sites[12]);
 }
+bool before_scene_signature(uintptr_t base) noexcept {
+    return base && ((signature(base,reveal_before_scene_sites[0]) && signature(base,reveal_before_scene_sites[1])) ||
+        (signature(base,reveal_before_scene_sigma_sites[0]) && signature(base,reveal_before_scene_sigma_sites[1])));
+}
 void signature_bytes(uintptr_t base,size_t index) noexcept {
     // Diagnostic data only: never accept or patch a mismatching entrypoint.
     char message[96]{};
@@ -342,12 +346,18 @@ bool start_reveal_probe(HWND window) {
             if(preselection_supported)note("reveal_layer_preselection_active",1);
         }else {preselection_sigma=0;preselection_caller=0;}
     }
-    probe_ready=window && mxl::reveal::start(window,sb,&root_hook);
+    const auto client=GetModuleHandleW(L"D2Client.dll");
+    const bool before_scene_supported=client &&
+        file_hash(client,"dd8bc6025de921216a97c17f97cd1a50fbb85926e838ec60e13451448836d906") &&
+        before_scene_signature(reinterpret_cast<uintptr_t>(client));
+    if(!before_scene_supported)note("reveal_before_scene_unsupported");
+    probe_ready=window && mxl::reveal::start(window,sb,&root_hook,before_scene_supported);
     if(!probe_ready)note("auto_reveal_start_failed");
     return probe_ready;
 }
 #ifdef MXL_REVEAL_TEST
 bool test_reveal_lookup_signature(uintptr_t base) {return lookup_signature(base);}
+bool test_reveal_before_scene_signature(uintptr_t base) {return before_scene_signature(base);}
 bool test_reveal_preselection(uintptr_t sigma,uintptr_t caller) {
     preselection_sigma=0;preselection_caller=0;
     if(!sigma || !caller || !preselection_signature(sigma))return false;

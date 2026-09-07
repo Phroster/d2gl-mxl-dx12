@@ -19,6 +19,7 @@ struct Controller {
     UINT message=0;
     uintptr_t sigma=0;
     diag::RevealRootFn reveal=nullptr;
+    bool before_scene_supported=false;
     bool drawing=false, pending=false, busy=false, failed=false;
     int wait_reason=-1;
     WPARAM token=0;
@@ -93,7 +94,7 @@ void invoke(const Entry& entry) {
     } __finally { controller.busy=false;SetLastError(error); }
 }
 }
-bool start(HWND window, uintptr_t sigma, diag::RevealRootFn reveal) {
+bool start(HWND window, uintptr_t sigma, diag::RevealRootFn reveal, bool before_scene_supported) {
     if(controller.ready.load(std::memory_order_acquire))return true;
     DWORD process=0;
     const auto thread=GetWindowThreadProcessId(window,&process);
@@ -102,8 +103,26 @@ bool start(HWND window, uintptr_t sigma, diag::RevealRootFn reveal) {
     if(!message)return false;
     controller.window=window;controller.thread=thread;controller.sigma=sigma;
     controller.reveal=reveal;controller.message=message;
+    controller.before_scene_supported=before_scene_supported;
     controller.ready.store(true,std::memory_order_release);
     diag::note("auto_reveal_ready");return true;
+}
+void before_scene(HWND window) {
+    if(!owns(window) || !controller.before_scene_supported || controller.drawing || controller.busy)return;
+    const auto error=GetLastError();
+    __try {
+        Snapshot now;int reason=0;
+        if(!snapshot(now,&reason)){waiting(reason);return;}
+        waiting(0);
+        if(now.revealed){cancel();return;}
+        if(controller.failed && controller.failure==now.entry)return;
+        // A frame may already have posted this work. Consume that request so
+        // its later dispatch cannot repeat an unconfirmed or failed call.
+        controller.pending=false;
+        diag::note("auto_reveal_before_scene_act",now.entry.index+1);
+        SetLastError(error);
+        invoke(now.entry);
+    } __finally {SetLastError(error);}
 }
 void begin_frame(HWND window) noexcept {
     if(owns(window))controller.drawing=true;

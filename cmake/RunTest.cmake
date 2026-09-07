@@ -2,7 +2,7 @@ string(RANDOM LENGTH 12 ALPHABET 0123456789abcdef run_id)
 set(run_dir "${TEST_ROOT}-${run_id}")
 file(MAKE_DIRECTORY "${run_dir}")
 if(MODE STREQUAL "report")
-  execute_process(COMMAND "${TEST_EXECUTABLE}" "${run_dir}"
+  execute_process(COMMAND "${TEST_EXECUTABLE}" "${run_dir}" ${TEST_ARGUMENTS}
     WORKING_DIRECTORY "${run_dir}" RESULT_VARIABLE result TIMEOUT 50)
   if(NOT result STREQUAL "0")
     message(FATAL_ERROR "Report check failed: ${result}")
