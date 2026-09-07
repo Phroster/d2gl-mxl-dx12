@@ -1,6 +1,10 @@
-# Private diagnostic beta 1
+# Private diagnostic beta 2
 
 This keeps the current DX12 renderer, ReShade support and multiplayer smoothing fix, and adds measurements for the remaining crowded-combat drops. It is a private test build, separate from public 1.0.
+
+Beta 2 fixes the repeated geometry uploads found in the first capture. It uploads the current data range once and reuses it for later draws, while preserving partial-buffer updates. The first trace's 75-85 FPS frames spent a median 10.8 ms in uploads, copying about 98 MB per frame and spilling beyond the 64 MB pool; their own GPU work took about 2.35 ms.
+
+The map-reveal delay is separate. T key-down/up and time spent handling those messages are now timestamped to identify the next reveal precisely. The key is forwarded unchanged. CSV reports are also readable while recording, so live analysis no longer requires stopping the capture.
 
 Replace only `glide3x.dll` and `ddraw.dll`, and add `mxl-diagnostics.ini` beside Game.exe. Keep your existing graphics/FPS settings, MPQ, official D2FPS, ReShade and hotkeys. A full game restart is required.
 

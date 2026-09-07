@@ -11,6 +11,9 @@ struct BufferState {
     std::vector<uint8_t> bytes;
     uint64_t version=0,upload_version=UINT64_MAX,upload_frame=UINT64_MAX;
     uint64_t upload_size=0;
+    // A prefetch hint, not a validity limit: later draws can still request old
+    // data outside the most recently updated range.
+    uint64_t prefetch_bytes=0;
     Upload uploaded{};
 };
 struct TextureState {
@@ -70,6 +73,7 @@ struct State {
     std::shared_ptr<Resource> dummy_texture;
 };
 State& state();
+Upload upload_buffer(BufferState& buffer,uint64_t required_size);
 Resource& render_target(uint32_t index);
 TextureState& bound_texture(GLenum target);
 void set_uniform(GLint location,const void* data,size_t bytes);

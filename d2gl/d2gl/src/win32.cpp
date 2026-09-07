@@ -22,6 +22,7 @@
 #include "helpers.h"
 #include "modules/hd_cursor.h"
 #include "option/menu.h"
+#include "diagnostics.h"
 
 #include <detours/detours.h>
 
@@ -120,6 +121,17 @@ COLORREF WINAPI GetPixel(HDC hdc, int x, int y)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    struct TMarker {
+        uint64_t began=0;const char* finished="key_T_down_handler_us";
+        TMarker(bool down,bool up) {
+            if(!down&&!up)return;
+            const auto error=GetLastError();began=mxl::diag::ticks();
+            finished=down?"key_T_down_handler_us":"key_T_up_handler_us";
+            mxl::diag::note(down?"key_T_down":"key_T_up");SetLastError(error);
+        }
+        ~TMarker(){if(began){const auto error=GetLastError();mxl::diag::note(finished,int64_t(mxl::diag::milliseconds(mxl::diag::ticks()-began)*1000));SetLastError(error);}}
+    } marker(mxl::diag::enabled()&&hWnd==App.hwnd&&wParam==0x54&&uMsg==WM_KEYDOWN&&!(lParam&(1L<<30)),
+             mxl::diag::enabled()&&hWnd==App.hwnd&&wParam==0x54&&uMsg==WM_KEYUP);
 	if (App.ready && option::Menu::instance().isVisible())
 		ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 

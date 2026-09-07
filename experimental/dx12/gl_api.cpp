@@ -34,11 +34,16 @@ void glBindBuffer(GLenum target,GLuint id) {state().bound_buffers[target]=id;}
 void glBufferData(GLenum target,GLsizeiptr size,const void* data,GLenum) {
     require(size>=0,"Negative buffer size");auto& b=state().buffers.at(state().bound_buffers.at(target));
     b.bytes.resize(size);if(data&&size) std::memcpy(b.bytes.data(),data,size);++b.version;
+    b.prefetch_bytes=data?uint64_t(size):0;
 }
 void glBufferSubData(GLenum target,GLintptr offset,GLsizeiptr size,const void* data) {
     auto& b=state().buffers.at(state().bound_buffers.at(target));
     require(offset>=0&&size>=0&&uint64_t(offset)+size<=b.bytes.size(),"Buffer update out of bounds");
     if(size) std::memcpy(b.bytes.data()+offset,data,size);++b.version;
+    // D2GL writes the full live frame at offset zero before its draws. Upload
+    // that range once, instead of re-copying an ever-growing prefix per draw.
+    const auto end=uint64_t(offset)+uint64_t(size);
+    b.prefetch_bytes=offset==0?end:std::max(b.prefetch_bytes,end);
 }
 void glBindBufferRange(GLenum target,GLuint slot,GLuint buffer,GLintptr offset,GLsizeiptr size) {
     require(target==GL_UNIFORM_BUFFER&&offset>=0&&size>=0,"Unsupported buffer range");

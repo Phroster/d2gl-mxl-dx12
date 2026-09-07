@@ -5,11 +5,12 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <share.h>
 
 namespace mxl::diag {
 namespace {
 constexpr size_t Metrics=size_t(Metric::Count), Counts=size_t(Count::Count), AudioOps=size_t(Audio::Count), Capacity=8192;
-const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms"};
+const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms","producer_build_ms"};
 const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures"};
 const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d"};
 static_assert(std::size(metric_names)==Metrics && std::size(count_names)==Counts && std::size(audio_names)==AudioOps);
@@ -60,7 +61,8 @@ DWORD WINAPI writer(void*) {
     FILE* file=nullptr;uint32_t part=0;uint64_t last_summary=ticks(),written=0,slow=0;
     auto open=[&](){
         const auto name=s.directory+L"\\events-"+std::to_wstring(part%3)+L".csv";
-        if(_wfopen_s(&file,name.c_str(),L"wb") || !file)return false;
+        file=_wfsopen(name.c_str(),L"wb",_SH_DENYNO);
+        if(!file)return false;
         setvbuf(file,nullptr,_IOFBF,256*1024);header(file);return true;
     };
     if(!open()){s.active=false;return 1;}
@@ -86,7 +88,7 @@ DWORD WINAPI writer(void*) {
             fflush(file);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
-                fprintf(out,"MXL private diagnostic beta 1\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
+                fprintf(out,"MXL private diagnostic beta 2\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
                     s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load());fclose(out);
             }
             if(GetFileAttributesW((s.directory+L"\\STOP").c_str())!=INVALID_FILE_ATTRIBUTES) {
@@ -123,7 +125,7 @@ bool start(HWND window,const std::wstring& test_directory) {
     std::error_code error;std::filesystem::create_directories(s.directory,error);if(error)return false;
     FILE* file=nullptr;
     if(!_wfopen_s(&file,(s.directory+L"\\session.txt").c_str(),L"wb") && file) {
-        fprintf(file,"MXL private diagnostics beta 1\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
+        fprintf(file,"MXL private diagnostics beta 2\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,
@@ -158,9 +160,9 @@ void end_frame() noexcept {
 }
 void add(Metric metric,uint64_t elapsed) noexcept {if(frame_active)frame.ms[size_t(metric)]+=milliseconds(elapsed);}
 void count(Count metric,uint64_t amount) noexcept {if(frame_active)frame.counts[size_t(metric)]+=amount;}
-void producer(uint64_t id,uint64_t ready,uint64_t returned,double interval,uint32_t vertices) noexcept {
+void producer(uint64_t id,uint64_t ready,uint64_t returned,double interval,uint32_t vertices,double build_ms) noexcept {
     if(!enabled())return;Record r;r.kind="producer";r.id=id;r.at=ready;r.tid=GetCurrentThreadId();
-    r.duration=milliseconds(returned-ready);r.interval=interval;r.counts[0]=vertices;put(r);
+    r.duration=milliseconds(returned-ready);r.interval=interval;r.counts[0]=vertices;r.ms[size_t(Metric::ProducerBuild)]=build_ms;put(r);
 }
 void gpu_batch(uint64_t id,double duration) noexcept {if(!enabled())return;Record r;r.kind="gpu";r.id=id;r.at=ticks();r.duration=duration;r.tid=GetCurrentThreadId();put(r);}
 void audio_call(Audio operation,uint64_t start,uint64_t end,HRESULT result) noexcept {
