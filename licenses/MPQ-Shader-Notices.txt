@@ -1,0 +1,2698 @@
+# Embedded shader notice extracts
+
+These comment blocks were extracted directly from the inherited d2gl.mpq shader sources. Paths below are relative to data/shaders. Original notices remain inside the archive. This index does not assert a common license for files lacking a license notice.
+
+## 1 - include/blur-functions.h, include/gamma-management.h, include/quad-pixel-communication.h, include/special-functions.h
+
+```text
+/////////////////////////////////  MIT LICENSE  ////////////////////////////////
+```
+
+## 2 - include/blur-functions.h, include/special-functions.h
+
+```text
+//  Copyright (C) 2014 TroggleMonkey
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to
+//  deal in the Software without restriction, including without limitation the
+//  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+//  sell copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+//  IN THE SOFTWARE.
+```
+
+## 3 - include/colorspace-tools.h
+
+```text
+// Colorspace Tools
+// ported from Asmodean's PsxFX Shader Suite v2.00
+// NTSC color code from SimoneT
+// Jzazbz code from torridgristle
+// License: GPL v2+
+```
+
+## 4 - include/gamma-management.h
+
+```text
+//  Copyright (C) 2014 TroggleMonkey
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to
+//  deal in the Software without restriction, including without limitation the
+//  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+//  sell copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+//  IN THE SOFTWARE.
+```
+
+## 5 - include/quad-pixel-communication.h
+
+```text
+//  Copyright (C) 2014 TroggleMonkey*
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to
+//  deal in the Software without restriction, including without limitation the
+//  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+//  sell copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+//  IN THE SOFTWARE.
+```
+
+## 6 - include/quad-pixel-communication.h
+
+```text
+//  *This code was inspired by "Shader Amortization using Pixel Quad Message
+//  Passing" by Eric Penner, published in GPU Pro 2, Chapter VI.2.  My intent
+//  is not to plagiarize his fundamentally similar code and assert my own
+//  copyright, but the algorithmic helper functions require so little code that
+//  implementations can't vary by much except bugfixes and conventions.  I just
+//  wanted to license my own particular code here to avoid ambiguity and make it
+//  clear that as far as I'm concerned, people can do as they please with it.
+```
+
+## 7 - include/subpixel_masks.h
+
+```text
+/*
+A collection of CRT mask effects that work with LCD subpixel structures for
+small details
+
+author: hunterk
+license: public domain
+
+How to use it:
+
+Multiply your image by the vec3 output:
+FragColor.rgb *= mask_weights(gl_FragCoord.xy, 1.0, 1);
+
+In the "alpha" version, the alpha channel stores the number of lit subpixels per pixel for use in brightness-loss compensation efforts.
+
+The function needs to be tiled across the screen using the physical pixels, e.g.
+gl_FragCoord (the "vec2 coord" input). In the case of slang shaders, we use
+(vTexCoord.st * OutputSize.xy).
+
+The "mask_intensity" (float value between 0.0 and 1.0) is how strong the mask
+effect should be. Full-strength red, green and blue subpixels on a white pixel
+are the ideal, and are achieved with an intensity of 1.0, though this darkens
+the image significantly and may not always be desirable.
+
+The "phosphor_layout" (int value between 0 and 24) determines which phophor
+layout to apply. 0 is no mask/passthru.
+
+Many of these mask arrays are adapted from cgwg's crt-geom-deluxe LUTs, and
+those have their filenames included for easy identification
+*/
+```
+
+## 8 - xbrz/shaders/2xbrz.slang, xbrz/shaders/4xbrz.slang, xbrz/shaders/5xbrz.slang, xbrz/shaders/6xbrz.slang, xbrz/shaders/xbrz-freescale.slang, xbrz/shaders/xbrz-freescale-multipass/xbrz-freescale-pass0.slang, xbrz/shaders/xbrz-freescale-multipass/xbrz-freescale-pass1.slang
+
+```text
+/*
+   Hyllian's xBR-vertex code and texel mapping
+
+   Copyright (C) 2011/2016 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 9 - xbrz/shaders/2xbrz.slang, xbrz/shaders/4xbrz.slang, xbrz/shaders/5xbrz.slang, xbrz/shaders/6xbrz.slang, xbrz/shaders/xbrz-freescale.slang, xbrz/shaders/xbrz-freescale-multipass/xbrz-freescale-pass0.slang, xbrz/shaders/xbrz-freescale-multipass/xbrz-freescale-pass1.slang
+
+```text
+// This shader also uses code and/or concepts from xBRZ as it appears
+// in the Desmume source code. The license for which is as follows:
+```
+
+## 10 - xbrz/shaders/2xbrz.slang, xbrz/shaders/4xbrz.slang, xbrz/shaders/5xbrz.slang, xbrz/shaders/6xbrz.slang, xbrz/shaders/xbrz-freescale.slang, xbrz/shaders/xbrz-freescale-multipass/xbrz-freescale-pass0.slang, xbrz/shaders/xbrz-freescale-multipass/xbrz-freescale-pass1.slang
+
+```text
+// ****************************************************************************
+// * This file is part of the HqMAME project. It is distributed under         *
+// * GNU General Public License: http://www.gnu.org/licenses/gpl-3.0          *
+// * Copyright (C) Zenju (zenju AT gmx DOT de) - All Rights Reserved          *
+// *                                                                          *
+// * Additionally and as a special exception, the author gives permission     *
+// * to link the code of this program with the MAME library (or with modified *
+// * versions of MAME that use the same license as MAME), and distribute      *
+// * linked combinations including the two. You must obey the GNU General     *
+// * Public License in all respects for all of the code used other than MAME. *
+// * If you modify this file, you may extend this exception to your version   *
+// * of the file, but you are not obligated to do so. If you do not wish to   *
+// * do so, delete this exception statement from your version.                *
+// ****************************************************************************
+```
+
+## 11 - xbr/shaders/xbr-lv1-standalone.slang
+
+```text
+/*
+   Hyllian's xBR-lv1 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to permit
+   persons to whom the Software is furnished to do so, subject to the
+   following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+   Incorporates some of the ideas from SABR shader. Thanks to Joshua Street.
+*/
+```
+
+## 12 - xbr/shaders/xbr-lv2-hd.slang
+
+```text
+/*
+   Hyllian's xBR-lv2 Shader
+
+   Copyright (C) 2011-2015 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to permit
+   persons to whom the Software is furnished to do so, subject to the
+   following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+   Incorporates some of the ideas from SABR shader. Thanks to Joshua Street.
+*/
+```
+
+## 13 - xbr/shaders/xbr-lv2-standalone.slang
+
+```text
+/*
+   Hyllian's xBR-lv2 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to permit
+   persons to whom the Software is furnished to do so, subject to the
+   following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+   Incorporates some of the ideas from SABR shader. Thanks to Joshua Street.
+*/
+```
+
+## 14 - xbr/shaders/xbr-lv3-standalone.slang
+
+```text
+/*
+   Hyllian's xBR-lv3 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a
+   copy of this software and associated documentation files (the
+   "Software"), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to permit
+   persons to whom the Software is furnished to do so, subject to the
+   following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+   Incorporates some of the ideas from SABR shader. Thanks to Joshua Street.
+*/
+```
+
+## 15 - xbr/shaders/super-xbr/custom-jinc2-sharper.slang, xbr/other/shaders/super-xbr/custom-jinc2-sharper.slang
+
+```text
+/*
+   Hyllian's jinc windowed-jinc 2-lobe sharper with anti-ringing Shader
+
+   Copyright (C) 2011-2014 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 16 - xbr/shaders/super-xbr/super-xbr-fast-pass0.slang
+
+```text
+/*
+
+  *******  Super XBR Shader - pass0  *******
+
+  Copyright (c) 2022 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 17 - xbr/shaders/super-xbr/super-xbr-fast-pass1.slang
+
+```text
+/*
+
+  *******  Super XBR Shader - pass1  *******
+
+  Copyright (c) 2022 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 18 - xbr/shaders/super-xbr/super-xbr-fast-pass2.slang
+
+```text
+/*
+
+  *******  Super XBR Shader - pass2  *******  This pass is optional.
+
+  Copyright (c) 2022 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 19 - xbr/shaders/super-xbr/super-xbr-pass0.slang
+
+```text
+/*
+
+  *******  Super XBR Shader - pass0  *******
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 20 - xbr/shaders/super-xbr/super-xbr-pass1.slang, xbr/shaders/super-xbr/super-xbr-pass1b.slang
+
+```text
+/*
+
+  *******  Super XBR Shader - pass1  *******
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 21 - xbr/shaders/super-xbr/super-xbr-pass2.slang, xbr/other/shaders/super-xbr/super-2xbr-3d-pass2.slang
+
+```text
+/*
+
+  *******  Super XBR Shader - pass2  *******  This pass is optional.
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 22 - xbr/shaders/support/b-spline-x.slang, cubic/shaders/b-spline-x.slang
+
+```text
+/*
+   b-spline-x Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 23 - xbr/shaders/support/b-spline-y.slang, cubic/shaders/b-spline-y.slang
+
+```text
+/*
+   b-spline-y Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 24 - xbr/shaders/support/bicubic-x.slang, cubic/shaders/bicubic-x.slang
+
+```text
+/*
+   bicubic-x Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 25 - xbr/shaders/support/bicubic-y.slang, cubic/shaders/bicubic-y.slang
+
+```text
+/*
+   bicubic-y Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 26 - xbr/shaders/support/spline16-x.slang, xbr/shaders/support/spline16-y.slang, windowed/shaders/lanczos3-x.slang, windowed/shaders/lanczos3-y.slang, cubic/shaders/bicubic.slang, cubic/shaders/spline16-x.slang, cubic/shaders/spline16-y.slang, cubic/shaders/spline36-x.slang, cubic/shaders/spline36-y.slang
+
+```text
+/*
+   Copyright (C) 2010 Team XBMC
+   http://www.xbmc.org
+   Copyright (C) 2011 Stefanos A.
+   http://www.opentk.com
+
+This Program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2, or (at your option)
+any later version.
+
+This Program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with XBMC; see the file COPYING.  If not, write to
+the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+http://www.gnu.org/copyleft/gpl.html
+*/
+```
+
+## 27 - xbr/shaders/xbr-lv2-multipass/xbr-lv2-pass0.slang
+
+```text
+/*
+   Hyllian's xBR-lv2 - pass0 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+
+   Incorporates some of the ideas from SABR shader. Thanks to Joshua Street.
+*/
+```
+
+## 28 - xbr/shaders/xbr-lv2-multipass/xbr-lv2-pass1.slang
+
+```text
+/*
+   Hyllian's xBR-lv2 - pass1 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+*/
+```
+
+## 29 - xbr/shaders/xbr-lv3-multipass/xbr-lv3-pass0.slang
+
+```text
+/*
+   Hyllian's xBR-lv3 - pass0 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+
+   Incorporates some of the ideas from SABR shader. Thanks to Joshua Street.
+*/
+```
+
+## 30 - xbr/shaders/xbr-lv3-multipass/xbr-lv3-pass1.slang
+
+```text
+/*
+   Hyllian's xBR-lv3 - pass1 Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+*/
+```
+
+## 31 - xbr/shaders/xbr-lv3-multipass/xbr-lv3-pass1b.slang
+
+```text
+/*
+   Hyllian's xBR-lv3 - pass1b Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+*/
+```
+
+## 32 - xbr/shaders/xbr-mlv4-multipass/xbr-mlv4-pass1.slang
+
+```text
+/*
+
+   Hyllian's xBR MultiLevel4 Shader - Pass1
+
+   Copyright (C) 2011-2015 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 33 - xbr/shaders/xbr-mlv4-multipass/xbr-mlv4-pass2.slang
+
+```text
+/*
+
+   Hyllian's xBR MultiLevel4 Shader - Pass2
+
+   Copyright (C) 2011-2015 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 34 - xbr/shaders/xbr-mlv4-multipass/xbr-mlv4-pass3.slang
+
+```text
+/*
+
+   Hyllian's xBR MultiLevel4 Shader - Pass3
+
+   Copyright (C) 2011-2015 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 35 - xbr/shaders/xbr-mlv4-multipass/xbr-mlv4-pass4.slang
+
+```text
+/*
+
+   Hyllian's xBR MultiLevel4 Shader - Pass4
+
+   Copyright (C) 2011-2015 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 36 - xbr/other/shaders/4xbr-hybrid-crt.slang
+
+```text
+/*
+   Hyllian's 4xBR v3.8c+ReverseAA (squared) Shader + crt-caligari
+
+   Copyright (C) 2011/2012 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 37 - xbr/other/shaders/4xbr-hybrid-crt.slang, xbr/other/shaders/xbr-hybrid/2xbr-hybrid-v5-gamma.slang
+
+```text
+/*
+ *  ReverseAA part of the code
+ *
+ *  Copyright (c) 2012, Christoph Feck <christoph@maxiom.de>
+ *  All Rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+```
+
+## 38 - xbr/other/shaders/super-xbr/super-2xbr-3d-pass0.slang
+
+```text
+/*
+
+  *******  Super XBR 3D Shader - pass0  *******
+
+  Copyright (c) 2016 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 39 - xbr/other/shaders/super-xbr/super-2xbr-3d-pass1.slang
+
+```text
+/*
+
+  *******  Super XBR 3D Shader - pass1  *******
+
+  Copyright (c) 2016 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 40 - xbr/other/shaders/super-xbr/super-4xbr-3d-pass0.slang
+
+```text
+/*
+
+  *******  Super 4XBR 3D Shader - pass0  *******
+
+  Copyright (c) 2016 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 41 - xbr/other/shaders/super-xbr/super-4xbr-3d-pass1.slang, xbr/other/shaders/super-xbr/super-4xbr-3d-pass1f.slang
+
+```text
+/*
+
+  *******  Super 4XBR 3D Shader - pass1  *******
+
+  Copyright (c) 2016 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 42 - xbr/other/shaders/super-xbr/super-4xbr-3d-pass2.slang
+
+```text
+/*
+
+  *******  Super 4XBR Shader - pass2  *******
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 43 - xbr/other/shaders/super-xbr/super-4xbr-3d-pass3.slang
+
+```text
+/*
+
+  *******  Super 4XBR Shader - pass3  *******
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 44 - xbr/other/shaders/super-xbr/super-4xbr-3d-pass3f.slang
+
+```text
+/*
+
+  *******  Super 4XBR Shader - pass3f  *******  This pass is optional.
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 45 - xbr/other/shaders/super-xbr/super-8xbr-3d-pass0.slang
+
+```text
+/*
+
+  *******  Super 8XBR 3D Shader - pass0  *******
+
+  Copyright (c) 2017 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 46 - xbr/other/shaders/super-xbr/super-8xbr-3d-pass1.slang
+
+```text
+/*
+
+  *******  Super 8XBR 3D Shader - pass1  *******
+
+  Copyright (c) 2016 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 47 - xbr/other/shaders/super-xbr/super-8xbr-3d-pass2.slang
+
+```text
+/*
+
+  *******  Super 8XBR Shader - pass2  *******
+
+  Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 48 - xbr/other/shaders/super-xbr/super-8xbr-3d-pass3.slang
+
+```text
+/*
+
+  *******  Super 8XBR 3D Shader - pass3  *******
+
+  Copyright (c) 2017 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 49 - xbr/other/shaders/super-xbr/super-8xbr-3d-pass4.slang
+
+```text
+/*
+
+  *******  Super 8XBR 3D Shader - pass4  *******
+
+  Copyright (c) 2017 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 50 - xbr/other/shaders/super-xbr/super-8xbr-3d-pass5.slang
+
+```text
+/*
+
+  *******  Super 8XBR 3D Shader - pass5  *******
+
+  Copyright (c) 2017 Hyllian - sergiogdb@gmail.com
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+
+*/
+```
+
+## 51 - xbr/other/shaders/xbr-hybrid/2xbr-hybrid-v5-gamma.slang
+
+```text
+/*
+   Hyllian's 2xBR v3.8c+ReverseAA (squared) Shader - Dithering preserved
+
+   Copyright (C) 2011/2012 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 52 - windowed/shaders/jinc2.slang
+
+```text
+/*
+   Hyllian's jinc windowed-jinc 2-lobe with anti-ringing Shader
+
+   Copyright (C) 2011-2014 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 53 - windowed/shaders/lanczos16.slang
+
+```text
+/*
+
+   Copyright (C) 2007 guest(r) - guest.r@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+ */
+```
+
+## 54 - sharpen/shaders/adaptive-sharpen-pass1.slang, sharpen/shaders/adaptive-sharpen-pass2.slang
+
+```text
+// Copyright (c) 2015-2017, bacondither
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer
+//    in this position and unchanged.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## 55 - sharpen/shaders/adaptive-sharpen.slang
+
+```text
+// Copyright (c) 2015, bacondither
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer
+//    in this position and unchanged.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+// OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+// IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+// THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+```
+
+## 56 - sharpen/shaders/diff.slang, sharpen/shaders/super-res-ex.slang
+
+```text
+/*
+   Super-res shader - Shiandow
+
+   Ported from Shiandow's code by Hyllian, 2016.
+
+   This file is a part of MPDN Extensions.
+   https://github.com/zachsaw/MPDN_Extensions
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 3.0 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library.
+*/
+```
+
+## 57 - sharpen/shaders/fast-sharpen.slang
+
+```text
+/*
+   Fast Sharpen Shader
+
+   Copyright (C) 2005 - 2019 guest(r) - guest.r@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+```
+
+## 58 - sharpen/shaders/rcas.slang
+
+```text
+/*
+    Robust Contrast Adaptive (RCA) Sharpening v1.0, re-implemented by fishku
+
+    Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
+    Changelog:
+    v1.0: Initial release.
+*/
+```
+
+## 59 - sharpen/shaders/anime4k/anime4k-compute-gradient.slang, sharpen/shaders/anime4k/anime4k-push.slang, sharpen/shaders/anime4k/anime4k-pushgrad-weak.slang
+
+```text
+// MIT License
+```
+
+## 60 - sharpen/shaders/anime4k/anime4k-compute-gradient.slang, sharpen/shaders/anime4k/anime4k-push.slang, sharpen/shaders/anime4k/anime4k-pushgrad-weak.slang
+
+```text
+// Copyright (c) 2019 bloc97
+```
+
+## 61 - sharpen/shaders/anime4k/anime4k-compute-gradient.slang, sharpen/shaders/anime4k/anime4k-push.slang, sharpen/shaders/anime4k/anime4k-pushgrad-weak.slang
+
+```text
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+```
+
+## 62 - sharpen/shaders/anime4k/anime4k-compute-gradient.slang, sharpen/shaders/anime4k/anime4k-push.slang, sharpen/shaders/anime4k/anime4k-pushgrad-weak.slang
+
+```text
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+```
+
+## 63 - sharpen/shaders/anime4k/anime4k-compute-gradient.slang, sharpen/shaders/anime4k/anime4k-push.slang, sharpen/shaders/anime4k/anime4k-pushgrad-weak.slang
+
+```text
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+```
+
+## 64 - scanlines/shaders/res-independent-scanlines.slang
+
+```text
+/*
+    Resolution-Independent Scanlines
+    based on
+    Scanlines Sine Absolute Value
+    An ultra light scanline shader
+    by RiskyJumps
+    license: public domain
+*/
+```
+
+## 65 - scanlines/shaders/scanline-fract.slang
+
+```text
+// Super-basic scanline shader
+// (looks bad at non-integer scales)
+// by hunterk
+// license: public domain
+```
+
+## 66 - scanlines/shaders/scanlines-rere.slang
+
+```text
+/*
+    by Rere
+    license: public domain
+*/
+```
+
+## 67 - scanlines/shaders/scanlines-sine-abs.slang
+
+```text
+/*
+    Scanlines Sine Absolute Value
+    An ultra light scanline shader
+    by RiskyJumps
+    license: public domain
+*/
+```
+
+## 68 - reshade/shaders/magicbloom/magicbloom_blend.slang, reshade/shaders/magicbloom/magicbloom_blur.inc, reshade/shaders/magicbloom/magicbloom_get_adapt.slang, reshade/shaders/magicbloom/magicbloom_get_small_luma.slang
+
+```text
+/*
+    Magic Bloom by luluco250
+    Attempts to simulate a natural-looking bloom.
+    Features:
+    --Wide bloom blurring, derived from the gaussian function
+      defined here: https://en.wikipedia.org/wiki/Gaussian_blur#Mathematics
+    --Eye adaptation, decreases or increases the brightness
+      of bloom according to the overall image luminance.
+    --Lens dirt, as standard I suppose. Really not much here.
+      It uses an image named "MagicBloom_Dirt.png" so make
+      sure you have one in your textures directory.
+    --Unwanted features can be disabled through
+      preprocessor definitions, saving performance.
+
+    Preprocessor definitions:
+    --MAGICBLOOM_ADAPT_RESOLUTION:
+        Determines the width/height of the texture used for adaptation.
+        It is recommended to use 256, but you can use as far as 1024 without issues.
+        Too low resolutions will make adaptation seem "unstable".
+        Must be a power of two value: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 etc.
+    --MAGICBLOOM_BLUR_PRECALCULATED:
+        If set to 0 the gaussian blur will be calculated inside the shader.
+        Otherwise, it uses a pre-calculated kernel (array).
+
+    --MAGICBLOOM_NODIRT:
+        If set to 1 all lens dirt related features are disabled.
+        Beneficial for performance if you don't wish to use lens dirt.
+    --MAGICBLOOM_NOADAPT:
+        If set to 1 all adaptation related features are disabled.
+        Beneficial for performance if you don't wish to use adaptation.
+    MIT Licensed:
+    Copyright (c) 2017 luluco250
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+```
+
+## 69 - misc/shaders/anti-flicker.slang
+
+```text
+/*
+    Anti-Flicker shader
+    by hunterk
+    License: public domain
+
+    This shader detects large variations in luminance from frame to frame
+    and then blends frames to smooth the transition. In flicker-based
+    shadow effects, this should result in true transparency.
+*/
+```
+
+## 70 - misc/shaders/ascii.slang
+
+```text
+// Bitmap to ASCII (not really) fragment shader by movAX13h, September 2013
+// --- This shader is now used in Pixi JS ---
+// Pixi JS is MIT-licensed
+```
+
+## 71 - misc/shaders/bead.slang
+
+```text
+/*
+   Author: Themaister
+   License: Public domain
+*/
+```
+
+## 72 - misc/shaders/bob-deinterlacing.slang
+
+```text
+/*
+   Bob-Deinterlacing
+   Author: hunterk
+   License: Public domain
+
+   Note: This shader is designed to work with the typical interlaced output from
+   an emulator, which displays both even and odd fields twice.
+
+   As such, it is inappropriate for general video use unless the video has
+   already been similarly woven beforehand.
+*/
+```
+
+## 73 - misc/shaders/chromaticity.slang
+
+```text
+/* Filename: chromaticity
+
+   Copyright (C) 2023 W. M. Martinez
+   splitted and adjusted by DariusG
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   */
+```
+
+## 74 - misc/shaders/color-mangler.slang
+
+```text
+/*
+   Color Mangler
+   Author: hunterk
+   License: Public domain
+*/
+```
+
+## 75 - misc/shaders/deband.slang
+
+```text
+/*
+ * Deband shader by haasn
+ * https://github.com/mpv-player/mpv/blob/master/video/out/opengl/video_shaders.c
+ *
+ * This file is part of mpv.
+ *
+ * mpv is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * mpv is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with mpv.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * You can alternatively redistribute this file and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * Modified and optimized for RetroArch by hunterk
+*/
+```
+
+## 76 - misc/shaders/deinterlace.slang
+
+```text
+/*
+   Deinterlacing
+   Author: Trogglemonkey, isolated from crt-royale by hunterk
+   License: GPLv2
+*/
+```
+
+## 77 - misc/shaders/glass.slang
+
+```text
+/*
+   CRT Glass shader
+      > CRT related artifacts:
+        ::grain
+        ::glass inner reflection
+        ::glass outer reflection
+        ::chromatic aberration (for beam deconvergence and glass diffraction)
+        ::screen flicker
+        ::screen jitter
+        ::afterglow (dr-venom's mod)
+        ::CRT border corner (cgwg's crt-geom)
+      > Stack just before scanlines. Works better with curved geometry modes.
+
+   Author: Dogway
+   License: Public domain
+*/
+```
+
+## 78 - misc/shaders/grade-no-LUT.slang, misc/shaders/grade.slang
+
+```text
+/*
+   Grade - CRT emulation and color manipulation shader
+
+   Copyright (C) 2020-2023 Dogway (Jose Linares)
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 79 - misc/shaders/image-adjustment.slang
+
+```text
+//   Image Adjustment
+//   Author: hunterk
+//   License: Public domain
+```
+
+## 80 - misc/shaders/img_mod.slang
+
+```text
+//   Modular Image Adjustment
+//   Author: hunterk
+//   License: Public domain
+```
+
+## 81 - misc/shaders/interlacing.slang
+
+```text
+/*
+   Interlacing
+   Author: hunterk
+   License: Public domain
+
+   Note: This shader is designed to work with the typical interlaced output from an emulator, which displays both even and odd fields twice.
+   This shader will un-weave the image, resulting in a standard, alternating-field interlacing.
+*/
+```
+
+## 82 - misc/shaders/ss-gamma-ramp.slang
+
+```text
+// Super Sleuth Gamma Ramp
+// based on Overload's ramp as implemented in bsnes v073
+// ported by hunterk
+// license: GPLv2
+```
+
+## 83 - misc/shaders/deposterize/deposterize-pass0.slang
+
+```text
+/*
+   Hyllian's Deposterize Shader - Pass0
+
+   Copyright (C) 2011/2016 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 84 - misc/shaders/deposterize/deposterize-pass1.slang
+
+```text
+/*
+   Hyllian's Deposterize Shader - Pass1
+
+   Copyright (C) 2011/2016 Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+```
+
+## 85 - misc/shaders/print-resolution/print-resolution-generate-and-cache.slang
+
+```text
+/*
+    print-resolution-text-generate-and-cache.slang
+
+    Text code is from the Shadertoy "96-bit 8x12" Font by Flyguy
+    Some adjustments by HyperspaceMadness to simplify usage, and create this slang version
+
+    This pass reuses the output from the last frame until the resolution info changes so
+    that we reduce calculation if nothing has changed
+    The text image will be written into the alpha of the pass
+    The print-resolution-text-apply.slang pass which goes along with this will take the alpha channel
+    and print it on top of the game image in the next pass
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+```
+
+## 86 - interpolation/shaders/aann.slang
+
+```text
+// AntiAliased Nearest Neighbor
+// by jimbo1qaz and wareya
+// Licensed MIT
+```
+
+## 87 - interpolation/shaders/bandlimit-pixel.slang
+
+```text
+/*
+ * Bandlimited pixel footprint shader.
+ * Author: Themaister
+ * License: MIT
+ * Adapted from: https://github.com/Themaister/Granite/blob/master/assets/shaders/inc/bandlimited_pixel_filter.h
+ */
+```
+
+## 88 - interpolation/shaders/pixellate.slang
+
+```text
+//    Pixellate Shader
+//    Copyright (c) 2011, 2012 Fes
+//    Permission to use, copy, modify, and/or distribute this software for any
+//    purpose with or without fee is hereby granted, provided that the above
+//    copyright notice and this permission notice appear in all copies.
+//    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+//    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+//    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+//    SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+//   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+//    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
+//    IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+//    (Fes gave their permission to have this shader distributed under this
+//    licence in this forum post:
+//        http://board.byuu.org/viewtopic.php?p=57295#p57295
+```
+
+## 89 - interpolation/shaders/sharp-bilinear-scanlines.slang, interpolation/shaders/sharp-bilinear-simple.slang
+
+```text
+/*
+   Author: rsn8887 (based on TheMaister)
+   License: Public domain
+
+   This is an integer prescale filter that should be combined
+   with a bilinear hardware filtering (GL_BILINEAR filter or some such) to achieve
+   a smooth scaling result with minimum blur. This is good for pixelgraphics
+   that are scaled by non-integer factors.
+
+   The prescale factor and texel coordinates are precalculated
+   in the vertex shader for speed.
+*/
+```
+
+## 90 - interpolation/shaders/sharp-bilinear.slang
+
+```text
+/*
+ * sharp-bilinear.slang
+ * Author: Themaister
+ * License: Public domain
+ *
+ * Does a bilinear stretch, with a preapplied Nx nearest-neighbor scale, giving a
+ * sharper image than plain bilinear.
+ */
+```
+
+## 91 - interpolation/shaders/uniform-nearest.slang
+
+```text
+/*
+ * gizmo98 uniform-nearest shader
+ * Copyright (C) 2023 gizmo98
+ *
+ *   This program is free software; you can redistribute it and/or modify it
+ *   under the terms of the GNU General Public License as published by the Free
+ *   Software Foundation; either version 2 of the License, or (at your option)
+ *   any later version.
+ *
+ * version 0.1, 28.04.2023
+ * ---------------------------------------------------------------------------------------
+ * - initial commit
+ *
+ * https://github.com/gizmo98/gizmo-crt-shader
+ *
+ * This shader texture AA shader code and subpixel scaling to produce a nearest neighbor
+ * look with even placed pixels. If nearest neighbor is applied to fractional scaled output
+ * pixels look uneven and moving sprites change dimension which looks ugly.
+ *
+ * BGR_LCD_PATTERN most LCDs have a RGB pixel pattern. Enable BGR pattern with this switch
+ *
+ * uses parts of texture anti-aliasing shader from Ikaros https://www.shadertoy.com/view/ldsSRX
+ */
+```
+
+## 92 - interpolation/shaders/pixel_aa/pixel_aa.slang
+
+```text
+/*
+    Pixel AA v1.1 by fishku
+    Copyright (C) 2023
+    Public domain license (CC0)
+
+    Features:
+    - Sharp upscaling with anti-aliasing
+    - Subpixel upscaling
+    - Sharpness can be controlled
+    - Gamma correct blending
+    - Integer scales result in pixel-perfect scaling
+    - Can use bilinear filtering for max. performance
+
+    Inspired by:
+    https://www.shadertoy.com/view/MlB3D3
+    by d7samurai
+    and:
+    https://www.youtube.com/watch?v=d6tp43wZqps
+    by t3ssel8r
+
+    With sharpness = 1.0, using the same gamma-correct blending, and disabling
+    subpixel anti-aliasing, results are identical to the "pixellate" shader.
+
+    Changelog:
+    v1.1: Better subpixel sampling.
+    v1.0: Initial release.
+*/
+```
+
+## 93 - include/img/cgwg_warp.h, include/img/curvature.h
+
+```text
+// cgwg's geom
+// license: GPLv2
+```
+
+## 94 - include/img/int_ar.h
+
+```text
+// Forces integer scaling and arbitrary aspect ratio
+// by hunterk
+// license: public domain
+```
+
+## 95 - fsr/shaders/ffx_a.h
+
+```text
+//==============================================================================================================================
+//
+//                                               [A] SHADER PORTABILITY 1.20210629
+//
+//==============================================================================================================================
+// FidelityFX Super Resolution Sample
+//
+// Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//------------------------------------------------------------------------------------------------------------------------------
+// MIT LICENSE
+// ===========
+// Copyright (c) 2014 Michal Drobot (for concepts used in "FLOAT APPROXIMATIONS").
+// -----------
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
+// files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,
+// modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// -----------
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+// Software.
+// -----------
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+// ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//------------------------------------------------------------------------------------------------------------------------------
+// ABOUT
+// =====
+// Common central point for high-level shading language and C portability for various shader headers.
+//------------------------------------------------------------------------------------------------------------------------------
+// DEFINES
+// =======
+// A_CPU ..... Include the CPU related code.
+// A_GPU ..... Include the GPU related code.
+// A_GLSL .... Using GLSL.
+// A_HLSL .... Using HLSL.
+// A_HLSL_6_2  Using HLSL 6.2 with new 'uint16_t' and related types (requires '-enable-16bit-types').
+// A_NO_16_BIT_CAST Don't use instructions that are not availabe in SPIR-V (needed for running A_HLSL_6_2 on Vulkan)
+// A_GCC ..... Using a GCC compatible compiler (else assume MSVC compatible compiler by default).
+// =======
+// A_BYTE .... Support 8-bit integer.
+// A_HALF .... Support 16-bit integer and floating point.
+// A_LONG .... Support 64-bit integer.
+// A_DUBL .... Support 64-bit floating point.
+// =======
+// A_WAVE .... Support wave-wide operations.
+//------------------------------------------------------------------------------------------------------------------------------
+// To get #include "ffx_a.h" working in GLSL use '#extension GL_GOOGLE_include_directive:require'.
+//------------------------------------------------------------------------------------------------------------------------------
+// SIMPLIFIED TYPE SYSTEM
+// ======================
+//  - All ints will be unsigned with exception of when signed is required.
+//  - Type naming simplified and shortened "A<type><#components>",
+//     - H = 16-bit float (half)
+//     - F = 32-bit float (float)
+//     - D = 64-bit float (double)
+//     - P = 1-bit integer (predicate, not using bool because 'B' is used for byte)
+//     - B = 8-bit integer (byte)
+//     - W = 16-bit integer (word)
+//     - U = 32-bit integer (unsigned)
+//     - L = 64-bit integer (long)
+//  - Using "AS<type><#components>" for signed when required.
+//------------------------------------------------------------------------------------------------------------------------------
+// TODO
+// ====
+//  - Make sure 'ALerp*(a,b,m)' does 'b*m+(-a*m+a)' (2 ops).
+//------------------------------------------------------------------------------------------------------------------------------
+// CHANGE LOG
+// ==========
+// 20200914 - Expanded wave ops and prx code.
+// 20200713 - Added [ZOL] section, fixed serious bugs in sRGB and Rec.709 color conversion code, etc.
+//==============================================================================================================================
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//_____________________________________________________________/\_______________________________________________________________
+//==============================================================================================================================
+//                                                           COMMON
+//==============================================================================================================================
+```
+
+## 96 - fsr/shaders/ffx_fsr1.h
+
+```text
+//_____________________________________________________________/\_______________________________________________________________
+//==============================================================================================================================
+//
+//
+//                    AMD FidelityFX SUPER RESOLUTION [FSR 1] ::: SPATIAL SCALING & EXTRAS - v1.20210629
+//
+//
+//------------------------------------------------------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------------------------
+// FidelityFX Super Resolution Sample
+//
+// Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//------------------------------------------------------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------------------------
+// ABOUT
+// =====
+// FSR is a collection of algorithms relating to generating a higher resolution image.
+// This specific header focuses on single-image non-temporal image scaling, and related tools.
+//
+// The core functions are EASU and RCAS:
+//  [EASU] Edge Adaptive Spatial Upsampling ....... 1x to 4x area range spatial scaling, clamped adaptive elliptical filter.
+//  [RCAS] Robust Contrast Adaptive Sharpening .... A non-scaling variation on CAS.
+// RCAS needs to be applied after EASU as a separate pass.
+//
+// Optional utility functions are:
+//  [LFGA] Linear Film Grain Applicator ........... Tool to apply film grain after scaling.
+//  [SRTM] Simple Reversible Tone-Mapper .......... Linear HDR {0 to FP16_MAX} to {0 to 1} and back.
+//  [TEPD] Temporal Energy Preserving Dither ...... Temporally energy preserving dithered {0 to 1} linear to gamma 2.0 conversion.
+// See each individual sub-section for inline documentation.
+//------------------------------------------------------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------------------------
+// FUNCTION PERMUTATIONS
+// =====================
+// *F() ..... Single item computation with 32-bit.
+// *H() ..... Single item computation with 16-bit, with packing (aka two 16-bit ops in parallel) when possible.
+// *Hx2() ... Processing two items in parallel with 16-bit, easier packing.
+//            Not all interfaces in this file have a *Hx2() form.
+//==============================================================================================================================
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//_____________________________________________________________/\_______________________________________________________________
+//==============================================================================================================================
+//
+//                                        FSR - [EASU] EDGE ADAPTIVE SPATIAL UPSAMPLING
+//
+//------------------------------------------------------------------------------------------------------------------------------
+// EASU provides a high quality spatial-only scaling at relatively low cost.
+// Meaning EASU is appropiate for laptops and other low-end GPUs.
+// Quality from 1x to 4x area scaling is good.
+//------------------------------------------------------------------------------------------------------------------------------
+// The scalar uses a modified fast approximation to the standard lanczos(size=2) kernel.
+// EASU runs in a single pass, so it applies a directionally and anisotropically adaptive radial lanczos.
+// This is also kept as simple as possible to have minimum runtime.
+//------------------------------------------------------------------------------------------------------------------------------
+// The lanzcos filter has negative lobes, so by itself it will introduce ringing.
+// To remove all ringing, the algorithm uses the nearest 2x2 input texels as a neighborhood,
+// and limits output to the minimum and maximum of that neighborhood.
+//------------------------------------------------------------------------------------------------------------------------------
+// Input image requirements:
+//
+// Color needs to be encoded as 3 channel[red, green, blue](e.g.XYZ not supported)
+// Each channel needs to be in the range[0, 1]
+// Any color primaries are supported
+// Display / tonemapping curve needs to be as if presenting to sRGB display or similar(e.g.Gamma 2.0)
+// There should be no banding in the input
+// There should be no high amplitude noise in the input
+// There should be no noise in the input that is not at input pixel granularity
+// For performance purposes, use 32bpp formats
+//------------------------------------------------------------------------------------------------------------------------------
+// Best to apply EASU at the end of the frame after tonemapping
+// but before film grain or composite of the UI.
+//------------------------------------------------------------------------------------------------------------------------------
+// Example of including this header for D3D HLSL :
+//
+//  #define A_GPU 1
+//  #define A_HLSL 1
+//  #define A_HALF 1
+//  #include "ffx_a.h"
+//  #define FSR_EASU_H 1
+//  #define FSR_RCAS_H 1
+//  //declare input callbacks
+//  #include "ffx_fsr1.h"
+//
+// Example of including this header for Vulkan GLSL :
+//
+//  #define A_GPU 1
+//  #define A_GLSL 1
+//  #define A_HALF 1
+//  #include "ffx_a.h"
+//  #define FSR_EASU_H 1
+//  #define FSR_RCAS_H 1
+//  //declare input callbacks
+//  #include "ffx_fsr1.h"
+//
+// Example of including this header for Vulkan HLSL :
+//
+//  #define A_GPU 1
+//  #define A_HLSL 1
+//  #define A_HLSL_6_2 1
+//  #define A_NO_16_BIT_CAST 1
+//  #define A_HALF 1
+//  #include "ffx_a.h"
+//  #define FSR_EASU_H 1
+//  #define FSR_RCAS_H 1
+//  //declare input callbacks
+//  #include "ffx_fsr1.h"
+//
+//  Example of declaring the required input callbacks for GLSL :
+//  The callbacks need to gather4 for each color channel using the specified texture coordinate 'p'.
+//  EASU uses gather4 to reduce position computation logic and for free Arrays of Structures to Structures of Arrays conversion.
+//
+//  AH4 FsrEasuRH(AF2 p){return AH4(textureGather(sampler2D(tex,sam),p,0));}
+//  AH4 FsrEasuGH(AF2 p){return AH4(textureGather(sampler2D(tex,sam),p,1));}
+//  AH4 FsrEasuBH(AF2 p){return AH4(textureGather(sampler2D(tex,sam),p,2));}
+//  ...
+//  The FsrEasuCon function needs to be called from the CPU or GPU to set up constants.
+//  The difference in viewport and input image size is there to support Dynamic Resolution Scaling.
+//  To use FsrEasuCon() on the CPU, define A_CPU before including ffx_a and ffx_fsr1.
+//  Including a GPU example here, the 'con0' through 'con3' values would be stored out to a constant buffer.
+//  AU4 con0,con1,con2,con3;
+//  FsrEasuCon(con0,con1,con2,con3,
+//    1920.0,1080.0,  // Viewport size (top left aligned) in the input image which is to be scaled.
+//    3840.0,2160.0,  // The size of the input image.
+//    2560.0,1440.0); // The output resolution.
+//==============================================================================================================================
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//_____________________________________________________________/\_______________________________________________________________
+//==============================================================================================================================
+//                                                      CONSTANT SETUP
+//==============================================================================================================================
+// Call to setup required constant values (works on CPU or GPU).
+```
+
+## 97 - fsr/shaders/fsr-pass0.slang, fsr/shaders/fsr-pass1.slang, anti-aliasing/shaders/smaa/smaa-pass0.slang, anti-aliasing/shaders/smaa/smaa-pass1.slang, anti-aliasing/shaders/smaa/smaa-pass2.slang
+
+```text
+// SPDX-License-Identifier: Unlicense
+```
+
+## 98 - cubic/shaders/catmull-rom-x.slang
+
+```text
+/*
+   catmull-rom-x Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 99 - cubic/shaders/catmull-rom-y.slang
+
+```text
+/*
+   catmull-rom-y Shader
+
+   Copyright (C) 2011-2022 Hyllian - sergiogdb@gmail.com
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+
+*/
+```
+
+## 100 - cubic/shaders/catmull-rom.slang
+
+```text
+/*
+    Bicubic Catmull-Rom 9 taps (Fast) - ported by Hyllian - 2020
+
+    The following code is licensed under the MIT license: https://gist.github.com/TheRealMJP/bc503b0b87b643d3505d41eab8b332ae
+
+    Ported from code: https://gist.github.com/TheRealMJP/c83b8c0f46b63f3a88a5986f4fa982b1
+
+    Samples a texture with Catmull-Rom filtering, using 9 texture fetches instead of 16.
+    See http://vec3.ca/bicubic-filtering-in-fewer-taps/ for more details
+
+    ATENTION: This code only work using LINEAR filter sampling set on Retroarch!
+
+*/
+```
+
+## 101 - anti-aliasing/shaders/advanced-aa.slang
+
+```text
+/*
+   Copyright (C) 2006 guest(r) - guest.r@gmail.com
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; either version 2
+   of the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+```
+
+## 102 - anti-aliasing/shaders/ewa_curvature.slang
+
+```text
+/**
+* Practical Elliptical Texture Filtering on the GPU
+* Copyright 2010-2011 Pavlos Mavridis, All rights reserved.
+*
+* Version: 0.6 - 12 / 7 / 2011 (DD/MM/YY)
+*/
+```
+
+## 103 - anti-aliasing/shaders/ewa_curvature.slang
+
+```text
+// Lottes' public domain mask code
+// Shadow mask.
+```
+
+## 104 - anti-aliasing/shaders/reverse-aa.slang
+
+```text
+/*
+   Reverse Antialiasing Shader
+
+   Adapted from the C source (see Copyright below) to shader
+   cg language by Hyllian/Jararaca - sergiogdb@gmail.com
+
+   This shader works best in 2x scale.
+
+*/
+```
+
+## 105 - anti-aliasing/shaders/reverse-aa.slang
+
+```text
+/*
+ *
+ *  Copyright (c) 2012, Christoph Feck <christoph@maxiom.de>
+ *  All Rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+```
+
+## 106 - anti-aliasing/shaders/reverse-aa-post3x/reverse-aa-post3x-pass0.slang
+
+```text
+/*
+    rAA post-3x - Pass 0
+    by Sp00kyFox, 2018-10-20
+
+Filter: Nearest
+Scale:  1x
+
+This is a generalized continuation of the reverse antialiasing filter by
+Christoph Feck. Unlike the original filter this is supposed to be used on an
+already upscaled image. Which makes it possible to combine rAA with other filters
+just as ScaleFX, xBR or others.
+
+Pass 0 does the horizontal filtering.
+
+
+
+Copyright (c) 2018 Sp00kyFox - ScaleFX@web.de
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*/
+```
+
+## 107 - anti-aliasing/shaders/reverse-aa-post3x/reverse-aa-post3x-pass1.slang
+
+```text
+/*
+    rAA post-3x - Pass 1
+    by Sp00kyFox, 2018-10-20
+
+Filter: Nearest
+Scale:  1x
+
+This is a generalized continuation of the reverse antialiasing filter by
+Christoph Feck. Unlike the original filter this is supposed to be used on an
+already upscaled image. Which makes it possible to combine rAA with other filters
+just as ScaleFX, xBR or others.
+
+Pass 1 does the vertical filtering.
+
+
+
+Copyright (c) 2018 Sp00kyFox - ScaleFX@web.de
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*/
+```
+
+## 108 - anti-aliasing/shaders/smaa/SMAA.hlsl
+
+```text
+/**
+ * Copyright (C) 2013 Jorge Jimenez (jorge@iryoku.com)
+ * Copyright (C) 2013 Jose I. Echevarria (joseignacioechevarria@gmail.com)
+ * Copyright (C) 2013 Belen Masia (bmasia@unizar.es)
+ * Copyright (C) 2013 Fernando Navarro (fernandn@microsoft.com)
+ * Copyright (C) 2013 Diego Gutierrez (diegog@unizar.es)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software. As clarification, there
+ * is no requirement that the copyright notice and permission be included in
+ * binary distributions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+```

@@ -1,65 +1,117 @@
-"""Package the main DX12 renderer and player guides, never a game installation."""
+"""Create the player ZIP from an explicit list of installation files and notices."""
+import argparse
+import configparser
+import hashlib
+import json
 from pathlib import Path
-import argparse,configparser,hashlib,json,subprocess,zipfile
-p=argparse.ArgumentParser()
-p.add_argument("--build-dir",type=Path,required=True)
-args=p.parse_args()
-dependencies=json.loads((args.build_dir/"mxl-build-dependencies.json").read_text(encoding="utf-8"))
-root=Path(__file__).resolve().parents[1]
-name="mxl-smooth-motion-dx12-1.0"
-out=root/"dist"/name
-out.mkdir(parents=True,exist_ok=True)
-inputs={
- "glide3x.dll":args.build_dir/"Release/glide3x.dll",
- "ddraw.dll":args.build_dir/"Release/ddraw.dll",
- "d2gl.mpq":root/"d2gl/d2gl.mpq",
- "d2fps.ini":root/"defaults/d2fps.ini",
- "README.md":root/"README.md",
- "START-HERE.txt":root/"START-HERE.txt",
- "docs/banner-dx12-v1.0.svg":root/"docs/banner-dx12-v1.0.svg",
- "mxl-diagnostics.ini":root/"mxl-diagnostics.ini",
- "docs/launcher-settings.png":root/"docs/launcher-settings.png",
- "docs/SETTINGS.md":root/"docs/SETTINGS.md",
- "docs/INSTALL.md":root/"docs/INSTALL.md",
- "docs/RELEASE-NOTES.md":root/"docs/RELEASE-NOTES.md",
- "LICENSE":root/"LICENSE",
- "licenses/D2GL-GPL.txt":root/"d2gl/LICENSE.md",
- "licenses/D2GL-THIRD-PARTY.txt":root/"d2gl/THIRD_PARTY_LICENSES.md",
- "licenses/D2FPS-GPL.txt":root/"licenses/D2FPS-GPL.txt",
- "licenses/D2FPS-MIT.txt":root/"licenses/D2FPS-MIT.txt",
- "licenses/D2FPS-APACHE.txt":root/"licenses/D2FPS-APACHE.txt",
- "licenses/glslang.txt":Path(dependencies["glslang"])/"LICENSE.txt",
- "licenses/SPIRV-Cross.txt":Path(dependencies["spirv_cross"])/"LICENSE",
- "licenses/ImGui.txt":root/"d2gl/d2gl/vendor/include/imgui/LICENSE.txt",
-}
-files={name:path.read_bytes() for name,path in inputs.items()}
-# Source-only footer links remain valid when the README is opened from the ZIP.
-readme=files["README.md"].decode("utf-8")
-for page in ("BUILD.md","ARCHITECTURE.md","UPSTREAM.json"):
-    readme=readme.replace("(docs/"+page+")","(https://github.com/Phroster/d2gl-mxl-dx12/blob/master/docs/"+page+")")
-files["README.md"]=readme.encode("utf-8")
-diagnostics=configparser.ConfigParser()
-diagnostics.read_string(files["mxl-diagnostics.ini"].decode("utf-8"))
-assert diagnostics.getint("Diagnostics","enabled")==0, "Release recording must default to off"
-ini=(root/"defaults/d2gl.ini").read_text(encoding="utf-8")
-ini=ini.replace("; Preferred OpenGL Version (must be 3.3 or between 4.0 to 4.6).\ngl_ver_major=4\ngl_ver_minor=6",
-                "; This build uses DirectX 12 automatically.")
-files["d2gl.ini"]=ini.encode("utf-8")
-entries=[{"name":n,"bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()} for n,b in files.items()]
-commit=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root).decode().strip()
-manifest={"product":"MXL Smooth Motion DX12","version":"1.0","source_commit":commit,
-          "performance_recording_default":False,"automatic_act_reveal":True,
-          "source_repository":"https://github.com/Phroster/d2gl-mxl-dx12",
-          "source_branch":"master","official_d2fps_sha256":"db9de4d4d320a7b70e66fe6b4aaa0e6f1560a5300a4993cc81cf4512ab1240c1",
-          "files":entries}
-files["manifest.json"]=(json.dumps(manifest,indent=2)+"\n").encode("utf-8")
-for n,b in files.items():
-    target=out/n;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(b)
-archive=out.parent/(name+".zip")
-with zipfile.ZipFile(archive,"w",compression=zipfile.ZIP_DEFLATED) as z:
-    for n in files:z.write(out/n,n)
-with zipfile.ZipFile(archive) as z:
-    assert z.testzip() is None
-    assert "d2fps.dll" not in z.namelist()
-    for entry in entries:assert hashlib.sha256(z.read(entry["name"])).hexdigest()==entry["sha256"]
-print(json.dumps({"zip":str(archive),"bytes":archive.stat().st_size,"sha256":hashlib.sha256(archive.read_bytes()).hexdigest()},indent=2))
+import subprocess
+import zipfile
+
+
+ROOT = Path(__file__).resolve().parents[1]
+NAME = "mxl-smooth-motion-dx12-1.0"
+REPOSITORY = "https://github.com/Phroster/d2gl-mxl-dx12"
+PLAYER_FILES = frozenset({
+    "glide3x.dll", "ddraw.dll", "d2gl.mpq", "d2gl.ini", "d2fps.ini",
+    "mxl-diagnostics.ini", "LICENSES.txt",
+})
+
+
+def sha256(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def license_notices(commit, dependencies):
+    sections = [
+        "MXL Smooth Motion DX12 1.0 - copyright, licenses and source\n\n"
+        "The modified D2GL code is free software under GNU GPL version 3\n"
+        "or (at your option) any later version. It comes WITHOUT ANY WARRANTY.\n"
+        "Original D2GL: Copyright (C) 2023 Bayaraa.\n"
+        "D2DX motion prediction: Bolrog and contributors.\n"
+        "Median XL adaptations: Pooquer, GavinK88 and contributors.\n"
+        "DX12 rendering and integration changes: Phroster, September 2026.\n\n"
+        f"Exact source revision: {commit}\n"
+        f"Source and build instructions: {REPOSITORY}/tree/{commit}\n"
+        f"Source download: {REPOSITORY}/archive/{commit}.zip\n"
+        f"Licensing and dependency sources: {REPOSITORY}/blob/{commit}/docs/LICENSING.md\n\n"
+        "D2FPS is provided by the installed Median XL game and is not included\n"
+        "in this ZIP. Its historical license texts remain in the source repository.\n"
+        "Third-party components retain their own copyright and license terms below.\n",
+        "GNU GENERAL PUBLIC LICENSE\n\n" + (ROOT / "LICENSE").read_text(encoding="utf-8"),
+    ]
+    inventory = json.loads((ROOT / "licenses/player-notices.json").read_text(encoding="utf-8"))
+    for item in inventory:
+        path = ROOT / item["file"]
+        contents = path.read_text(encoding="utf-8")
+        if "build_dependency" in item:
+            original = Path(dependencies[item["build_dependency"]]) / item["dependency_file"]
+            # Git may change line endings on checkout; compare the complete text.
+            if original.read_text(encoding="utf-8") != contents:
+                raise ValueError(f"License differs from the build dependency: {original}")
+        sections.append(item["title"] + "\n" + item["source"] + "\n\n" + contents)
+    return ("\n\n" + "=" * 72 + "\n\n").join(sections).encode("utf-8")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--build-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "dist")
+    args = parser.parse_args()
+    dependencies = json.loads((args.build_dir / "mxl-build-dependencies.json").read_text(encoding="utf-8"))
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    inputs = {
+        "glide3x.dll": args.build_dir / "Release/glide3x.dll",
+        "ddraw.dll": args.build_dir / "Release/ddraw.dll",
+        "d2gl.mpq": ROOT / "d2gl/d2gl.mpq",
+        "d2fps.ini": ROOT / "defaults/d2fps.ini",
+        "mxl-diagnostics.ini": ROOT / "mxl-diagnostics.ini",
+    }
+    files = {name: path.read_bytes() for name, path in inputs.items()}
+    diagnostics = configparser.ConfigParser()
+    diagnostics.read_string(files["mxl-diagnostics.ini"].decode("utf-8"))
+    if diagnostics.getint("Diagnostics", "enabled") != 0:
+        raise ValueError("Release recording must default to off")
+    ini = (ROOT / "defaults/d2gl.ini").read_text(encoding="utf-8")
+    ini = ini.replace(
+        "; Preferred OpenGL Version (must be 3.3 or between 4.0 to 4.6).\ngl_ver_major=4\ngl_ver_minor=6",
+        "; This build uses DirectX 12 automatically.",
+    )
+    files["d2gl.ini"] = ini.encode("utf-8")
+    files["LICENSES.txt"] = license_notices(commit, dependencies)
+    if set(files) != PLAYER_FILES:
+        raise ValueError("Unexpected player package contents")
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    archive = args.output_dir / (NAME + ".zip")
+    temporary = archive.with_suffix(".zip.tmp")
+    # Write bytes directly: old staging folders can never leak files into a release.
+    with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as output:
+        for name in sorted(files):
+            output.writestr(name, files[name])
+    with zipfile.ZipFile(temporary) as output:
+        if set(output.namelist()) != PLAYER_FILES or len(output.namelist()) != len(PLAYER_FILES):
+            raise ValueError("Unexpected ZIP entries")
+        if output.testzip() is not None:
+            raise ValueError("ZIP integrity check failed")
+        for name, contents in files.items():
+            if sha256(output.read(name)) != sha256(contents):
+                raise ValueError(f"ZIP data differs: {name}")
+    temporary.replace(archive)
+    digest = sha256(archive.read_bytes())
+    manifest = {
+        "product": "MXL Smooth Motion DX12", "version": "1.0",
+        "source_commit": commit, "source_repository": REPOSITORY,
+        "performance_recording_default": False, "automatic_act_reveal": True,
+        "zip_sha256": digest,
+        "files": [{"name": name, "bytes": len(data), "sha256": sha256(data)}
+                  for name, data in sorted(files.items())],
+    }
+    # Developer verification output stays beside the ZIP, never inside it.
+    (args.output_dir / (NAME + ".manifest.json")).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (args.output_dir / "SHA256SUMS.txt").write_text(f"{digest}  {archive.name}\n", encoding="utf-8")
+    print(json.dumps({"zip": str(archive), "bytes": archive.stat().st_size,
+                      "sha256": digest, "files": sorted(files)}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

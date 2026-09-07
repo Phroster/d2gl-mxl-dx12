@@ -54,6 +54,8 @@ The game keeps its normal speed. Your FPS target follows your monitor by default
 
 **Keep the game's existing `d2fps.dll`.** It is required and is not replaced by this download.
 
+The ZIP contains only these six installation files and one `LICENSES.txt` notice. Guides, screenshots and developer tools are available in this repository.
+
 The included settings are ready to use. Back up your current files first if you want to keep a custom setup.
 
 ### ⬆️ Already using MXL Smooth Motion DX12?
@@ -112,6 +114,8 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 <details>
 <summary>Source code & licensing</summary>
 
-[Build guide](docs/BUILD.md) · [Architecture](docs/ARCHITECTURE.md) · [Original projects](docs/UPSTREAM.json) · [License](LICENSE)
+[Build guide](docs/BUILD.md) · [Architecture](docs/ARCHITECTURE.md) · [Original projects](docs/UPSTREAM.json) · [License](LICENSE) · [Licensing & credits](docs/LICENSING.md)
+
+The D2GL-based code is licensed under **GPL-3.0-or-later**. Third-party components retain their own terms. The licensing page lists their notices and source references.
 
 </details>

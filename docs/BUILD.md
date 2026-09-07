@@ -29,7 +29,9 @@ With Python 3 installed:
 python tools/package.py --build-dir C:/MXL-DX12-Build
 ```
 
-The ZIP contains the six game files, player guides and licences. Source files and build tools stay in the repository.
+The ZIP contains exactly the six installation files and one consolidated `LICENSES.txt`. Guides, images, source files and build tools stay in the repository. The packaging script checks the complete ZIP inventory, file hashes and disabled recording default. It writes the verification manifest and checksum beside the ZIP, outside the player download.
+
+The notice inventory is maintained in [`licenses/player-notices.json`](../licenses/player-notices.json). Packaging checks the copied compiler license texts against the actual build dependencies. See [licensing and credits](LICENSING.md) for component terms and source references.
 
 ## Source layout
 

@@ -1,0 +1,26 @@
+D2GL built-in postprocessing shader notices
+
+Copied from d2gl/d2gl/src/graphic/shaders/postfx.glsl. The original source keeps these notices.
+
+/*
+    FXAA @license
+    Copyright (c) 2011 NVIDIA Corporation. All rights reserved.
+
+    TO  THE MAXIMUM  EXTENT PERMITTED  BY APPLICABLE  LAW, THIS SOFTWARE  IS PROVIDED
+    *AS IS*  AND NVIDIA AND  ITS SUPPLIERS DISCLAIM  ALL WARRANTIES,  EITHER  EXPRESS
+    OR IMPLIED, INCLUDING, BUT NOT LIMITED  TO, NONINFRINGEMENT,IMPLIED WARRANTIES OF
+    MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  IN NO EVENT SHALL  NVIDIA
+    OR ITS SUPPLIERS BE  LIABLE  FOR  ANY  DIRECT, SPECIAL,  INCIDENTAL,  INDIRECT,  OR
+    CONSEQUENTIAL DAMAGES WHATSOEVER (INCLUDING, WITHOUT LIMITATION,  DAMAGES FOR LOSS
+    OF BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF BUSINESS INFORMATION, OR ANY
+    OTHER PECUNIARY LOSS) ARISING OUT OF THE  USE OF OR INABILITY  TO USE THIS SOFTWARE,
+    EVEN IF NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+*/
+/*
+    LumaSharpen
+    by Christian Cann Schuldt Jensen ~ CeeJay.dk
+
+    It blurs the original pixel with the surrounding pixels and then subtracts this blur to sharpen the image.
+    It does this in luma to avoid color artifacts and allows limiting the maximum sharpning to avoid or lessen halo artifacts.
+    This is similar to using Unsharp Mask in Photoshop.
+*/
