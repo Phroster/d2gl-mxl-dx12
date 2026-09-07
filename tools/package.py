@@ -6,7 +6,7 @@ p.add_argument("--build-dir",type=Path,required=True)
 args=p.parse_args()
 dependencies=json.loads((args.build_dir/"mxl-build-dependencies.json").read_text(encoding="utf-8"))
 root=Path(__file__).resolve().parents[1]
-name="mxl-smooth-motion-dx12-1.1"
+name="mxl-smooth-motion-dx12-1.0"
 out=root/"dist"/name
 out.mkdir(parents=True,exist_ok=True)
 inputs={
@@ -16,7 +16,7 @@ inputs={
  "d2fps.ini":root/"defaults/d2fps.ini",
  "README.md":root/"README.md",
  "START-HERE.txt":root/"START-HERE.txt",
- "docs/banner-dx12-v1.1.svg":root/"docs/banner-dx12-v1.1.svg",
+ "docs/banner-dx12-v1.0.svg":root/"docs/banner-dx12-v1.0.svg",
  "mxl-diagnostics.ini":root/"mxl-diagnostics.ini",
  "docs/launcher-settings.png":root/"docs/launcher-settings.png",
  "docs/SETTINGS.md":root/"docs/SETTINGS.md",
@@ -47,7 +47,7 @@ ini=ini.replace("; Preferred OpenGL Version (must be 3.3 or between 4.0 to 4.6).
 files["d2gl.ini"]=ini.encode("utf-8")
 entries=[{"name":n,"bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()} for n,b in files.items()]
 commit=subprocess.check_output(["git","rev-parse","HEAD"],cwd=root).decode().strip()
-manifest={"product":"MXL Smooth Motion DX12","version":"1.1","source_commit":commit,
+manifest={"product":"MXL Smooth Motion DX12","version":"1.0","source_commit":commit,
           "performance_recording_default":False,"automatic_act_reveal":True,
           "source_repository":"https://github.com/Phroster/d2gl-mxl-dx12",
           "source_branch":"master","official_d2fps_sha256":"db9de4d4d320a7b70e66fe6b4aaa0e6f1560a5300a4993cc81cf4512ab1240c1",

@@ -47,7 +47,10 @@ foreach(test IN LISTS mxl_plain_tests)
 endforeach()
 set(mxl_log_tests dx12_diagnostics_test dx12_upload_cache_test dx12_input_profile_test dx12_reveal_probe_test dx12_auto_reveal_test)
 foreach(test IN LISTS mxl_log_tests)
-  add_test(NAME ${test} COMMAND $<TARGET_FILE:${test}> "${CMAKE_BINARY_DIR}/test-output/${test}")
+  add_test(NAME ${test} COMMAND ${CMAKE_COMMAND}
+    "-DTEST_EXECUTABLE=$<TARGET_FILE:${test}>"
+    "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/${test}"
+    "-DMODE=report" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
   set_tests_properties(${test} PROPERTIES TIMEOUT 60)
 endforeach()
 foreach(mode missing disabled enabled)
@@ -55,6 +58,6 @@ foreach(mode missing disabled enabled)
     "-DTEST_EXECUTABLE=$<TARGET_FILE:dx12_auto_reveal_test>"
     "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/logging-${mode}"
     "-DDIAGNOSTICS_INI=${CMAKE_CURRENT_SOURCE_DIR}/mxl-diagnostics.ini"
-    "-DMODE=${mode}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/LoggingTest.cmake")
+    "-DMODE=${mode}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
   set_tests_properties(logging_${mode} PROPERTIES TIMEOUT 30)
 endforeach()

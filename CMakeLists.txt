@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(MXLSmoothMotionDX12 LANGUAGES C CXX)
+project(MXLSmoothMotionDX12 VERSION 1.0.0 LANGUAGES C CXX)
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR "Build with Visual Studio 2022 and -A Win32.")
 endif()

@@ -101,6 +101,6 @@ Use the official [ReShade installer](https://reshade.me) for your `Game.exe` and
 | FPS is lower after Alt-Tab | `bg-fps=25` applies while the game is in the background. |
 | G-Sync or FreeSync behaves differently with another monitor | This package does not change driver settings. Display/driver behavior is separate from the movement correction. |
 
-For help, [open an issue](https://github.com/Phroster/mxl-smooth-motion-dx12/issues) with the game version, Glide or DirectDraw mode, and the relevant smoothing log lines.
+For help, [open an issue](https://github.com/Phroster/d2gl-mxl-dx12/issues) with the game version, Glide or DirectDraw mode, and the relevant smoothing log lines.
 
 [Back to the player guide](../README.md)
