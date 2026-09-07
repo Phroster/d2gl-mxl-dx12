@@ -1,5 +1,6 @@
 #include "diagnostics.h"
 #include "input_profile.h"
+#include "reveal_probe.h"
 #include <array>
 #include <atomic>
 #include <algorithm>
@@ -67,7 +68,7 @@ void write_input(FILE* file,const Record& r) {
 }
 DWORD WINAPI writer(void*) {
     auto& s=state();SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
-    FILE* file=nullptr;FILE* inputs=nullptr;uint32_t part=0,input_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
+    FILE* file=nullptr;FILE* inputs=nullptr;FILE* reveals=nullptr;uint32_t part=0,input_count=0,reveal_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
     auto open=[&](){
         const auto name=s.directory+L"\\events-"+std::to_wstring(part%3)+L".csv";
         file=_wfsopen(name.c_str(),L"wb",_SH_DENYNO);
@@ -82,7 +83,16 @@ DWORD WINAPI writer(void*) {
         while(s.size && count<batch.size()) {batch[count++]=s.queue[s.read];s.read=(s.read+1)%Capacity;--s.size;}
         ReleaseSRWLockExclusive(&s.lock);
         for(size_t i=0;i<count;++i){
-            if(!strcmp(batch[i].kind,"key_T_profile")) {
+            if(!strcmp(batch[i].kind,"reveal")) {
+                if(!reveals && reveal_count==0){
+                    reveals=_wfsopen((s.directory+L"\\reveal.csv").c_str(),L"wb",_SH_DENYNO);
+                    if(reveals)fputs("trace_id,phase,session_ms,thread_id,duration_ms,act,level,room_x,room_y,resident_before\n",reveals);
+                }
+                if(reveals && reveal_count<262144){const auto& r=batch[i];fprintf(reveals,"%llu,%s,%.6f,%u,%.6f,%d,%d,%d,%d,%u\n",
+                    (unsigned long long)r.id,r.detail,milliseconds(r.at-s.started),r.tid,r.duration,
+                    int32_t(r.counts[0]),int32_t(r.counts[1]),int32_t(r.counts[2]),int32_t(r.counts[3]),unsigned(r.counts[4]));++reveal_count;}
+                else ++s.dropped;
+            } else if(!strcmp(batch[i].kind,"key_T_profile")) {
                 if(!inputs && input_count==0) {
                     inputs=_wfsopen((s.directory+L"\\input.csv").c_str(),L"wb",_SH_DENYNO);
                     if(inputs)fputs("input_id,session_ms,thread_id,wall_ms,user_cpu_ms,kernel_cpu_ms,wall_minus_cpu_ms,thread_cycles,process_read_bytes,process_read_ops,process_write_bytes,process_write_ops,process_other_bytes,process_other_ops,process_page_faults,valid_flags,procedure_module,procedure_offset\n",inputs);
@@ -104,10 +114,10 @@ DWORD WINAPI writer(void*) {
                 }
             }
             Record status;status.kind="logger";status.at=now;status.value=s.dropped.load();strcpy_s(status.detail,"dropped_records");write_record(file,status);
-            fflush(file);if(inputs)fflush(inputs);last_summary=now;
+            fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
-                fprintf(out,"MXL private diagnostic beta 3\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
+                fprintf(out,"MXL private diagnostic beta 4\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
                     s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load());fclose(out);
             }
             if(GetFileAttributesW((s.directory+L"\\STOP").c_str())!=INVALID_FILE_ATTRIBUTES) {
@@ -117,7 +127,7 @@ DWORD WINAPI writer(void*) {
         if(s.quitting && count==0) break;
         if(count==0) Sleep(50);
     }
-    if(inputs){fflush(inputs);fclose(inputs);}fflush(file);fclose(file);return 0;
+    if(inputs){fflush(inputs);fclose(inputs);}if(reveals){fflush(reveals);fclose(reveals);}fflush(file);fclose(file);return 0;
 }
 }
 uint64_t ticks() noexcept {LARGE_INTEGER t;QueryPerformanceCounter(&t);return uint64_t(t.QuadPart);}
@@ -144,7 +154,7 @@ bool start(HWND window,const std::wstring& test_directory) {
     std::error_code error;std::filesystem::create_directories(s.directory,error);if(error)return false;
     FILE* file=nullptr;
     if(!_wfopen_s(&file,(s.directory+L"\\session.txt").c_str(),L"wb") && file) {
-        fprintf(file,"MXL private diagnostics beta 3\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
+        fprintf(file,"MXL private diagnostics beta 4\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,
@@ -158,6 +168,8 @@ bool start(HWND window,const std::wstring& test_directory) {
               "Input valid_flags: 1=thread CPU, 2=process I/O, 4=process faults, 8=thread cycles. -1 means unavailable.\n"
               "Procedure module/offset identifies the forwarded window-procedure entrypoint, not a sampled inner hotspot.\n"
               "At most 4096 detailed T profiles per session. Only T key-down triggers these extra counters.\n"
+              "reveal.csv: guarded MXL act/level/room and D2Common generate/load/unload durations. These scopes are nested, not additive.\n"
+              "At most 262144 reveal phase rows per session. No work is deferred or skipped by this probe.\n"
               "Frame render_ms includes nested scopes. Do not add them together.\n"
               "No per-frame disk writes on game/render/audio threads; the queue can drop samples instead of blocking.\n"
               "At most three 32 MiB CSV files per session. Create an empty STOP file here to stop recording.\n",file);fclose(file);
@@ -199,6 +211,11 @@ void audio_call(Audio operation,uint64_t start,uint64_t end,HRESULT result) noex
     strcpy_s(r.detail,audio_names[size_t(operation)]);put(r);
 }
 void note(const char* message,int64_t value) noexcept {Record r;r.at=ticks();r.tid=GetCurrentThreadId();r.value=value;strncpy_s(r.detail,message,_TRUNCATE);put(r);}
+void reveal_event(uint64_t trace,const char* phase,uint64_t began,uint64_t ended,int32_t act,int32_t level,int32_t x,int32_t y,bool resident) noexcept {
+    if(!enabled())return;Record r;r.kind="reveal";r.id=trace;r.at=began;r.tid=GetCurrentThreadId();r.duration=milliseconds(ended-began);
+    r.counts[0]=uint32_t(act);r.counts[1]=uint32_t(level);r.counts[2]=uint32_t(x);r.counts[3]=uint32_t(y);r.counts[4]=resident;
+    strncpy_s(r.detail,phase,_TRUNCATE);put(r);
+}
 void record_input(const InputResult& input) noexcept {
     if(!enabled())return;
     static std::atomic<uint64_t> sequence{0};Record r;r.kind="key_T_profile";r.id=++sequence;r.at=input.began;r.tid=GetCurrentThreadId();

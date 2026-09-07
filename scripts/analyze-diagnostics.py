@@ -64,14 +64,38 @@ def analyze(folder):
                 for name in ("thread_cycles", "process_read_bytes", "process_read_ops", "process_write_bytes", "process_write_ops", "process_other_bytes", "process_other_ops", "process_page_faults"):
                     value = int(r[name]); profile[name] = value if value >= 0 else None
                 input_profiles.append(profile)
+    reveal_traces = []
+    reveal_path = Path(folder) / "reveal.csv"
+    if reveal_path.exists():
+        grouped = defaultdict(list)
+        with reveal_path.open(encoding="utf-8", newline="") as source:
+            for r in csv.DictReader(source):
+                if r.get("resident_before") is not None:
+                    grouped[int(r["trace_id"])].append(r)
+        for trace_id, events in grouped.items():
+            phases = defaultdict(list)
+            for r in events:
+                phases[r["phase"]].append(float(r["duration_ms"]))
+            stats = {}
+            for name, durations in phases.items():
+                values = sorted(durations)
+                stats[name] = {"calls": len(values), "total_ms": sum(values), "median_ms": statistics.median(values),
+                               "p95_ms": values[int((len(values) - 1) * .95)], "max_ms": values[-1]}
+            rooms = sorted((r for r in events if r["phase"] == "room"), key=lambda r: float(r["duration_ms"]), reverse=True)
+            generated = sorted((r for r in events if r["phase"] == "level_generation"), key=lambda r: float(r["duration_ms"]), reverse=True)
+            reveal_traces.append({"trace_id": trace_id, "act": int(events[0]["act"]), "phase_stats": stats,
+                "heaviest_rooms": [{"level": int(r["level"]), "x": int(r["room_x"]), "y": int(r["room_y"]),
+                                    "ms": float(r["duration_ms"]), "resident_before": r["resident_before"] == "1"} for r in rooms[:15]],
+                "heaviest_level_generation": [{"level": int(r["level"]), "ms": float(r["duration_ms"])} for r in generated[:15]]})
     return {"session": str(folder), "focused_gameplay_frames": len(frames), "slow_frames": len(slow),
             "median_frame_ms": statistics.median(float(r["interval_ms"]) for r in frames) if frames else None,
             "dropped_records": max((int(r["value"]) for r in rows if r["type"] == "logger"), default=0),
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
             "fps_75_to_85": band_summary,
             "T_profiles": input_profiles,
+            "reveal_traces": reveal_traces,
             "worst_frames": worst,
-            "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null means unavailable, not zero. T CPU accounting has finite granularity; wall-minus-CPU includes waits and descheduling. I/O/fault counters are process-wide, include cached reads/soft faults, and do not measure physical disk traffic. The procedure module identifies the entrypoint, not a sampled inner hotspot."}
+            "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null means unavailable, not zero. T CPU accounting has finite granularity; wall-minus-CPU includes waits and descheduling. I/O/fault counters are process-wide, include cached reads/soft faults, and do not measure physical disk traffic. The procedure module identifies the entrypoint. Reveal scopes are nested: do not add act, level, room and room-load durations together."}
 
 
 if __name__ == "__main__":
