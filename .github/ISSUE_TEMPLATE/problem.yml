@@ -9,7 +9,7 @@ body:
     id: version
     attributes:
       label: Median XL and MXL Smooth Motion DX12 versions
-      placeholder: "MXL 2.14.0, Smooth Motion DX12 1.1"
+      placeholder: "MXL 2.14.0, Smooth Motion DX12 1.0"
     validations:
       required: true
   - type: dropdown

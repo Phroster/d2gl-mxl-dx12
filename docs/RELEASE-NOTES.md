@@ -1,8 +1,8 @@
-# 🎮 MXL Smooth Motion DX12 1.1
+# 🎮 MXL Smooth Motion DX12 1.0
 
 **Smoother movement, steadier battles and sharper visuals for Median XL.**
 
-### [⬇️ Download & play](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip)
+### [⬇️ Download & play](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip)
 
 ## ✨ Included
 
@@ -18,7 +18,7 @@ Your FPS target follows your monitor by default. Game speed stays the same.
 
 1. **Open the Median XL launcher** and let updates finish. Choose **Glide or DirectDraw**, turn **Windowed** off, and enable both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
 
-   ![Enable Glide3x.dll and Ddraw.dll in the launcher](https://raw.githubusercontent.com/Phroster/mxl-smooth-motion-dx12/v1.1/docs/launcher-settings.png)
+   ![Enable Glide3x.dll and Ddraw.dll in the launcher](https://raw.githubusercontent.com/Phroster/d2gl-mxl-dx12/v1.0/docs/launcher-settings.png)
 
 2. **Close the game and launcher.** Download and extract the ZIP above.
 
@@ -63,4 +63,4 @@ Preparing a new act's map can briefly pause the game on entry. Pressing **T** af
 
 Special thanks to the original projects' contributors, Blizzard North and the Diablo II modding community.
 
-[📖 Player guide](https://github.com/Phroster/mxl-smooth-motion-dx12#readme) · [⚙️ Settings](https://github.com/Phroster/mxl-smooth-motion-dx12/blob/main/docs/SETTINGS.md)
+[📖 Player guide](https://github.com/Phroster/d2gl-mxl-dx12#readme) · [⚙️ Settings](https://github.com/Phroster/d2gl-mxl-dx12/blob/master/docs/SETTINGS.md)

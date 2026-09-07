@@ -28,7 +28,7 @@ Exact supported SHA-256 hashes:
 
 D2Sigma must be loaded. File identity, patch instructions, clock imports and the simulation interval are checked before applying the fix. The status reports On after successful application and readback.
 
-## Improvements in 1.1
+## Rendering performance and map reveal
 
 The renderer uploads each buffer's current live range once per frame/version instead of repeatedly copying growing prefixes for later draws. Partial updates retain the untouched tail. This removes the excessive upload/spill work measured during crowded fights.
 

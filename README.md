@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.1.svg" alt="MXL Smooth Motion DX12 — smoother gameplay and sharper visuals for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.0.svg" alt="MXL Smooth Motion DX12 — smoother gameplay and sharper visuals for Median XL" width="880">
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download 1.1</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip"><strong>⬇️ Download 1.0</strong></a>
   &nbsp; · &nbsp;
   <a href="#install--copy-paste-play">📦 Installation</a>
   &nbsp; · &nbsp;
@@ -37,7 +37,7 @@ The game keeps its normal speed. Your FPS target follows your monitor by default
 
    ![Enable Glide3x.dll and Ddraw.dll in the Median XL launcher](docs/launcher-settings.png)
 
-2. **Close the game and launcher.** [Download the ZIP](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip) and extract it.
+2. **Close the game and launcher.** [Download the ZIP](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip) and extract it.
 
 3. **Copy these six files** into your Median XL game folder, beside `Game.exe`. Choose **Replace** when asked.
 
@@ -97,7 +97,7 @@ Already using OpenGL ReShade? Switch it to **DirectX 10/11/12**. ReShade is opti
 | **Pooquer** | The early Median XL adaptations of D2GL. |
 | **[GavinK88 — D2GL for Median XL](https://github.com/GavinK88/d2gl-mxl-1.0)** | The Median XL D2GL fork on which this edition is based. |
 | **Median XL team** | Median XL itself, its game features and the community around it. |
-| **[Phroster](https://github.com/Phroster/mxl-smooth-motion-dx12)** | MXL Smooth Motion DX12 and maintenance of this edition. |
+| **[Phroster](https://github.com/Phroster/d2gl-mxl-dx12)** | MXL Smooth Motion DX12 and maintenance of this edition. |
 
 Thanks also to **Bolrog**, **Mir Drualga**, the **libretro shader community**, **Omar Cornut**, and the many developers whose contributions are part of D2GL. Their [original acknowledgements](https://github.com/GavinK88/d2gl-mxl-1.0#credits) and [library credits](https://github.com/bayaraa/d2gl/blob/master/THIRD_PARTY_LICENSES.md) are preserved.
 
@@ -106,7 +106,7 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 ---
 
 <p align="center">
-  <a href="https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.1</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.0</strong></a>
 </p>
 
 <details>
