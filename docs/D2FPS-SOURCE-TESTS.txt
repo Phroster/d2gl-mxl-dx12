@@ -1,0 +1,9 @@
+running 7 tests
+test mxl_timing::tests::clock_selection_preserves_upstream_until_the_producer_is_patched ... ok
+test mxl_timing::tests::interpolation_matches_checkpoint_boundaries_and_game_modes ... ok
+test mxl_timing::tests::all_four_native_instruction_forms_and_menu_reapply ... ok
+test mxl_timing::tests::last_signature_mismatch_leaves_every_site_unchanged ... ok
+test mxl_timing::tests::protection_failure_rolls_back_bytes_and_permissions ... ok
+test mxl_timing::tests::wrong_clock_import_or_simulation_interval_prevents_all_writes ... ok
+test mxl_timing::tests::sha256_known_vector_and_optional_original_file ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s

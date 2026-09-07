@@ -1,0 +1,5 @@
+case 0 (five executable sites + protection restore): PASS [0]
+case 1 (bad last signature leaves all unchanged): PASS [0]
+case 2 (second-page failure restores first page): PASS [0]
+PASS: 168 native clamp cases, 64-bit carry, SP/LAN preservation, and live registers.
+All native x86 timing-patch tests passed.

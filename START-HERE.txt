@@ -1,0 +1,62 @@
+MXL SMOOTH MOTION DX12 1.1
+Smoother gameplay and sharper visuals for Median XL.
+
+Smooth movement in single player and online, steadier crowded fights,
+HD text and cursor, automatic map reveal and DirectX ReShade support.
+
+INSTALL IN FOUR STEPS
+
+1. Open the Median XL launcher and let updates finish.
+   Choose Glide or DirectDraw. Turn Windowed off.
+   Under Unofficial Graphic Drivers, tick BOTH:
+      Glide3x.dll (D2GL, D2DX)
+      Ddraw.dll (D2GL, CNC-DDRAW)
+
+2. Close the game and launcher. Extract the downloaded ZIP.
+
+3. Copy these SIX files into your game folder, beside Game.exe:
+      glide3x.dll
+      ddraw.dll
+      d2gl.mpq
+      d2gl.ini
+      d2fps.ini
+      mxl-diagnostics.ini
+   Choose Replace. Back up your custom settings first.
+
+4. Launch Median XL. Movement smoothing and automatic map reveal are ready to use.
+
+Keep the existing d2fps.dll. The game needs it.
+
+UPGRADING?
+Replace glide3x.dll, ddraw.dll and mxl-diagnostics.ini.
+Keep your graphics/FPS INIs and matching MPQ to preserve your setup.
+
+MAKE IT YOURS
+Ctrl+O: graphics options and Multiplayer Smoothing Fix status.
+Ctrl+O > FPS: FPS limit and movement settings. Save and restart.
+Alt+Enter: fullscreen or windowed mode.
+
+Your FPS target follows your monitor by default.
+Preparing a new act's map can briefly pause the game on entry.
+Pressing T afterward does not repeat the full reveal.
+
+RESHADE
+Select Game.exe and DirectX 10/11/12 in the ReShade installer.
+Keep your preset and shader folder. Switch old OpenGL setups to DirectX.
+ReShade is optional and downloaded separately.
+
+REQUIREMENTS
+Median XL 2.14.0 / Diablo II: Lord of Destruction 1.13c.
+Windows 10 or newer and a DirectX 12 graphics card.
+
+CREDITS & THANKS
+Bayaraa - D2GL graphics, shaders, HD text/cursor and in-game menu.
+Jarcho - D2FPS, higher frame rates and movement smoothing.
+Pooquer - early Median XL adaptations of D2GL.
+GavinK88 - the D2GL fork for Median XL.
+Median XL team - the mod, its features and its community.
+Phroster - MXL Smooth Motion DX12 and maintenance of this edition.
+Thanks to Blizzard North and the Diablo II modding community.
+
+PLAYER GUIDE
+https://github.com/Phroster/mxl-smooth-motion-dx12
