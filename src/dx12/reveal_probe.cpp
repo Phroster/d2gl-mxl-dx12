@@ -5,6 +5,7 @@
 #include <detours/detours.h>
 #include <tlhelp32.h>
 #include <wincrypt.h>
+#include <intrin.h>
 #include <array>
 #include <atomic>
 #include <string>
@@ -27,12 +28,36 @@ RevealLayerFn original_layer=nullptr;
 constexpr uint32_t all_sites=(1u<<13)-1;
 uint32_t selected_sites=all_sites;
 uintptr_t sigma_base=0;
+uintptr_t preselection_sigma=0,preselection_caller=0;
 bool probe_ready=false;
 struct Context {uint64_t id;int32_t act;};
 thread_local Context* active=nullptr;
 std::atomic<uint64_t> sequence{0};
 uint32_t read32(uintptr_t address) noexcept {if(!address)return 0;__try{return *reinterpret_cast<uint32_t*>(address);}__except(EXCEPTION_EXECUTE_HANDLER){return 0;}}
 struct Node {int32_t level=-1,x=-1,y=-1;bool resident=false;};
+uintptr_t __fastcall layer_hook(uint32_t layer);
+bool target_layer(void* level,uint32_t& layer) noexcept {
+    // Read the same Levels row used by the verified Sigma act loop. A missing
+    // or transitional table simply leaves InitLevel's original order intact.
+    __try {
+        const auto pointer=reinterpret_cast<uintptr_t>(level);
+        if(!pointer || !preselection_sigma)return false;
+        const auto tables_global=*reinterpret_cast<const uint32_t*>(preselection_sigma+0x3fa958);
+        if(!tables_global)return false;
+        const auto tables=*reinterpret_cast<const uint32_t*>(tables_global);
+        if(!tables)return false;
+        const auto id=*reinterpret_cast<const uint32_t*>(pointer+0x1d0);
+        const auto count=*reinterpret_cast<const uint32_t*>(tables+0xc5c);
+        const auto rows=*reinterpret_cast<const uint32_t*>(tables+0xc60);
+        if(!id || count>4096 || id>=count || !rows)return false;
+        const auto offset=uintptr_t(id)*0x9c;
+        if(rows>UINTPTR_MAX-offset-0x1b)return false;
+        const auto row=uintptr_t(rows)+offset;
+        if(!*reinterpret_cast<const uint32_t*>(row+0xc) || !*reinterpret_cast<const uint32_t*>(row+0x18))return false;
+        layer=*reinterpret_cast<const uint32_t*>(row+8);
+        return true;
+    } __except(EXCEPTION_EXECUTE_HANDLER) {return false;}
+}
 Node room_info(void* pointer) {
     const auto room=reinterpret_cast<uintptr_t>(pointer);Node node;
     if(room){const auto level=read32(room+0x58);if(level)node.level=int32_t(read32(level+0x1d0));
@@ -76,8 +101,16 @@ uintptr_t __fastcall room_hook(void* room) {
     if(!active || !enabled()){SetLastError(incoming_error);return original_room(room);}
     const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);const auto result=original_room(room);const auto error=GetLastError();emit("room",began,node);SetLastError(error);return result;
 }
-uintptr_t __stdcall init_hook(void* level) {
+__declspec(noinline) uintptr_t __stdcall init_hook(void* level) {
     const auto incoming_error=GetLastError();
+    // Capture here, not in a helper: only Sigma's direct act-loop InitLevel
+    // call is followed by the same layer selection. Nested or unrelated level
+    // generation retains native ordering, including when recording is off.
+    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    uint32_t layer=0;
+    if(preselection_caller && caller==preselection_caller && target_layer(level,layer)){
+        SetLastError(incoming_error);layer_hook(layer);
+    }
     if(!active || !enabled()){SetLastError(incoming_error);return original_init(level);}
     Node node;node.level=int32_t(read32(reinterpret_cast<uintptr_t>(level)+0x1d0));
     const auto began=ticks();SetLastError(incoming_error);const auto result=original_init(level);const auto error=GetLastError();emit("level_generation",began,node);SetLastError(error);return result;
@@ -235,6 +268,9 @@ bool lookup_signature(uintptr_t base) noexcept {
     return signature(base,reveal_sites[11]) ||
         (signature(base,sigma_lookup_site) && read32(base+0x2d9db)==0x8d);
 }
+bool preselection_signature(uintptr_t base) noexcept {
+    return signature(base,reveal_generation_order_site) && signature(base,reveal_sites[12]);
+}
 void signature_bytes(uintptr_t base,size_t index) noexcept {
     // Diagnostic data only: never accept or patch a mismatching entrypoint.
     char message[96]{};
@@ -283,9 +319,13 @@ bool start_reveal_probe(HWND window) {
     original_lookup=reinterpret_cast<RevealLookupFn>(cb+reveal_sites[11].rva);
     original_layer=reinterpret_cast<RevealLayerFn>(sb+reveal_sites[12].rva);
     sigma_base=sb;
-    // No diagnostic detours or thread suspension when recording is disabled.
-    // If attachment fails, the all-or-nothing transaction preserves the direct
-    // original entrypoint, which is still suitable for automatic reveal.
+    const bool preselection_supported=preselection_signature(sb);
+    if(preselection_supported){preselection_sigma=sb;preselection_caller=sb+0x8847d;}
+    else note("reveal_layer_preselection_unsupported");
+    // Gameplay preselection needs only InitLevel when logging is disabled.
+    // Every selected hook still belongs to the same all-or-nothing transaction;
+    // a failure leaves the native full-act entrypoint usable.
+    selected_sites=preselection_supported?(1u<<3):0;
     if(enabled()){
         // Each depth site is optional. A runtime patch at an unrelated helper
         // must not discard all the supported measurements. Every selected hook
@@ -296,7 +336,11 @@ bool start_reveal_probe(HWND window) {
             if(i==11?lookup_signature(base):signature(base,reveal_sites[i]))selected_sites|=1u<<i;
             else {note("reveal_deep_signature_mismatch",i);signature_bytes(base,i);}
         }
-        attach();
+    }
+    if(selected_sites){
+        if(attach()){
+            if(preselection_supported)note("reveal_layer_preselection_active",1);
+        }else {preselection_sigma=0;preselection_caller=0;}
     }
     probe_ready=window && mxl::reveal::start(window,sb,&root_hook);
     if(!probe_ready)note("auto_reveal_start_failed");
@@ -304,6 +348,11 @@ bool start_reveal_probe(HWND window) {
 }
 #ifdef MXL_REVEAL_TEST
 bool test_reveal_lookup_signature(uintptr_t base) {return lookup_signature(base);}
+bool test_reveal_preselection(uintptr_t sigma,uintptr_t caller) {
+    preselection_sigma=0;preselection_caller=0;
+    if(!sigma || !caller || !preselection_signature(sigma))return false;
+    preselection_sigma=sigma;preselection_caller=caller;return true;
+}
 bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload,const RevealDeepFns& deep,uint32_t sites) {
     original_root=root;original_level=level;original_room=room;original_init=init;original_load=load;original_unload=unload;
     original_preset=deep.preset;original_build_area=deep.build_area;original_prepare_room=deep.prepare_room;
