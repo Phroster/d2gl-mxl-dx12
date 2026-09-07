@@ -1,4 +1,4 @@
-# Private diagnostic beta 4
+# Private diagnostic beta 5
 
 This keeps the current DX12 renderer, ReShade support and multiplayer smoothing fix, and adds measurements for the remaining crowded-combat drops. It is a private test build, separate from public 1.0.
 
@@ -12,6 +12,12 @@ Beta 4 traces the actual reveal calls found in the supported MXL binary. `reveal
 
 Replace only `glide3x.dll` and `ddraw.dll`, and add `mxl-diagnostics.ini` beside Game.exe. Keep your existing graphics/FPS settings, MPQ, official D2FPS, ReShade and hotkeys. A full game restart is required.
 
+Beta 5 automatically reveals an act when you enter it. The game still has to do the same work, so you may see a short pause on entry. After that, pressing T should have no full-act work left to do. Returning to an already revealed act does not repeat the reveal. A new game starts fresh.
+
+This uses Median XL's own reveal routine and completion flags. It waits for a completed gameplay frame and a valid player, act, room and map layer, then runs through the game window's message queue on the game thread. It never reveals on the graphics or logger thread, while a frame is being drawn, or against a queued act that you have already left. It does not change any Median XL DLL on disk. All beta 2 upload improvements and sound measurements remain active.
+
+This moves the work to act entry; it does not make level generation faster or guarantee that the pause fits inside the loading screen. The native scheduling tests cover loading, changing/revisiting acts, leaving a game, reused addresses, manual T arriving first, nested drawing and failure cleanup. A real game run is still needed to confirm readiness and placement. `auto_reveal_ready`, `auto_reveal_start_act` and `auto_reveal_complete_act` notes identify the automatic run; their act numbers are 1-5.
+
 Logging starts automatically. Play normally, including a crowded fight. Tell us when the drop happens and whether sound was on. Reports appear in `mxl-diagnostics/<session>/` in the game folder. No recording software or extra DLL is needed.
 
 The logger records frame intervals, game-side handoff waits, render-thread wall time, our DX12 GPU time, GPU/Present waits, draw/texture/buffer activity, shader and pipeline creation, and DirectSound activity. A foreground gameplay frame over 10 ms is marked slow. Loading screens, menus and Alt-Tab are marked separately.
@@ -20,7 +26,7 @@ Audio calls are forwarded unchanged. A temporary silent DirectSound device and b
 
 Frame/audio threads only update counters or try to enqueue a fixed-size record. They never wait for the disk logger. A lower-priority background writer keeps at most three 32 MiB CSVs per session. If it cannot keep up, it drops records and reports the number rather than blocking gameplay. GPU query results are read only after an existing frame fence is complete, without an additional GPU wait.
 
-Create an empty file named `STOP` inside the current session folder to stop logging without exiting the game. To start a fresh session, restart the game. Set `enabled=0` in `mxl-diagnostics.ini` before launch for a logging-off comparison; `audio=0` disables the audio instrumentation on the next launch.
+Create an empty file named `STOP` inside the current session folder to stop logging without exiting the game. Automatic reveal keeps working after recording stops. To start a fresh session, restart the game. Set `enabled=0` in `mxl-diagnostics.ini` before launch to disable the private diagnostics and automatic-reveal startup together; `audio=0` disables only the audio instrumentation on the next launch. The geometry upload fix is independent of these settings.
 
 `session.txt` explains the columns and `status.txt` confirms logging is running. The analysis helper is `scripts/analyze-diagnostics.py`:
 

@@ -12,7 +12,7 @@ State& state() { static State* value=new State;return *value; }
 static void require(bool condition,const char* message) { if(!condition) throw std::runtime_error(message); }
 void initialize(HWND window) {
     require(!state().device,"DX12 already initialized");
-    try {if(diag::start(window)){diag::start_audio();diag::start_reveal_probe();}}catch(...){diag::note("diagnostics_initialization_failed");diag::stop();}
+    try {if(diag::start(window)){diag::start_audio();diag::start_reveal_probe(window);}}catch(...){diag::note("diagnostics_initialization_failed");diag::stop();}
     state().device=std::make_unique<Device>(window,false);
 }
 Device& gpu() {require(bool(state().device),"DX12 is not initialized");return *state().device;}
