@@ -34,6 +34,7 @@
 #include "diagnostics.h"
 
 namespace d2gl {
+namespace {thread_local uint64_t diagnostic_build_start=0;}
 
 bool automapenabled;
 Context::Context()
@@ -674,6 +675,7 @@ void Context::setBlendState(uint32_t index)
 
 void Context::beginFrame()
 {
+    diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
 	if (!App.wndproc && App.game.screen == GameScreen::Menu)
 		App.wndproc = (WNDPROC)SetWindowLongA(App.hwnd, GWL_WNDPROC, (LONG)win32::WndProc);
 
@@ -728,7 +730,7 @@ void Context::presentFrame()
 	m_frame_index = (m_frame_index + 1) % (App.frame_latency + 1);
 
 	WaitForSingleObject(m_semaphore_gpu[m_frame_index], INFINITE);
-    if(ready){mxl::diag::producer(diagnostic_id,ready,mxl::diag::ticks(),m_diagnostic_last_ready?mxl::diag::milliseconds(ready-m_diagnostic_last_ready):0,vertices);m_diagnostic_last_ready=ready;}
+    if(ready){mxl::diag::producer(diagnostic_id,ready,mxl::diag::ticks(),m_diagnostic_last_ready?mxl::diag::milliseconds(ready-m_diagnostic_last_ready):0,vertices,diagnostic_build_start?mxl::diag::milliseconds(ready-diagnostic_build_start):0);m_diagnostic_last_ready=ready;}
 	m_command_buffer[m_frame_index].reset();
 
 	QueryPerformanceCounter(&m_frame.time);

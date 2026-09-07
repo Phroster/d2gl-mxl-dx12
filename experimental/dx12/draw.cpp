@@ -156,8 +156,9 @@ static void bind_resources(const ShaderCode& code,ProgramState& program,uint32_t
     if(compute){cmd->SetComputeRootDescriptorTable(root_index,found->second.first.gpu);cmd->SetComputeRootDescriptorTable(root_index+1,found->second.second.gpu);}
     else {cmd->SetGraphicsRootDescriptorTable(root_index,found->second.first.gpu);cmd->SetGraphicsRootDescriptorTable(root_index+1,found->second.second.gpu);}
 }
-static Upload upload_buffer(BufferState& b,uint64_t size) {
+Upload upload_buffer(BufferState& b,uint64_t size) {
     if(size>b.bytes.size())throw std::runtime_error("Draw exceeds vertex/index buffer");
+    size=std::max(size,std::min(b.prefetch_bytes,uint64_t(b.bytes.size())));
     if(b.upload_frame!=gpu().frame_serial()||b.upload_version!=b.version||b.upload_size<size) {
         diag::Scope measured(diag::Metric::Upload);diag::count(diag::Count::BufferBytes,size);
         b.uploaded=gpu().upload(size,16);memcpy(b.uploaded.cpu,b.bytes.data(),size);

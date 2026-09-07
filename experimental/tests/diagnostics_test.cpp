@@ -47,6 +47,12 @@ int wmain(int argc,wchar_t** argv) {
         // Real CPU clock spacing verifies the hitch flag after startup warm-up.
         Sleep(2100);mxl::diag::begin_frame(11,0,1280,720,false);mxl::diag::end_frame();
         Sleep(15);mxl::diag::begin_frame(12,0,1280,720,false);mxl::diag::end_frame();
+        {
+            std::ifstream live(std::filesystem::path(argv[1])/"events-0.csv");
+            require(bool(live),"CSV must be readable while logging is active.");
+            std::string header;std::getline(live,header);
+            require(header.find("type,frame_id")!=std::string::npos,"Live CSV header missing.");
+        }
         std::vector<std::thread> stress;
         const auto began=mxl::diag::ticks();
         for(int t=0;t<4;++t)stress.emplace_back([t](){for(int i=0;i<10000;++i)mxl::diag::note("concurrent_test",t);});

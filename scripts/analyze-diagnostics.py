@@ -18,6 +18,7 @@ def analyze(folder):
     rows.sort(key=lambda row: float(row["session_ms"]))
     frames = [r for r in rows if r["type"] == "frame" and r["focused"] == "1" and r["game_screen"] == "1"]
     slow = [r for r in frames if r["slow"] == "1"]
+    band = [r for r in frames if 1000 / 85 <= float(r["interval_ms"]) <= 1000 / 75]
     gpu = defaultdict(float)
     producer = {}
     audio = [r for r in rows if r["type"] == "audio"]
@@ -39,13 +40,21 @@ def analyze(folder):
                     texture_bytes=int(r["texture_bytes"]), buffer_bytes=int(r["buffer_bytes"]), new_pipelines=int(r["new_pipelines"]))
         p = producer.get(r["frame_id"])
         item["producer_wait_ms"] = float(p["duration_ms"]) if p else None
+        item["producer_build_ms"] = float(p["producer_build_ms"]) if p and "producer_build_ms" in p else None
         item["overlapping_sound_calls"] = [{"operation": a["detail"], "ms": float(a["duration_ms"]), "thread": int(a["thread_id"])} for a in overlap[:20]]
         worst.append(item)
-    notes = [{"event": r["detail"], "value": int(r["value"])} for r in rows if r["type"] == "note" and not r["detail"].startswith("shader_compile")]
+    notes = [{"event": r["detail"], "session_ms": float(r["session_ms"]), "value": int(r["value"])} for r in rows if r["type"] == "note" and not r["detail"].startswith("shader_compile")]
+    band_summary = {"frames": len(band)}
+    if band:
+        for name in ("interval_ms", "render_ms", "upload_ms", "allocation_ms", "input_wait_ms", "buffer_bytes", "spill_bytes", "draws"):
+            band_summary["median_" + name] = statistics.median(float(r[name]) for r in band)
+        matched = [gpu[r["frame_id"]] for r in band if r["frame_id"] in gpu]
+        band_summary["median_gpu_own_ms"] = statistics.median(matched) if matched else None
     return {"session": str(folder), "focused_gameplay_frames": len(frames), "slow_frames": len(slow),
             "median_frame_ms": statistics.median(float(r["interval_ms"]) for r in frames) if frames else None,
             "dropped_records": max((int(r["value"]) for r in rows if r["type"] == "logger"), default=0),
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
+            "fps_75_to_85": band_summary,
             "worst_frames": worst,
             "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null GPU/producer timing means unavailable, not zero."}
 

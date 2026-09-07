@@ -54,6 +54,8 @@ target_compile_definitions(mxl_dx12_backend PUBLIC GLEW_STATIC WIN32_LEAN_AND_ME
 target_link_libraries(mxl_dx12_backend PUBLIC mxl_dx12_device mxl_dx12_shader)
 add_executable(dx12_render_test experimental/tests/render_test.cpp)
 target_link_libraries(dx12_render_test PRIVATE mxl_dx12_backend)
+add_executable(dx12_upload_cache_test experimental/tests/upload_cache_test.cpp)
+target_link_libraries(dx12_upload_cache_test PRIVATE mxl_dx12_backend)
 add_executable(dx12_glide_test experimental/tests/glide_test.cpp)
 target_link_libraries(dx12_glide_test PRIVATE mxl_dx12_backend)
 target_compile_definitions(dx12_glide_test PRIVATE MXL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
