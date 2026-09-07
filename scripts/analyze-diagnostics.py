@@ -50,13 +50,28 @@ def analyze(folder):
             band_summary["median_" + name] = statistics.median(float(r[name]) for r in band)
         matched = [gpu[r["frame_id"]] for r in band if r["frame_id"] in gpu]
         band_summary["median_gpu_own_ms"] = statistics.median(matched) if matched else None
+    input_profiles = []
+    input_path = Path(folder) / "input.csv"
+    if input_path.exists():
+        with input_path.open(encoding="utf-8", newline="") as source:
+            for r in csv.DictReader(source):
+                if r.get("procedure_offset") is None:
+                    continue
+                profile = {"input_id": int(r["input_id"]), "session_ms": float(r["session_ms"]), "thread_id": int(r["thread_id"]),
+                           "procedure_module": r["procedure_module"], "procedure_offset": hex(int(r["procedure_offset"])), "valid_flags": int(r["valid_flags"])}
+                for name in ("wall_ms", "user_cpu_ms", "kernel_cpu_ms", "wall_minus_cpu_ms"):
+                    value = float(r[name]); profile[name] = value if value >= 0 else None
+                for name in ("thread_cycles", "process_read_bytes", "process_read_ops", "process_write_bytes", "process_write_ops", "process_other_bytes", "process_other_ops", "process_page_faults"):
+                    value = int(r[name]); profile[name] = value if value >= 0 else None
+                input_profiles.append(profile)
     return {"session": str(folder), "focused_gameplay_frames": len(frames), "slow_frames": len(slow),
             "median_frame_ms": statistics.median(float(r["interval_ms"]) for r in frames) if frames else None,
             "dropped_records": max((int(r["value"]) for r in rows if r["type"] == "logger"), default=0),
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
             "fps_75_to_85": band_summary,
+            "T_profiles": input_profiles,
             "worst_frames": worst,
-            "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null GPU/producer timing means unavailable, not zero."}
+            "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null means unavailable, not zero. T CPU accounting has finite granularity; wall-minus-CPU includes waits and descheduling. I/O/fault counters are process-wide, include cached reads/soft faults, and do not measure physical disk traffic. The procedure module identifies the entrypoint, not a sampled inner hotspot."}
 
 
 if __name__ == "__main__":
