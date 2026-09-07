@@ -31,6 +31,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
+#include "diagnostics.h"
 
 namespace d2gl {
 
@@ -279,9 +280,13 @@ DWORD WINAPI Context::renderThread(void* context)
 	Vertex::enableAttribArray();
 
 	while (ctx->m_rendering) {
+        const auto input_wait_start=mxl::diag::enabled()?mxl::diag::ticks():0;
         WaitForSingleObject(ctx->m_semaphore_cpu[frame_index], INFINITE);
         if (!ctx->m_rendering) break;
 		const auto cmd = &ctx->m_command_buffer[frame_index];
+        const auto render_start=mxl::diag::enabled()?mxl::diag::ticks():0;
+        mxl::diag::begin_frame(cmd->m_diagnostic_frame_id,input_wait_start?mxl::diag::milliseconds(render_start-input_wait_start):0,
+            cmd->m_window_size.x?cmd->m_window_size.x:App.window.size.x,cmd->m_window_size.y?cmd->m_window_size.y:App.window.size.y,App.mini_map.active,uint32_t(cmd->m_screen));
 
 		if (cmd->m_resized)
 			ctx->onResize(cmd->m_window_size, cmd->m_game_size, cmd->m_game_tex_bpp);
@@ -453,6 +458,7 @@ DWORD WINAPI Context::renderThread(void* context)
 
 		ReleaseSemaphore(ctx->m_semaphore_gpu[frame_index], 1, NULL);
 		option::Menu::instance().draw();
+        if(render_start)mxl::diag::add(mxl::diag::Metric::Render,mxl::diag::ticks()-render_start);
         mxl::dx12::present(App.vsync);
 
 		if (ctx->m_limiter.active) {
@@ -461,6 +467,7 @@ DWORD WINAPI Context::renderThread(void* context)
 			SetWaitableTimer(ctx->m_limiter.timer, &ctx->m_limiter.due_time, 0, NULL, NULL, FALSE);
 		}
 
+        mxl::diag::end_frame();
 		frame_index = (frame_index + 1) % (App.frame_latency + 1);
 	}
 
@@ -712,10 +719,16 @@ void Context::presentFrame()
 	}
 	option::Menu::instance().check();
 
+    const auto diagnostic_id=++m_diagnostic_next_id;
+    m_command_buffer[m_frame_index].m_diagnostic_frame_id=diagnostic_id;
+    const auto ready=mxl::diag::enabled()?mxl::diag::ticks():0;
+    const auto vertices=m_frame.vertex_count;
+
 	ReleaseSemaphore(m_semaphore_cpu[m_frame_index], 1, NULL);
 	m_frame_index = (m_frame_index + 1) % (App.frame_latency + 1);
 
 	WaitForSingleObject(m_semaphore_gpu[m_frame_index], INFINITE);
+    if(ready){mxl::diag::producer(diagnostic_id,ready,mxl::diag::ticks(),m_diagnostic_last_ready?mxl::diag::milliseconds(ready-m_diagnostic_last_ready):0,vertices);m_diagnostic_last_ready=ready;}
 	m_command_buffer[m_frame_index].reset();
 
 	QueryPerformanceCounter(&m_frame.time);

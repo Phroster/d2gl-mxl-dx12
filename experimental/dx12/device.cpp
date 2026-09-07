@@ -4,6 +4,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <cstdio>
+#include "diagnostics.h"
 
 namespace mxl::dx12 {
 void check(HRESULT hr,const char* operation) {
@@ -36,6 +37,17 @@ Device::Device(HWND window,bool debug) {
     if(!device_) throw std::runtime_error("No hardware Direct3D 12 adapter is available.");
     D3D12_COMMAND_QUEUE_DESC queue_desc{};queue_desc.Type=D3D12_COMMAND_LIST_TYPE_DIRECT;
     check(device_->CreateCommandQueue(&queue_desc,IID_PPV_ARGS(&queue_)),"CreateCommandQueue");
+    if(diag::enabled()) {
+        D3D12_QUERY_HEAP_DESC query{};query.Type=D3D12_QUERY_HEAP_TYPE_TIMESTAMP;query.Count=FrameCount*2;
+        auto heap=heap_properties(D3D12_HEAP_TYPE_READBACK);auto desc=buffer_desc(FrameCount*16);
+        if(SUCCEEDED(queue_->GetTimestampFrequency(&timestamp_frequency_)) && timestamp_frequency_ &&
+           SUCCEEDED(device_->CreateQueryHeap(&query,IID_PPV_ARGS(&timestamp_heap_))) &&
+           SUCCEEDED(device_->CreateCommittedResource(&heap,D3D12_HEAP_FLAG_NONE,&desc,D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&timestamp_readback_)))) {
+            D3D12_RANGE range{0,FrameCount*16};
+            if(FAILED(timestamp_readback_->Map(0,&range,reinterpret_cast<void**>(&timestamps_))))timestamps_=nullptr;
+        }
+        diag::note(timestamps_?"gpu_timestamps_ready":"gpu_timestamps_unavailable");
+    }
     check(device_->CreateFence(0,D3D12_FENCE_FLAG_NONE,IID_PPV_ARGS(&fence_)),"CreateFence");
     fence_event_=CreateEventW(nullptr,FALSE,FALSE,nullptr);
     if(!fence_event_) throw std::runtime_error("CreateEvent failed.");
@@ -77,9 +89,11 @@ Device::~Device() {
     if(latency_event_) CloseHandle(latency_event_);
     if(fence_event_) CloseHandle(fence_event_);
     for(auto& f:frames_) if(f.mapped) f.upload->Unmap(0,nullptr);
+    if(timestamps_)timestamp_readback_->Unmap(0,nullptr);
 }
 void Device::wait_for(uint64_t value) {
     if(fence_->GetCompletedValue()<value) {
+        diag::Scope measured(diag::Metric::FenceWait);
         check(fence_->SetEventOnCompletion(value,fence_event_),"SetEventOnCompletion");
         if(WaitForSingleObject(fence_event_,10000)!=WAIT_OBJECT_0) throw std::runtime_error("DX12 fence timed out.");
     }
@@ -87,14 +101,28 @@ void Device::wait_for(uint64_t value) {
 void Device::begin() {
     if(active_) return;
     auto& f=frames_[frame_index_];wait_for(f.fence);
+    if(f.timing && timestamps_) {
+        const auto first=timestamps_[frame_index_*2],last=timestamps_[frame_index_*2+1];
+        if(last>=first)diag::gpu_batch(f.timing_frame,double(last-first)*1000.0/timestamp_frequency_);
+        f.timing=false;
+    }
     f.keepalive.clear();f.tracked.clear();f.used=0;f.view_count=0;f.sampler_count=0;
     check(f.allocator->Reset(),"Reset command allocator");
     check(list_->Reset(f.allocator.Get(),nullptr),"Reset command list");
+    if(timestamps_ && diag::enabled()) {
+        list_->EndQuery(timestamp_heap_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,frame_index_*2);
+        f.timing=true;f.timing_frame=diag::current_frame();
+    }
     active_=true;
 }
 ID3D12GraphicsCommandList* Device::commands() { begin();return list_.Get(); }
 void Device::flush(bool wait) {
     if(!active_) return;
+    diag::Scope measured(diag::Metric::Submit);
+    if(frames_[frame_index_].timing && timestamps_) {
+        list_->EndQuery(timestamp_heap_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,frame_index_*2+1);
+        list_->ResolveQueryData(timestamp_heap_.Get(),D3D12_QUERY_TYPE_TIMESTAMP,frame_index_*2,2,timestamp_readback_.Get(),frame_index_*16);
+    }
     check(list_->Close(),"Close command list");
     ID3D12CommandList* lists[]={list_.Get()};queue_->ExecuteCommandLists(1,lists);
     auto& f=frames_[frame_index_];f.fence=++fence_value_;check(queue_->Signal(fence_.Get(),f.fence),"Signal fence");
@@ -108,6 +136,7 @@ void Device::wait_idle() {
     const auto value=++fence_value_;check(queue_->Signal(fence_.Get(),value),"Signal idle fence");wait_for(value);
 }
 std::shared_ptr<Resource> Device::buffer(uint64_t size,D3D12_HEAP_TYPE heap_type) {
+    diag::Scope measured(diag::Metric::Allocate);
     auto r=std::make_shared<Resource>();r->desc=buffer_desc(size);
     auto heap=heap_properties(heap_type);
     r->state=heap_type==D3D12_HEAP_TYPE_READBACK?D3D12_RESOURCE_STATE_COPY_DEST:heap_type==D3D12_HEAP_TYPE_UPLOAD?D3D12_RESOURCE_STATE_GENERIC_READ:D3D12_RESOURCE_STATE_COMMON;
@@ -115,6 +144,7 @@ std::shared_ptr<Resource> Device::buffer(uint64_t size,D3D12_HEAP_TYPE heap_type
     return r;
 }
 std::shared_ptr<Resource> Device::texture(uint32_t width,uint32_t height,uint32_t layers,DXGI_FORMAT format,D3D12_RESOURCE_FLAGS flags,uint32_t levels) {
+    diag::Scope measured(diag::Metric::Allocate);diag::count(diag::Count::Textures);
     auto r=std::make_shared<Resource>();
     auto& d=r->desc;d.Dimension=D3D12_RESOURCE_DIMENSION_TEXTURE2D;d.Width=width;d.Height=height;
     d.DepthOrArraySize=static_cast<UINT16>(layers);d.MipLevels=static_cast<UINT16>(levels);d.Format=format;d.SampleDesc.Count=1;d.Flags=flags;
@@ -124,6 +154,7 @@ std::shared_ptr<Resource> Device::texture(uint32_t width,uint32_t height,uint32_
 }
 void Device::transition(Resource& r,D3D12_RESOURCE_STATES state) {
     if(r.state==state) return;
+    diag::count(diag::Count::Barriers);
     D3D12_RESOURCE_BARRIER b{};b.Type=D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     b.Transition.pResource=r.object.Get();b.Transition.StateBefore=r.state;b.Transition.StateAfter=state;
     b.Transition.Subresource=D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -132,6 +163,7 @@ void Device::transition(Resource& r,D3D12_RESOURCE_STATES state) {
 Upload Device::upload(uint64_t size,uint64_t alignment) {
     begin();auto& f=frames_[frame_index_];const auto offset=(f.used+alignment-1)&~(alignment-1);
     if(offset+size>UploadBytes) {
+        diag::count(diag::Count::SpillBytes,size);
         // Asset loading can exceed one arena before the first frame is submitted.
         // A fenced spill allocation keeps that case correct without a GPU stall.
         auto spill=buffer((size+alignment-1)&~(alignment-1),D3D12_HEAP_TYPE_UPLOAD);
@@ -157,6 +189,7 @@ void Device::keep_alive(const std::shared_ptr<Resource>& r) {
     if(frame.tracked.insert(r.get()).second)frame.keepalive.push_back(r);
 }
 void Device::upload_texture(Resource& r,uint32_t layer,uint32_t x,uint32_t y,uint32_t width,uint32_t height,const uint8_t* pixels,uint32_t bpp) {
+    diag::Scope measured(diag::Metric::Upload);diag::count(diag::Count::TextureBytes,uint64_t(width)*height*bpp);
     const uint32_t pitch=(width*bpp+255)&~255u;auto up=upload(uint64_t(pitch)*height,512);
     for(uint32_t row=0;row<height;++row) std::memcpy(up.cpu+row*pitch,pixels+uint64_t(row)*width*bpp,width*bpp);
     transition(r,D3D12_RESOURCE_STATE_COPY_DEST);
@@ -217,10 +250,15 @@ void Device::present(bool vsync) {
     if(!swap_) {flush(false);return;}
     transition(back_buffer(),D3D12_RESOURCE_STATE_PRESENT);
     flush(false);
+    const auto present_start=diag::enabled()?diag::ticks():0;
     const auto result=swap_->Present(vsync?1:0,(!vsync&&tearing_)?DXGI_PRESENT_ALLOW_TEARING:0);
+    if(present_start)diag::add(diag::Metric::Present,diag::ticks()-present_start);
     check(result,"Present");
     if(result==DXGI_STATUS_OCCLUDED){Sleep(10);return;}
-    if(latency_event_ && WaitForSingleObject(latency_event_,1000)==WAIT_FAILED) throw std::runtime_error("Frame latency wait failed.");
+    if(latency_event_) {
+        diag::Scope measured(diag::Metric::LatencyWait);
+        if(WaitForSingleObject(latency_event_,1000)==WAIT_FAILED) throw std::runtime_error("Frame latency wait failed.");
+    }
 }
 uint32_t Device::validation_errors() const {
     ComPtr<ID3D12InfoQueue> info;if(FAILED(device_.As(&info))) return 0;

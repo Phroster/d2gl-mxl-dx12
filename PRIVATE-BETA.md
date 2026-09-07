@@ -1,0 +1,23 @@
+# Private diagnostic beta 1
+
+This keeps the current DX12 renderer, ReShade support and multiplayer smoothing fix, and adds measurements for the remaining crowded-combat drops. It is a private test build, separate from public 1.0.
+
+Replace only `glide3x.dll` and `ddraw.dll`, and add `mxl-diagnostics.ini` beside Game.exe. Keep your existing graphics/FPS settings, MPQ, official D2FPS, ReShade and hotkeys. A full game restart is required.
+
+Logging starts automatically. Play normally, including a crowded fight. Tell us when the drop happens and whether sound was on. Reports appear in `mxl-diagnostics/<session>/` in the game folder. No recording software or extra DLL is needed.
+
+The logger records frame intervals, game-side handoff waits, render-thread wall time, our DX12 GPU time, GPU/Present waits, draw/texture/buffer activity, shader and pipeline creation, and DirectSound activity. A foreground gameplay frame over 10 ms is marked slow. Loading screens, menus and Alt-Tab are marked separately.
+
+Audio calls are forwarded unchanged. A temporary silent DirectSound device and buffers discover the method addresses at startup; they are never played and never change the primary format or cooperative level. Hook discovery is then frozen: combat never suspends threads to add hooks. The file reports hook coverage/failures and any unfamiliar interface variant left unmeasured. Active sound calls over 0.5 ms, or failed calls, get individual timestamps. Per-second summaries also count the fast calls.
+
+Frame/audio threads only update counters or try to enqueue a fixed-size record. They never wait for the disk logger. A lower-priority background writer keeps at most three 32 MiB CSVs per session. If it cannot keep up, it drops records and reports the number rather than blocking gameplay. GPU query results are read only after an existing frame fence is complete, without an additional GPU wait.
+
+Create an empty file named `STOP` inside the current session folder to stop logging without exiting the game. To start a fresh session, restart the game. Set `enabled=0` in `mxl-diagnostics.ini` before launch for a logging-off comparison; `audio=0` disables the audio instrumentation on the next launch.
+
+`session.txt` explains the columns and `status.txt` confirms logging is running. The analysis helper is `scripts/analyze-diagnostics.py`:
+
+```powershell
+python scripts/analyze-diagnostics.py 'G:\Median XL\median-xl\mxl-diagnostics\SESSION'
+```
+
+The GPU timings cover our command lists; ReShade may submit additional GPU work inside its Present hook. Render timings are nested, not additive. Audio durations measure time inside the sound API calls; they do not cover every operation inside D2Sound or prove an audio-driver fault. Missing hook coverage is reported explicitly. These measurements guide the next fix; this beta makes no speculative graphics/audio tuning changes.

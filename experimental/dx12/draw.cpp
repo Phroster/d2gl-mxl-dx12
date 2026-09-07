@@ -4,6 +4,7 @@
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
+#include "diagnostics.h"
 
 namespace mxl::dx12 {
 static constexpr uint32_t CBCount=16, TexCount=32, ImageCount=16, ViewCount=CBCount+TexCount+ImageCount;
@@ -85,6 +86,7 @@ static D3D12_SAMPLER_DESC sampler(const TextureState* texture) {
     s.MaxAnisotropy=1;s.ComparisonFunc=D3D12_COMPARISON_FUNC_ALWAYS;s.MinLOD=0;s.MaxLOD=D3D12_FLOAT32_MAX;return s;
 }
 static void bind_resources(const ShaderCode& code,ProgramState& program,uint32_t root_index,bool compute) {
+    diag::Scope measured(diag::Metric::Bindings);
     auto& s=state();
     if(s.sampler_frame!=gpu().frame_serial()) {s.sampler_frame=gpu().frame_serial();s.sampler_tables.clear();s.binding_tables.clear();}
     std::string key;key_append(key,s.program);key_append(key,root_index);key_append(key,compute);key_append(key,program.version);
@@ -109,6 +111,7 @@ static void bind_resources(const ShaderCode& code,ProgramState& program,uint32_t
     }
     auto found=s.binding_tables.find(key);
     if(found==s.binding_tables.end()) {
+        diag::count(diag::Count::BindingMisses);
         auto views=gpu().descriptors(ViewCount);
         auto zero=gpu().upload(256);memset(zero.cpu,0,256);
         D3D12_CONSTANT_BUFFER_VIEW_DESC null_cb{zero.gpu,256};
@@ -156,6 +159,7 @@ static void bind_resources(const ShaderCode& code,ProgramState& program,uint32_t
 static Upload upload_buffer(BufferState& b,uint64_t size) {
     if(size>b.bytes.size())throw std::runtime_error("Draw exceeds vertex/index buffer");
     if(b.upload_frame!=gpu().frame_serial()||b.upload_version!=b.version||b.upload_size<size) {
+        diag::Scope measured(diag::Metric::Upload);diag::count(diag::Count::BufferBytes,size);
         b.uploaded=gpu().upload(size,16);memcpy(b.uploaded.cpu,b.bytes.data(),size);
         b.upload_frame=gpu().frame_serial();b.upload_version=b.version;b.upload_size=size;
     }
@@ -163,6 +167,7 @@ static Upload upload_buffer(BufferState& b,uint64_t size) {
 }
 void draw_indexed(GLsizei count,GLenum type,const void* indices,GLint basevertex) {
     if(count<=0)return;auto& s=state();auto& p=s.programs.at(s.program);
+    diag::count(diag::Count::Draws);diag::count(diag::Count::Indices,uint64_t(count));
     const ShaderCode* vs=nullptr;const ShaderCode* ps=nullptr;
     for(const auto& shader:p.shaders) {
         if(!shader.valid)throw std::runtime_error("Cannot draw with an invalid shader");
@@ -199,15 +204,18 @@ void draw_indexed(GLsizei count,GLenum type,const void* indices,GLint basevertex
     key.append(reinterpret_cast<const char*>(desc.RTVFormats),sizeof(desc.RTVFormats));
     for(auto& e:layout){key_append(key,e.SemanticIndex);key_append(key,e.Format);key_append(key,e.AlignedByteOffset);}
     auto it=p.pipelines.find(key);
-    if(it==p.pipelines.end()){ComPtr<ID3D12PipelineState> pipeline;check(gpu().native()->CreateGraphicsPipelineState(&desc,IID_PPV_ARGS(&pipeline)),"Create graphics pipeline");it=p.pipelines.emplace(key,pipeline).first;}
+    if(it==p.pipelines.end()){diag::Scope measured(diag::Metric::Pipeline);diag::count(diag::Count::Pipelines);ComPtr<ID3D12PipelineState> pipeline;check(gpu().native()->CreateGraphicsPipelineState(&desc,IID_PPV_ARGS(&pipeline)),"Create graphics pipeline");it=p.pipelines.emplace(key,pipeline).first;}
     auto& ib=s.buffers.at(s.bound_buffers.at(GL_ELEMENT_ARRAY_BUFFER));auto& vb=s.buffers.at(s.bound_buffers.at(GL_ARRAY_BUFFER));
     const uint32_t index_size=type==GL_UNSIGNED_SHORT?2:type==GL_UNSIGNED_INT?4:0;
     if(!index_size)throw std::runtime_error("Unsupported index type");
     const uint64_t offset=uintptr_t(indices),index_bytes=offset+uint64_t(count)*index_size;
     if(index_bytes>ib.bytes.size())throw std::runtime_error("Index buffer read out of bounds");
     uint32_t maximum=0;
+    {
+    diag::Scope measured(diag::Metric::IndexScan);
     for(int i=0;i<count;++i) {
         uint32_t value=0;memcpy(&value,ib.bytes.data()+offset+uint64_t(i)*index_size,index_size);maximum=std::max(maximum,value);
+    }
     }
     if(basevertex<0)throw std::runtime_error("Negative base vertex is unsupported");
     const auto vsize=(uint64_t(maximum)+basevertex+1)*stride;
@@ -231,7 +239,7 @@ void dispatch_compute(uint32_t x,uint32_t y,uint32_t z) {
     for(const auto& shader:p.shaders)if(shader.stage==Stage::Compute&&shader.valid)code=&shader.normal;
     if(!code)throw std::runtime_error("Missing compute shader");
     auto it=p.pipelines.find("compute");
-    if(it==p.pipelines.end()){D3D12_COMPUTE_PIPELINE_STATE_DESC desc{};desc.pRootSignature=root_signature(true);desc.CS={code->bytecode.data(),code->bytecode.size()};
+    if(it==p.pipelines.end()){diag::Scope measured(diag::Metric::Pipeline);diag::count(diag::Count::Pipelines);D3D12_COMPUTE_PIPELINE_STATE_DESC desc{};desc.pRootSignature=root_signature(true);desc.CS={code->bytecode.data(),code->bytecode.size()};
         ComPtr<ID3D12PipelineState> pipeline;check(gpu().native()->CreateComputePipelineState(&desc,IID_PPV_ARGS(&pipeline)),"Create compute pipeline");it=p.pipelines.emplace("compute",pipeline).first;}
     prepare_textures(*code,p);
     auto* cmd=gpu().commands();cmd->SetComputeRootSignature(root_signature(true));cmd->SetPipelineState(it->second.Get());gpu().bind_descriptor_heaps();

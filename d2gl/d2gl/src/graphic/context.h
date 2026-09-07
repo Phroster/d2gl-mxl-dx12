@@ -107,6 +107,7 @@ struct GLCaps {
 };
 
 class Context {
+    uint64_t m_diagnostic_next_id=0,m_diagnostic_last_ready=0;
     HANDLE m_render_thread = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imgui_heap;
 	HANDLE m_semaphore_cpu[MAX_FRAME_LATENCY];

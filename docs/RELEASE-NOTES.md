@@ -1,17 +1,17 @@
 # MXL Smooth Motion DX12 1.0
 
-**DX12 is now the main version.** Smoother movement, D2GL graphics options, the **Ctrl+O menu**, an **FPS settings tab**, and **ReShade support**.
+**Helps Median XL feel smoother online, even when your FPS is already high.** Now with DX12 graphics and the familiar Ctrl+O menu.
 
 ### [Download mxl-smooth-motion-dx12-1.0.zip](https://github.com/Phroster/mxl-smooth-motion-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip)
 
 ## Copy, paste, play
 
-1. Let the Median XL launcher finish updating. Choose **Glide or DirectDraw**, turn **Windowed** off, and tick both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**:
+1. Open the Median XL launcher and let it finish updating. Choose **Glide or DirectDraw** and turn **Windowed** off. Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**, like this:
 
-   ![Enable both custom graphics DLLs](https://raw.githubusercontent.com/Phroster/mxl-smooth-motion-dx12/v1.0/docs/launcher-settings.png)
+   ![Tick Glide3x.dll and Ddraw.dll under Unofficial Graphic Drivers](https://raw.githubusercontent.com/Phroster/mxl-smooth-motion-dx12/v1.0/docs/launcher-settings.png)
 
 2. Close the game and launcher. Download and extract the ZIP.
-3. Copy these **five files** into your game folder, next to `Game.exe`, and choose **Replace**:
+3. Copy these **five files** into your Median XL game folder, next to `Game.exe`. Choose **Replace**:
 
    ```text
    glide3x.dll
@@ -21,20 +21,24 @@
    d2fps.ini
    ```
 
-4. **Start playing.** The smoothing fix turns on automatically.
+4. **Start the game and play.** The smoothing fix turns on by itself.
 
-Keep the official **`d2fps.dll`**. Back up custom settings before replacing the INIs.
+**No settings to edit and no installer to run.** Leave the existing **`d2fps.dll`** alone — the game still needs it.
 
-## Make it yours
+Already have custom settings? Back up your files first. Copying the INIs replaces them with ours. [Keep your settings instead](https://github.com/Phroster/mxl-smooth-motion-dx12/blob/main/docs/INSTALL.md#keep-your-existing-settings).
 
-Press **Ctrl+O** for graphics and the new **FPS** tab. Restart after saving FPS changes. Use **Alt+Enter** for fullscreen/windowed mode.
+## Check it or tweak it
 
-**ReShade:** choose **DirectX 10/11/12** in its installer and keep your preset. Switch an existing OpenGL ReShade installation to DirectX as well. ReShade is optional and is not bundled.
+Press **Ctrl+O** and look for **Multiplayer Smoothing Fix: On**. That menu also lets you change the picture. Use its **FPS tab** to change your FPS limit; save and restart after making changes.
 
-[Full guide](https://github.com/Phroster/mxl-smooth-motion-dx12) · [Settings](https://github.com/Phroster/mxl-smooth-motion-dx12/blob/main/docs/SETTINGS.md) · [Help](https://github.com/Phroster/mxl-smooth-motion-dx12/issues)
+Want a window? Press **Alt+Enter** after starting. Keep Windowed off in the launcher.
 
-For Windows 10+, a DX12-capable GPU, and the supported MXL 2.14.0 / Diablo II 1.13c files.
+**Using ReShade?** Choose **DirectX 10/11/12** in its installer. Switch an old OpenGL installation to DirectX and keep your preset. ReShade is optional and is not included.
 
-This replaces the earlier OpenGL download under **1.0**. It contains the exact accepted DX12 renderer binaries. If you already installed that DX12 build, you do not need to reinstall.
+[Full guide and help](https://github.com/Phroster/mxl-smooth-motion-dx12)
 
-The source ZIP is for developers. Original credits and licenses are included.
+For **Median XL 2.14.0 / Diablo II 1.13c on Windows 10+**, with a graphics card that supports **DX12**.
+
+Already using this DX12 version? You do not need to reinstall. The source ZIP is for developers.
+
+Community release based on work by Bayaraa, Pooquer, GavinK88 and Jarcho. Smoothing fix by Phroster.
