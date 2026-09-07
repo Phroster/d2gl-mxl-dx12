@@ -48,6 +48,12 @@ endforeach()
 add_test(NAME reveal_preselection_without_logging COMMAND $<TARGET_FILE:dx12_reveal_probe_test>
   "${CMAKE_BINARY_DIR}/test-output/preselection-only" --preselection-only)
 set_tests_properties(reveal_preselection_without_logging PROPERTIES TIMEOUT 30)
+add_test(NAME reveal_before_scene_unsupported COMMAND ${CMAKE_COMMAND}
+  "-DTEST_EXECUTABLE=$<TARGET_FILE:dx12_auto_reveal_test>"
+  "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/before-scene-unsupported"
+  "-DTEST_ARGUMENTS=--before-scene-unsupported"
+  "-DMODE=report" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
+set_tests_properties(reveal_before_scene_unsupported PROPERTIES TIMEOUT 60)
 set(mxl_log_tests dx12_diagnostics_test dx12_upload_cache_test dx12_input_profile_test dx12_reveal_probe_test dx12_auto_reveal_test)
 foreach(test IN LISTS mxl_log_tests)
   add_test(NAME ${test} COMMAND ${CMAKE_COMMAND}

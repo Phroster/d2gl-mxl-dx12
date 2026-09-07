@@ -23,6 +23,7 @@
 #include "modules/hd_text.h"
 #include "modules/motion_prediction.h"
 #include "stubs.h"
+#include "auto_reveal.h"
 
 namespace d2gl::d2 {
 
@@ -184,6 +185,10 @@ DWORD getCellNo(CellContext* cell)
 
 void gameDrawBegin()
 {
+	// The supported native main-loop callback runs before draw dispatch. Finish
+	// act reveal while the last loading image is still displayed; native drawing
+	// obtains its player/room pointers only after this callback returns.
+	mxl::reveal::before_scene(App.hwnd);
 	if (App.game.screen == GameScreen::Loading || App.game.screen == GameScreen::Menu)
 		App.game.screen = GameScreen::InGame;
 }

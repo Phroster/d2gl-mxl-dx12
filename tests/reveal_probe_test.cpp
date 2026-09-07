@@ -301,11 +301,33 @@ void preselection_scenarios() {
     require(caught,"Preselected generation exception was swallowed.");
     preselection_throw=false;test_reveal_preselection(0,0);preselection_mode=false;
 }
+void before_scene_signature_scenarios() {
+    std::vector<uint8_t> client(0x45000);
+    const auto base=reinterpret_cast<uintptr_t>(client.data());
+    const auto place=[&](const auto& sites){for(const auto& site:sites)memcpy(client.data()+site.rva,site.bytes,32);};
+    require(!test_reveal_before_scene_signature(0),"Missing Client accepted for before-scene reveal.");
+    for(const auto& sites:{reveal_before_scene_sites,reveal_before_scene_sigma_sites}){
+        place(sites);
+        require(test_reveal_before_scene_signature(base),"Supported before-scene variant rejected.");
+        for(const auto& site:sites)for(size_t i=0;i<32;++i){
+            auto& byte=client[site.rva+i];byte^=1;
+            require(test_reveal_before_scene_signature(base)==(site.mask[i]==0),"Before-scene guard accepted changed code or rejected a relocation.");
+            byte^=1;
+        }
+    }
+    place(reveal_before_scene_sites);
+    memcpy(client.data()+reveal_before_scene_sigma_sites[1].rva,reveal_before_scene_sigma_sites[1].bytes,32);
+    require(!test_reveal_before_scene_signature(base),"Mixed stock/Sigma before-scene halves accepted.");
+    place(reveal_before_scene_sigma_sites);
+    memcpy(client.data()+reveal_before_scene_sites[1].rva,reveal_before_scene_sites[1].bytes,32);
+    require(!test_reveal_before_scene_signature(base),"Mixed Sigma/stock before-scene halves accepted.");
+}
 int wmain(int argc,wchar_t** argv) {
     try {
         const bool omit_lookup=argc==3 && !wcscmp(argv[2],L"--skip-lookup");
         const bool preselection_only=argc==3 && !wcscmp(argv[2],L"--preselection-only");
         require(argc==2 || omit_lookup || preselection_only,"Unexpected test arguments.");
+        before_scene_signature_scenarios();
         if(preselection_only){
             require(!enabled(),"Preselection-only test unexpectedly started recording.");
             RevealDeepFns deep{preset_mock,build_mock,prepare_mock,reinterpret_cast<void*>(&dt1_mock),reinterpret_cast<void*>(&grid_mock),lookup_mock,layer_mock};
