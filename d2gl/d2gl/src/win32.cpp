@@ -23,6 +23,8 @@
 #include "modules/hd_cursor.h"
 #include "option/menu.h"
 #include "diagnostics.h"
+#include "input_profile.h"
+#include <optional>
 
 #include <detours/detours.h>
 
@@ -123,15 +125,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     struct TMarker {
         uint64_t began=0;const char* finished="key_T_down_handler_us";
-        TMarker(bool down,bool up) {
+        struct Details {mxl::diag::InputSample before;mxl::diag::InputResult owner;};
+        std::optional<Details> details;
+        TMarker(bool down,bool up, const void* procedure) {
             if(!down&&!up)return;
-            const auto error=GetLastError();began=mxl::diag::ticks();
+            const auto error=GetLastError();
             finished=down?"key_T_down_handler_us":"key_T_up_handler_us";
-            mxl::diag::note(down?"key_T_down":"key_T_up");SetLastError(error);
+            mxl::diag::note(down?"key_T_down":"key_T_up");
+            if(down){details.emplace();mxl::diag::input_owner(procedure,details->owner);details->before=mxl::diag::input_sample();}
+            began=mxl::diag::ticks();SetLastError(error);
         }
-        ~TMarker(){if(began){const auto error=GetLastError();mxl::diag::note(finished,int64_t(mxl::diag::milliseconds(mxl::diag::ticks()-began)*1000));SetLastError(error);}}
+        ~TMarker(){if(began){
+            const auto error=GetLastError();const auto ended=mxl::diag::ticks();
+            if(details){auto result=mxl::diag::input_difference(details->before,mxl::diag::input_sample(),began,ended);
+                memcpy(result.module,details->owner.module,sizeof(result.module));result.module_offset=details->owner.module_offset;mxl::diag::record_input(result);}
+            mxl::diag::note(finished,int64_t(mxl::diag::milliseconds(ended-began)*1000));SetLastError(error);
+        }}
     } marker(mxl::diag::enabled()&&hWnd==App.hwnd&&wParam==0x54&&uMsg==WM_KEYDOWN&&!(lParam&(1L<<30)),
-             mxl::diag::enabled()&&hWnd==App.hwnd&&wParam==0x54&&uMsg==WM_KEYUP);
+             mxl::diag::enabled()&&hWnd==App.hwnd&&wParam==0x54&&uMsg==WM_KEYUP,reinterpret_cast<const void*>(App.wndproc));
 	if (App.ready && option::Menu::instance().isVisible())
 		ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 

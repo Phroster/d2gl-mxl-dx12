@@ -1,4 +1,5 @@
 #include "diagnostics.h"
+#include "input_profile.h"
 #include <array>
 #include <atomic>
 #include <algorithm>
@@ -56,9 +57,17 @@ void write_record(FILE* file,const Record& r) {
     for(auto value:r.counts) fprintf(file,",%llu",(unsigned long long)value);
     fprintf(file,",%s,%lld\n",r.detail,(long long)r.value);
 }
+void write_input(FILE* file,const Record& r) {
+    const auto flags=uint32_t(r.counts[8]);
+    const auto value=[&](size_t index,uint32_t flag)->long long {return flags&flag?static_cast<long long>(r.counts[index]):-1ll;};
+    fprintf(file,"%llu,%.6f,%u,%.6f,%.6f,%.6f,%.6f,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%u,%s,%lld\n",
+        (unsigned long long)r.id,milliseconds(r.at-state().started),r.tid,r.duration,r.ms[0],r.ms[1],r.ms[2],
+        value(0,ThreadCycles),value(1,ProcessIo),value(2,ProcessIo),value(3,ProcessIo),value(4,ProcessIo),
+        value(5,ProcessIo),value(6,ProcessIo),value(7,ProcessFaults),flags,r.detail,(long long)r.value);
+}
 DWORD WINAPI writer(void*) {
     auto& s=state();SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
-    FILE* file=nullptr;uint32_t part=0;uint64_t last_summary=ticks(),written=0,slow=0;
+    FILE* file=nullptr;FILE* inputs=nullptr;uint32_t part=0,input_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
     auto open=[&](){
         const auto name=s.directory+L"\\events-"+std::to_wstring(part%3)+L".csv";
         file=_wfsopen(name.c_str(),L"wb",_SH_DENYNO);
@@ -72,7 +81,17 @@ DWORD WINAPI writer(void*) {
         AcquireSRWLockExclusive(&s.lock);
         while(s.size && count<batch.size()) {batch[count++]=s.queue[s.read];s.read=(s.read+1)%Capacity;--s.size;}
         ReleaseSRWLockExclusive(&s.lock);
-        for(size_t i=0;i<count;++i){write_record(file,batch[i]);++written;if(batch[i].slow)++slow;}
+        for(size_t i=0;i<count;++i){
+            if(!strcmp(batch[i].kind,"key_T_profile")) {
+                if(!inputs && input_count==0) {
+                    inputs=_wfsopen((s.directory+L"\\input.csv").c_str(),L"wb",_SH_DENYNO);
+                    if(inputs)fputs("input_id,session_ms,thread_id,wall_ms,user_cpu_ms,kernel_cpu_ms,wall_minus_cpu_ms,thread_cycles,process_read_bytes,process_read_ops,process_write_bytes,process_write_ops,process_other_bytes,process_other_ops,process_page_faults,valid_flags,procedure_module,procedure_offset\n",inputs);
+                }
+                if(inputs && input_count<4096){write_input(inputs,batch[i]);++input_count;}
+                else ++s.dropped;
+            } else write_record(file,batch[i]);
+            ++written;if(batch[i].slow)++slow;
+        }
         if(_ftelli64(file)>32ll*1024*1024){fclose(file);file=nullptr;++part;if(!open()){s.active=false;return 2;}}
         const auto now=ticks();
         if(milliseconds(now-last_summary)>=1000 || s.quitting.load()) {
@@ -85,10 +104,10 @@ DWORD WINAPI writer(void*) {
                 }
             }
             Record status;status.kind="logger";status.at=now;status.value=s.dropped.load();strcpy_s(status.detail,"dropped_records");write_record(file,status);
-            fflush(file);last_summary=now;
+            fflush(file);if(inputs)fflush(inputs);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
-                fprintf(out,"MXL private diagnostic beta 2\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
+                fprintf(out,"MXL private diagnostic beta 3\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
                     s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load());fclose(out);
             }
             if(GetFileAttributesW((s.directory+L"\\STOP").c_str())!=INVALID_FILE_ATTRIBUTES) {
@@ -98,7 +117,7 @@ DWORD WINAPI writer(void*) {
         if(s.quitting && count==0) break;
         if(count==0) Sleep(50);
     }
-    fflush(file);fclose(file);return 0;
+    if(inputs){fflush(inputs);fclose(inputs);}fflush(file);fclose(file);return 0;
 }
 }
 uint64_t ticks() noexcept {LARGE_INTEGER t;QueryPerformanceCounter(&t);return uint64_t(t.QuadPart);}
@@ -125,7 +144,7 @@ bool start(HWND window,const std::wstring& test_directory) {
     std::error_code error;std::filesystem::create_directories(s.directory,error);if(error)return false;
     FILE* file=nullptr;
     if(!_wfopen_s(&file,(s.directory+L"\\session.txt").c_str(),L"wb") && file) {
-        fprintf(file,"MXL private diagnostics beta 2\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
+        fprintf(file,"MXL private diagnostics beta 3\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,
@@ -133,6 +152,12 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
             s.threshold,unsigned(s.audio));
         fputs("Audio summaries: duration_ms=sum of completed call wall times; interval_ms=largest call; draws=calls; indices=failed calls.\n"
+              "input.csv: T handler thread CPU/cycles plus process-wide I/O and page-fault deltas.\n"
+              "Wall minus CPU includes waits and descheduling, not just explicit Sleep. CPU accounting has finite granularity.\n"
+              "I/O counts include cached/device I/O and other threads; they are not physical disk bytes. Fault counts include soft faults.\n"
+              "Input valid_flags: 1=thread CPU, 2=process I/O, 4=process faults, 8=thread cycles. -1 means unavailable.\n"
+              "Procedure module/offset identifies the forwarded window-procedure entrypoint, not a sampled inner hotspot.\n"
+              "At most 4096 detailed T profiles per session. Only T key-down triggers these extra counters.\n"
               "Frame render_ms includes nested scopes. Do not add them together.\n"
               "No per-frame disk writes on game/render/audio threads; the queue can drop samples instead of blocking.\n"
               "At most three 32 MiB CSV files per session. Create an empty STOP file here to stop recording.\n",file);fclose(file);
@@ -174,6 +199,15 @@ void audio_call(Audio operation,uint64_t start,uint64_t end,HRESULT result) noex
     strcpy_s(r.detail,audio_names[size_t(operation)]);put(r);
 }
 void note(const char* message,int64_t value) noexcept {Record r;r.at=ticks();r.tid=GetCurrentThreadId();r.value=value;strncpy_s(r.detail,message,_TRUNCATE);put(r);}
+void record_input(const InputResult& input) noexcept {
+    if(!enabled())return;
+    static std::atomic<uint64_t> sequence{0};Record r;r.kind="key_T_profile";r.id=++sequence;r.at=input.began;r.tid=GetCurrentThreadId();
+    r.duration=milliseconds(input.ended-input.began);r.ms[0]=input.user_ms;r.ms[1]=input.kernel_ms;
+    r.ms[2]=(input.valid&ThreadTimes)?std::max(0.0,r.duration-input.user_ms-input.kernel_ms):-1;
+    r.counts[0]=input.cycles;r.counts[1]=input.read_bytes;r.counts[2]=input.read_ops;r.counts[3]=input.write_bytes;r.counts[4]=input.write_ops;
+    r.counts[5]=input.other_bytes;r.counts[6]=input.other_ops;r.counts[7]=input.faults;r.counts[8]=input.valid;
+    strncpy_s(r.detail,input.module,_TRUNCATE);r.value=input.module_offset;put(r);
+}
 void stop(bool wait) noexcept {auto& s=state();s.active=false;s.quitting=true;if(wait&&s.worker)WaitForSingleObject(s.worker,5000);}
 std::wstring session_directory() {return state().directory;}
 uint64_t dropped_records() noexcept {return state().dropped.load();}
