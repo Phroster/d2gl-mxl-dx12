@@ -1,28 +1,47 @@
-# Build MXL Smooth Motion DX12
+# Build from source
 
-Install Visual Studio 2022 C++ Build Tools with a Windows SDK, CMake and Git.
+Players can use the [ready-to-play download](../README.md#install--copy-paste-play).
 
-From the repository root:
+For a source build, install **Visual Studio 2022 C++ Build Tools**, a **Windows SDK**, **CMake 3.24+** and **Git**.
 
-```powershell
-.\build.ps1 -BuildDirectory 'C:\MXL-DX12-Build'
-python .\scripts\package.py --build-dir 'C:\MXL-DX12-Build'
+```console
+cmake -S . -B C:/MXL-DX12-Build -G "Visual Studio 17 2022" -A Win32
+cmake --build C:/MXL-DX12-Build --config Release --target glide3x ddraw --parallel 6
 ```
 
-The build fetches pinned shader compiler sources, builds both x86 renderer DLLs and runs the native shader, timing, GPU and menu checks. It does not install files into a game. Add `-SkipGpuTests` when building without a usable DX12 GPU.
+CMake downloads the pinned shader compiler sources automatically. The two DLLs are written to `C:/MXL-DX12-Build/Release`. The build does not install anything into a game.
 
-The DLLs are in the build directory's `Release` folder. Packaging writes `dist/mxl-smooth-motion-dx12-1.1.zip`.
+## Run the checks
 
-Use the CMake build for DX12. The imported Visual Studio project files describe the original renderer. The internal `experimental/` directory retains its historical name; its DX12 implementation is the main renderer.
+```console
+cmake -S . -B C:/MXL-DX12-Build -DMXL_BUILD_TESTS=ON
+cmake --build C:/MXL-DX12-Build --config Release --parallel 6
+ctest --test-dir C:/MXL-DX12-Build -C Release --output-on-failure
+```
 
-[Dependency versions](../experimental/DEPENDENCIES.json) · [Architecture](ARCHITECTURE.md) · [Validation](VALIDATION.md)
+The native checks cover rendering, shaders, the settings menu, movement timing, uploads, automatic reveal and optional recording. GPU tests require a working DirectX 12 device. Test output stays in the build directory.
 
-## Release 1.1 binaries
+## Create the player download
 
-Version 1.1 includes the tested geometry-upload fix and automatic act reveal from private beta 5. Performance recording is disabled by default and is independent of automatic reveal. Both renderer DLLs carry Windows file version 1.1.0.0.
+With Python 3 installed:
 
-The package manifest records the file hashes and source revision. The release includes a corresponding source archive.
+```console
+python tools/package.py --build-dir C:/MXL-DX12-Build
+```
 
-## D2FPS source
+The ZIP contains the six game files, player guides and licences. Source files and build tools stay in the repository.
 
-The `d2fps/` workspace retains the source-level timing implementation for development and comparison. The main package runs Median XL's official D2FPS, with the correction applied by the DX12 renderer. That official DLL is not redistributed here.
+## Source layout
+
+| Folder | Contents |
+|---|---|
+| `d2gl/` | D2GL source, Glide/DirectDraw entry points, matching MPQ and required libraries. |
+| `src/dx12/` | DirectX 12 rendering, automatic reveal and optional diagnostics. |
+| `tests/` | Native verification programs. |
+| `cmake/` | Build setup, dependency revisions and test registration. |
+| `tools/` | Packaging, shader asset checks and diagnostic report analysis. |
+| `defaults/` | Player graphics and FPS settings. |
+
+The active package uses Median XL's official `d2fps.dll`. Its timing integration is in `d2gl/d2gl/src/mxl_smoothing.c`; the FPS settings menu is in `src/dx12/fps_menu.cpp`.
+
+[Architecture](ARCHITECTURE.md) · [Dependency versions](../cmake/DEPENDENCIES.json) · [Original projects](UPSTREAM.json)
