@@ -40,8 +40,8 @@ Performance recording is off unless `[Diagnostics] enabled=1` is explicitly set 
 
 Enable both custom graphics DLL checkboxes under the launcher's **Unofficial Graphic Drivers** section. The unchanged MPQ matches the inspected official distribution.
 
-ReShade uses its DirectX installation. ReShade 6.6.2.2082 was verified locally through `dxgi.dll`, retaining the existing preset. ReShade and personal presets are not bundled with the mod.
+ReShade uses its DirectX installation. ReShade and personal presets are not bundled with the mod.
 
-The `d2fps/` source workspace remains for development/reference. It is not loaded as a second FPS engine.
+The timing integration uses the official D2FPS engine already supplied by Median XL. Historical standalone source remains available in the Git history.
 
-[Build](BUILD.md) · [Validation](VALIDATION.md) · [Upstream versions](UPSTREAM.json)
+[Build and tests](BUILD.md) · [Upstream versions](UPSTREAM.json)
