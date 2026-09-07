@@ -3,11 +3,17 @@
 #include <cstring>
 #include <stdexcept>
 #include <sstream>
+#include "diagnostics.h"
+#include "audio_diagnostics.h"
 
 namespace mxl::dx12 {
 State& state() { static State* value=new State;return *value; }
 static void require(bool condition,const char* message) { if(!condition) throw std::runtime_error(message); }
-void initialize(HWND window) {require(!state().device,"DX12 already initialized");state().device=std::make_unique<Device>(window,false);}
+void initialize(HWND window) {
+    require(!state().device,"DX12 already initialized");
+    try {if(diag::start(window))diag::start_audio();}catch(...){diag::note("diagnostics_initialization_failed");diag::stop();}
+    state().device=std::make_unique<Device>(window,false);
+}
 Device& gpu() {require(bool(state().device),"DX12 is not initialized");return *state().device;}
 void shutdown() { if(state().device) {gpu().wait_idle();state()=State{};} }
 void present(bool vsync) {gpu().present(vsync);}
@@ -194,9 +200,11 @@ void glShaderSource(GLuint id,GLsizei count,const GLchar* const* text,const GLin
     auto& s=state().shaders.at(id);s.source.clear();for(int i=0;i<count;++i)s.source.append(text[i],lengths&&lengths[i]>=0?size_t(lengths[i]):strlen(text[i]));
 }
 void glCompileShader(GLuint id) {
+    const auto began=diag::enabled()?diag::ticks():0;
     auto& s=state().shaders.at(id);
     try{s.normal=compile_shader(s.source,s.stage,false,"D2GL DX12 shader");if(s.stage==Stage::Vertex)s.flipped=compile_shader(s.source,s.stage,true,"D2GL DX12 vertex");s.valid=true;}
     catch(const std::exception& e){s.error=e.what();s.valid=false;OutputDebugStringA(s.error.c_str());}
+    if(began)diag::note(s.valid?"shader_compile_us":"shader_compile_failed_us",int64_t(diag::milliseconds(diag::ticks()-began)*1000));
 }
 void glGetShaderiv(GLuint id,GLenum name,GLint* result) {auto& s=state().shaders.at(id);*result=name==GL_COMPILE_STATUS?s.valid:name==GL_INFO_LOG_LENGTH?GLint(s.error.size()+1):0;}
 void glGetShaderInfoLog(GLuint id,GLsizei size,GLsizei* len,GLchar* log) {

@@ -77,6 +77,8 @@ private:
         uint8_t* mapped=nullptr;
         uint64_t used=0, fence=0;
         uint32_t view_count=0,sampler_count=0;
+        bool timing=false;
+        uint64_t timing_frame=0;
         std::vector<std::shared_ptr<Resource>> keepalive;
         std::unordered_set<Resource*> tracked;
     };
@@ -88,6 +90,10 @@ private:
     ComPtr<ID3D12CommandQueue> queue_;
     ComPtr<ID3D12GraphicsCommandList> list_;
     ComPtr<ID3D12Fence> fence_;
+    ComPtr<ID3D12QueryHeap> timestamp_heap_;
+    ComPtr<ID3D12Resource> timestamp_readback_;
+    uint64_t* timestamps_=nullptr;
+    uint64_t timestamp_frequency_=0;
     ComPtr<IDXGISwapChain3> swap_;
     ComPtr<ID3D12DescriptorHeap> rtv_heap_;
     std::array<Frame,FrameCount> frames_;
