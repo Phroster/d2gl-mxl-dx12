@@ -169,6 +169,8 @@ bool start(HWND window,const std::wstring& test_directory) {
               "Procedure module/offset identifies the forwarded window-procedure entrypoint, not a sampled inner hotspot.\n"
               "At most 4096 detailed T profiles per session. Only T key-down triggers these extra counters.\n"
               "reveal.csv: guarded MXL act/level/room and D2Common generate/load/unload durations. These scopes are nested, not additive.\n"
+              "Reveal depth probe: preset generation/layout, preset preparation, DT1 loading, tile grids, level lookup and automap layer selection.\n"
+              "Depth scopes forward the original game functions without deferring, skipping or replacing reveal work. Missing rows may reflect dropped records.\n"
               "At most 262144 reveal phase rows per session. No work is deferred or skipped by this probe.\n"
               "Frame render_ms includes nested scopes. Do not add them together.\n"
               "No per-frame disk writes on game/render/audio threads; the queue can drop samples instead of blocking.\n"

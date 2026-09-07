@@ -18,6 +18,12 @@ RevealRootFn original_root=nullptr;
 RevealNodeFn original_level=nullptr,original_room=nullptr;
 RevealInitFn original_init=nullptr;
 RevealRoomDataFn original_load=nullptr,original_unload=nullptr;
+RevealNodeFn original_preset=nullptr;
+RevealBuildAreaFn original_build_area=nullptr;
+RevealInitFn original_prepare_room=nullptr;
+PVOID original_dt1=nullptr,original_tile_grid=nullptr;
+RevealLookupFn original_lookup=nullptr;
+RevealLayerFn original_layer=nullptr;
 uintptr_t sigma_base=0;
 bool probe_ready=false;
 struct Context {uint64_t id;int32_t act;};
@@ -34,38 +40,131 @@ Node room_info(void* pointer) {
 void emit(const char* phase,uint64_t began,const Node& node={}) noexcept {
     if(active)reveal_event(active->id,phase,began,ticks(),active->act,node.level,node.x,node.y,node.resident);
 }
+void record_automap_callback(void* level) noexcept {
+    const auto misc=read32(reinterpret_cast<uintptr_t>(level)+0x1b4);
+    const auto callback=read32(misc?misc+0x454:0);
+    if(!callback)return;
+    HMODULE module=nullptr;
+    if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<LPCWSTR>(callback),&module))return;
+    char path[MAX_PATH]{},message[96]{};
+    if(!GetModuleFileNameA(module,path,MAX_PATH))return;
+    const auto name=strrchr(path,'\\');
+    _snprintf_s(message,sizeof(message),_TRUNCATE,"preset_automap_callback_%.48s",name?name+1:path);
+    note(message,callback-reinterpret_cast<uintptr_t>(module));
+}
 uintptr_t __cdecl root_hook() {
-    if(!enabled())return original_root();
+    const auto incoming_error=GetLastError();
+    if(!enabled()){SetLastError(incoming_error);return original_root();}
     auto* previous=active;Context context{++sequence,-1};
     if(sigma_base){const auto player=read32(read32(sigma_base+0x3fa130));const auto act=read32(player?player+0x1c:0);if(act)context.act=int32_t(read32(act+0x14));}
     active=&context;const auto began=ticks();uintptr_t result=0;DWORD error=0;
-    __try {result=original_root();error=GetLastError();emit("act",began);}
+    __try {SetLastError(incoming_error);result=original_root();error=GetLastError();emit("act",began);}
     __finally {active=previous;}
     SetLastError(error);return result;
 }
 uintptr_t __fastcall level_hook(void* level) {
-    if(!active || !enabled())return original_level(level);
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_level(level);}
     Node node;node.level=int32_t(read32(reinterpret_cast<uintptr_t>(level)+0x1d0));
-    const auto began=ticks();const auto result=original_level(level);const auto error=GetLastError();emit("level_rooms",began,node);SetLastError(error);return result;
+    const auto began=ticks();SetLastError(incoming_error);const auto result=original_level(level);const auto error=GetLastError();emit("level_rooms",began,node);SetLastError(error);return result;
 }
 uintptr_t __fastcall room_hook(void* room) {
-    if(!active || !enabled())return original_room(room);
-    const auto node=room_info(room);const auto began=ticks();const auto result=original_room(room);const auto error=GetLastError();emit("room",began,node);SetLastError(error);return result;
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_room(room);}
+    const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);const auto result=original_room(room);const auto error=GetLastError();emit("room",began,node);SetLastError(error);return result;
 }
 uintptr_t __stdcall init_hook(void* level) {
-    if(!active || !enabled())return original_init(level);
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_init(level);}
     Node node;node.level=int32_t(read32(reinterpret_cast<uintptr_t>(level)+0x1d0));
-    const auto began=ticks();const auto result=original_init(level);const auto error=GetLastError();emit("level_generation",began,node);SetLastError(error);return result;
+    const auto began=ticks();SetLastError(incoming_error);const auto result=original_init(level);const auto error=GetLastError();emit("level_generation",began,node);SetLastError(error);return result;
 }
 uintptr_t __stdcall load_hook(void* act,uint32_t level,uint32_t x,uint32_t y,void* room) {
-    if(!active || !enabled())return original_load(act,level,x,y,room);
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_load(act,level,x,y,room);}
     Node node{int32_t(level),int32_t(x),int32_t(y),false};const auto began=ticks();
-    const auto result=original_load(act,level,x,y,room);const auto error=GetLastError();emit("load_room",began,node);SetLastError(error);return result;
+    SetLastError(incoming_error);const auto result=original_load(act,level,x,y,room);const auto error=GetLastError();emit("load_room",began,node);SetLastError(error);return result;
 }
 uintptr_t __stdcall unload_hook(void* act,uint32_t level,uint32_t x,uint32_t y,void* room) {
-    if(!active || !enabled())return original_unload(act,level,x,y,room);
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_unload(act,level,x,y,room);}
     Node node{int32_t(level),int32_t(x),int32_t(y),false};const auto began=ticks();
-    const auto result=original_unload(act,level,x,y,room);const auto error=GetLastError();emit("unload_room",began,node);SetLastError(error);return result;
+    SetLastError(incoming_error);const auto result=original_unload(act,level,x,y,room);const auto error=GetLastError();emit("unload_room",began,node);SetLastError(error);return result;
+}
+uintptr_t __fastcall preset_hook(void* level) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_preset(level);}
+    Node node;node.level=int32_t(read32(reinterpret_cast<uintptr_t>(level)+0x1d0));
+    record_automap_callback(level);
+    const auto began=ticks();SetLastError(incoming_error);const auto result=original_preset(level);const auto error=GetLastError();emit("preset_generation",began,node);SetLastError(error);return result;
+}
+uintptr_t __stdcall build_area_hook(void* level,void* map,uint32_t flags,uint32_t single_room) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_build_area(level,map,flags,single_room);}
+    Node node;node.level=int32_t(read32(reinterpret_cast<uintptr_t>(level)+0x1d0));
+    const auto began=ticks();SetLastError(incoming_error);const auto result=original_build_area(level,map,flags,single_room);const auto error=GetLastError();emit("preset_build_area",began,node);SetLastError(error);return result;
+}
+uintptr_t __stdcall prepare_room_hook(void* room) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_prepare_room(room);}
+    const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);const auto result=original_prepare_room(room);const auto error=GetLastError();emit("preset_room_prepare",began,node);SetLastError(error);return result;
+}
+// These entrypoints have no stack arguments. Convert only the verified register
+// arguments; use an ordinary call/return chain so nested calls and exceptions do
+// not depend on a substituted return address or a thread-local return stack.
+__declspec(naked) uintptr_t __stdcall call_dt1(void* room) {
+    __asm {
+        push esi
+        mov esi, dword ptr [esp+8]
+        call dword ptr [original_dt1]
+        pop esi
+        ret 4
+    }
+}
+__declspec(naked) uintptr_t __stdcall call_tile_grid(void* room,void* pool) {
+    __asm {
+        mov eax, dword ptr [esp+4]
+        mov ecx, dword ptr [esp+8]
+        call dword ptr [original_tile_grid]
+        ret 8
+    }
+}
+uintptr_t __stdcall dt1_wrapper(void* room) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return call_dt1(room);}
+    const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);const auto result=call_dt1(room);const auto error=GetLastError();emit("dt1_load",began,node);SetLastError(error);return result;
+}
+uintptr_t __stdcall tile_grid_wrapper(void* room,void* pool) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return call_tile_grid(room,pool);}
+    const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);const auto result=call_tile_grid(room,pool);const auto error=GetLastError();emit("room_tile_grid",began,node);SetLastError(error);return result;
+}
+__declspec(naked) uintptr_t dt1_hook() {
+    __asm {
+        push esi
+        call dt1_wrapper
+        ret
+    }
+}
+__declspec(naked) uintptr_t tile_grid_hook() {
+    __asm {
+        push ecx
+        push eax
+        call tile_grid_wrapper
+        ret
+    }
+}
+uintptr_t __fastcall lookup_hook(void* misc,uint32_t level) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_lookup(misc,level);}
+    Node node;node.level=int32_t(level);const auto began=ticks();SetLastError(incoming_error);const auto result=original_lookup(misc,level);const auto error=GetLastError();emit("level_lookup",began,node);SetLastError(error);return result;
+}
+uintptr_t __fastcall layer_hook(uint32_t layer) {
+    const auto incoming_error=GetLastError();
+    if(!active || !enabled()){SetLastError(incoming_error);return original_layer(layer);}
+    // Layer IDs are not level IDs: use x for this phase, leaving level unknown.
+    Node node;node.x=int32_t(layer);const auto began=ticks();SetLastError(incoming_error);const auto result=original_layer(layer);const auto error=GetLastError();emit("automap_layer",began,node);SetLastError(error);return result;
 }
 bool attach() {
     std::vector<HANDLE> threads;threads.reserve(512);LONG error=DetourTransactionBegin();
@@ -92,11 +191,18 @@ bool attach() {
         {reinterpret_cast<PVOID*>(&original_room),reinterpret_cast<PVOID>(&room_hook)},
         {reinterpret_cast<PVOID*>(&original_init),reinterpret_cast<PVOID>(&init_hook)},
         {reinterpret_cast<PVOID*>(&original_load),reinterpret_cast<PVOID>(&load_hook)},
-        {reinterpret_cast<PVOID*>(&original_unload),reinterpret_cast<PVOID>(&unload_hook)}};
+        {reinterpret_cast<PVOID*>(&original_unload),reinterpret_cast<PVOID>(&unload_hook)},
+        {reinterpret_cast<PVOID*>(&original_preset),reinterpret_cast<PVOID>(&preset_hook)},
+        {reinterpret_cast<PVOID*>(&original_build_area),reinterpret_cast<PVOID>(&build_area_hook)},
+        {reinterpret_cast<PVOID*>(&original_prepare_room),reinterpret_cast<PVOID>(&prepare_room_hook)},
+        {&original_dt1,reinterpret_cast<PVOID>(&dt1_hook)},
+        {&original_tile_grid,reinterpret_cast<PVOID>(&tile_grid_hook)},
+        {reinterpret_cast<PVOID*>(&original_lookup),reinterpret_cast<PVOID>(&lookup_hook)},
+        {reinterpret_cast<PVOID*>(&original_layer),reinterpret_cast<PVOID>(&layer_hook)}};
     for(const auto& hook:hooks)if(error==NO_ERROR)error=DetourAttach(hook.original,hook.replacement);
     if(error==NO_ERROR)error=DetourTransactionCommit();else DetourTransactionAbort();
     for(auto thread:threads)CloseHandle(thread);
-    note(error==NO_ERROR?"reveal_six_hooks_ready":"reveal_hooks_unavailable",error);return error==NO_ERROR;
+    note(error==NO_ERROR?"reveal_thirteen_hooks_ready":"reveal_hooks_unavailable",error);return error==NO_ERROR;
 }
 bool file_hash(HMODULE module,const char* expected) {
     wchar_t path[32768]{};if(!GetModuleFileNameW(module,path,32768))return false;
@@ -146,18 +252,34 @@ bool start_reveal_probe(HWND window) {
     original_root=reinterpret_cast<RevealRootFn>(sb+reveal_sites[0].rva);original_level=reinterpret_cast<RevealNodeFn>(sb+reveal_sites[1].rva);
     original_room=reinterpret_cast<RevealNodeFn>(sb+reveal_sites[2].rva);original_init=reinterpret_cast<RevealInitFn>(cb+reveal_sites[3].rva);
     original_load=reinterpret_cast<RevealRoomDataFn>(cb+reveal_sites[4].rva);original_unload=reinterpret_cast<RevealRoomDataFn>(cb+reveal_sites[5].rva);
+    original_preset=reinterpret_cast<RevealNodeFn>(cb+reveal_sites[6].rva);
+    original_build_area=reinterpret_cast<RevealBuildAreaFn>(cb+reveal_sites[7].rva);
+    original_prepare_room=reinterpret_cast<RevealInitFn>(cb+reveal_sites[8].rva);
+    original_dt1=reinterpret_cast<PVOID>(cb+reveal_sites[9].rva);
+    original_tile_grid=reinterpret_cast<PVOID>(cb+reveal_sites[10].rva);
+    original_lookup=reinterpret_cast<RevealLookupFn>(cb+reveal_sites[11].rva);
+    original_layer=reinterpret_cast<RevealLayerFn>(sb+reveal_sites[12].rva);
     sigma_base=sb;
     // No diagnostic detours or thread suspension when recording is disabled.
     // If attachment fails, the all-or-nothing transaction preserves the direct
     // original entrypoint, which is still suitable for automatic reveal.
-    if(enabled())attach();
+    if(enabled()){
+        bool deep_signatures_match=true;
+        for(size_t i=6;i<13;++i)if(!signature(i==12?sb:cb,reveal_sites[i])){
+            note("reveal_deep_signature_mismatch",i);deep_signatures_match=false;break;
+        }
+        if(deep_signatures_match)attach();
+    }
     probe_ready=window && mxl::reveal::start(window,sb,&root_hook);
     if(!probe_ready)note("auto_reveal_start_failed");
     return probe_ready;
 }
 #ifdef MXL_REVEAL_TEST
-bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload) {
-    original_root=root;original_level=level;original_room=room;original_init=init;original_load=load;original_unload=unload;return attach();
+bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload,const RevealDeepFns& deep) {
+    original_root=root;original_level=level;original_room=room;original_init=init;original_load=load;original_unload=unload;
+    original_preset=deep.preset;original_build_area=deep.build_area;original_prepare_room=deep.prepare_room;
+    original_dt1=deep.dt1;original_tile_grid=deep.tile_grid;original_lookup=deep.lookup;original_layer=deep.layer;
+    return attach();
 }
 #endif
 }

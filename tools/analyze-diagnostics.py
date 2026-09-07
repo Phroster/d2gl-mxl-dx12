@@ -4,7 +4,77 @@ import csv
 import json
 import statistics
 from collections import Counter, defaultdict
+from decimal import Decimal
 from pathlib import Path
+
+
+REVEAL_DEEP_PHASES = (
+    "preset_generation", "preset_build_area", "preset_room_prepare", "dt1_load",
+    "room_tile_grid", "level_lookup", "automap_layer",
+)
+REVEAL_TICKS_PER_MS = 1_000_000  # Preserve the CSV's six decimal places exactly.
+
+
+def reveal_scopes(events):
+    scopes = []
+    for position, row in enumerate(events):
+        start = int(Decimal(row["session_ms"]) * REVEAL_TICKS_PER_MS)
+        duration = int(Decimal(row["duration_ms"]) * REVEAL_TICKS_PER_MS)
+        scopes.append({"position": position, "phase": row["phase"], "thread_id": int(row["thread_id"]),
+                       "level": int(row["level"]), "start": start, "end": start + duration})
+    return scopes
+
+
+def interval_union_ticks(intervals):
+    """Merge nested, overlapping and touching intervals without adding their costs."""
+    total = 0
+    start = end = None
+    for left, right in sorted(intervals):
+        if right <= left:
+            continue
+        if end is None:
+            start, end = left, right
+        elif left <= end:
+            end = max(end, right)
+        else:
+            total += end - start
+            start, end = left, right
+    return total + (end - start if end is not None else 0)
+
+
+def reveal_scope_coverage(parent, scopes):
+    """Account for recorded descendants, excluding containing/other-thread scopes."""
+    children = []
+    for scope in scopes:
+        if scope is parent or scope["thread_id"] != parent["thread_id"]:
+            continue
+        # Independent rounding of start and duration can differ by one CSV tick.
+        if scope["start"] < parent["start"] - 1 or scope["end"] > parent["end"] + 1:
+            continue
+        # Same-thread records are emitted at scope exit. This also disambiguates
+        # recursive scopes whose timestamps become identical after rounding.
+        if scope["position"] >= parent["position"]:
+            continue
+        children.append(scope)
+
+    def interval(scope):
+        return max(parent["start"], scope["start"]), min(parent["end"], scope["end"])
+
+    phases = defaultdict(list)
+    for child in children:
+        phases[child["phase"]].append(child)
+    child_union = interval_union_ticks(interval(child) for child in children)
+    duration = parent["end"] - parent["start"]
+    return {"level": parent["level"], "phase": parent["phase"],
+            "session_ms": parent["start"] / REVEAL_TICKS_PER_MS, "thread_id": parent["thread_id"],
+            "ms": duration / REVEAL_TICKS_PER_MS, "child_calls": len(children),
+            "child_union_ms": child_union / REVEAL_TICKS_PER_MS,
+            "uninstrumented_ms": (duration - child_union) / REVEAL_TICKS_PER_MS,
+            "child_phase_stats": {
+                name: {"calls": len(items),
+                       "total_ms": sum(child["end"] - child["start"] for child in items) / REVEAL_TICKS_PER_MS,
+                       "union_ms": interval_union_ticks(interval(child) for child in items) / REVEAL_TICKS_PER_MS}
+                for name, items in sorted(phases.items())}}
 
 
 def analyze(folder):
@@ -83,10 +153,17 @@ def analyze(folder):
                                "p95_ms": values[int((len(values) - 1) * .95)], "max_ms": values[-1]}
             rooms = sorted((r for r in events if r["phase"] == "room"), key=lambda r: float(r["duration_ms"]), reverse=True)
             generated = sorted((r for r in events if r["phase"] == "level_generation"), key=lambda r: float(r["duration_ms"]), reverse=True)
+            scopes = reveal_scopes(events)
+            generation_scopes = sorted((s for s in scopes if s["phase"] == "level_generation"),
+                                       key=lambda s: s["end"] - s["start"], reverse=True)
             reveal_traces.append({"trace_id": trace_id, "act": int(events[0]["act"]), "phase_stats": stats,
                 "heaviest_rooms": [{"level": int(r["level"]), "x": int(r["room_x"]), "y": int(r["room_y"]),
                                     "ms": float(r["duration_ms"]), "resident_before": r["resident_before"] == "1"} for r in rooms[:15]],
-                "heaviest_level_generation": [{"level": int(r["level"]), "ms": float(r["duration_ms"])} for r in generated[:15]]})
+                "heaviest_level_generation": [{"level": int(r["level"]), "ms": float(r["duration_ms"])} for r in generated[:15]],
+                "root_coverage": [reveal_scope_coverage(s, scopes) for s in scopes if s["phase"] == "act"],
+                "generation_phase_breakdown": [reveal_scope_coverage(s, scopes) for s in generation_scopes[:15]],
+                "deep_probe_phases_observed": [name for name in REVEAL_DEEP_PHASES if name in phases],
+                "deep_probe_phases_not_observed": [name for name in REVEAL_DEEP_PHASES if name not in phases]})
     return {"session": str(folder), "focused_gameplay_frames": len(frames), "slow_frames": len(slow),
             "median_frame_ms": statistics.median(float(r["interval_ms"]) for r in frames) if frames else None,
             "dropped_records": max((int(r["value"]) for r in rows if r["type"] == "logger"), default=0),
@@ -95,7 +172,7 @@ def analyze(folder):
             "T_profiles": input_profiles,
             "reveal_traces": reveal_traces,
             "worst_frames": worst,
-            "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null means unavailable, not zero. T CPU accounting has finite granularity; wall-minus-CPU includes waits and descheduling. I/O/fault counters are process-wide, include cached reads/soft faults, and do not measure physical disk traffic. The procedure module identifies the entrypoint. Reveal scopes are nested: do not add act, level, room and room-load durations together."}
+            "limits": "GPU time excludes ReShade's separate submissions. Sound overlap is correlation, not proof of cause. Null means unavailable, not zero. T CPU accounting has finite granularity; wall-minus-CPU includes waits and descheduling. I/O/fault counters are process-wide, include cached reads/soft faults, and do not measure physical disk traffic. The procedure module identifies the entrypoint. Reveal scopes are nested: phase total_ms values are inclusive and are not additive, including recursive calls of the same phase. Reveal child_union_ms merges all recorded same-thread descendant intervals within the parent; per-phase union_ms values can still overlap each other. uninstrumented_ms is parent time without recorded child coverage, including unhooked work, instrumentation overhead and missing/dropped records; it is not exclusive native execution cost. dropped_records is session-wide and cannot identify which reveal scopes were lost. A deep probe phase listed as not observed does not prove zero work or that its hook was installed. Incomplete/live captures may lack parent or child records."}
 
 
 if __name__ == "__main__":
