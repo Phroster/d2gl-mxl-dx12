@@ -28,6 +28,14 @@ Exact supported SHA-256 hashes:
 
 D2Sigma must be loaded. File identity, patch instructions, clock imports and the simulation interval are checked before applying the fix. The status reports On after successful application and readback.
 
+## Improvements in 1.1
+
+The renderer uploads each buffer's current live range once per frame/version instead of repeatedly copying growing prefixes for later draws. Partial updates retain the untouched tail. This removes the excessive upload/spill work measured during crowded fights.
+
+Automatic act reveal calls Median XL's original routine on the game thread through a queued window message after a completed gameplay frame. It validates the current player/act/room state and honors Median XL's own completion flags. It moves the reveal cost to act entry; it does not accelerate level generation. D2Sigma and D2Common file hashes and code signatures must match the supported build.
+
+Performance recording is off unless `[Diagnostics] enabled=1` is explicitly set in `mxl-diagnostics.ini`. With recording off, no diagnostic writer, audio timing hooks, reveal timing detours or GPU timestamp queries are started. The upload fix and guarded automatic reveal remain active. A process-wide owner prevents duplicate reveal initialization across the two renderer DLLs.
+
 ## Launcher and ReShade
 
 Enable both custom graphics DLL checkboxes under the launcher's **Unofficial Graphic Drivers** section. The unchanged MPQ matches the inspected official distribution.

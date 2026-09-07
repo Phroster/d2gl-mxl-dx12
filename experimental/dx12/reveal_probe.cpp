@@ -119,7 +119,11 @@ bool signature(uintptr_t base,const RevealSite& site) noexcept {
 }
 }
 bool start_reveal_probe(HWND window) {
-    static bool attempted=false;if(attempted)return probe_ready;attempted=true;if(!enabled())return false;
+    static bool attempted=false;if(attempted)return probe_ready;attempted=true;
+    wchar_t executable[32768]{};
+    if(!GetModuleFileNameW(nullptr,executable,32768))return false;
+    const auto filename=wcsrchr(executable,L'\\');
+    if(_wcsicmp(filename?filename+1:executable,L"Game.exe"))return false;
     const auto sigma=GetModuleHandleW(L"D2Sigma.dll"),common=GetModuleHandleW(L"D2Common.dll");
     if(!sigma || !common){note("reveal_modules_unavailable");return false;}
     if(!file_hash(sigma,"ff44257078d994809d6b1a5a3a28657a75b1bb75395b1ee0714361d78355b728") ||
@@ -129,11 +133,26 @@ bool start_reveal_probe(HWND window) {
     const auto sb=reinterpret_cast<uintptr_t>(sigma),cb=reinterpret_cast<uintptr_t>(common);
     for(size_t i=0;i<6;++i)if(!signature(i<3?sb:cb,reveal_sites[i])){note("reveal_signature_mismatch",i);return false;}
     if(read32(sb+0x3de0f6)!=sb+0x1f7be8 || read32(sb+0x3de0fa)!=sb+0x68ab0){note("reveal_binding_changed");return false;}
+    // Both renderers contain this code. Only one owns act-entry reveal, including
+    // when logging is off and its separate diagnostic mutex was never created.
+    const auto owner_name=L"Local\\MXLActEntryReveal-"+std::to_wstring(GetCurrentProcessId());
+    HANDLE owner=CreateMutexW(nullptr,FALSE,owner_name.c_str());
+    if(!owner)return false;
+    if(GetLastError()==ERROR_ALREADY_EXISTS){CloseHandle(owner);return false;}
+    HMODULE self=nullptr;
+    if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,
+        reinterpret_cast<LPCWSTR>(&start_reveal_probe),&self)){CloseHandle(owner);return false;}
+    // Retain the ownership handle for the process lifetime, like the callbacks.
     original_root=reinterpret_cast<RevealRootFn>(sb+reveal_sites[0].rva);original_level=reinterpret_cast<RevealNodeFn>(sb+reveal_sites[1].rva);
     original_room=reinterpret_cast<RevealNodeFn>(sb+reveal_sites[2].rva);original_init=reinterpret_cast<RevealInitFn>(cb+reveal_sites[3].rva);
     original_load=reinterpret_cast<RevealRoomDataFn>(cb+reveal_sites[4].rva);original_unload=reinterpret_cast<RevealRoomDataFn>(cb+reveal_sites[5].rva);
-    sigma_base=sb;probe_ready=attach();
-    if(probe_ready && window && !mxl::reveal::start(window,sb,&root_hook))note("auto_reveal_start_failed");
+    sigma_base=sb;
+    // No diagnostic detours or thread suspension when recording is disabled.
+    // If attachment fails, the all-or-nothing transaction preserves the direct
+    // original entrypoint, which is still suitable for automatic reveal.
+    if(enabled())attach();
+    probe_ready=window && mxl::reveal::start(window,sb,&root_hook);
+    if(!probe_ready)note("auto_reveal_start_failed");
     return probe_ready;
 }
 #ifdef MXL_REVEAL_TEST

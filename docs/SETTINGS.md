@@ -1,6 +1,6 @@
 # Make it feel and look right
 
-The five-file installation already supplies working settings. Everything on this page is optional. Use **Ctrl+O** for graphics and its **FPS** tab for D2FPS settings. Save FPS changes, then restart the game.
+The six-file installation already supplies working settings. Everything on this page is optional. Use **Ctrl+O** for graphics and its **FPS** tab for D2FPS settings. Save FPS changes, then restart the game.
 
 If you prefer editing INIs, close the game first, save your edits, then start it again.
 
@@ -70,6 +70,18 @@ The normal entry is recognized and is not initialized twice by D2GL. Keep other 
 ## What is d2gl.mpq?
 
 It holds the fonts, textures and shaders used by D2GL. Keep the included MPQ beside the renderer DLLs. It is the unchanged matching asset archive; you only need the menu and INIs to configure the game.
+
+## Automatic map reveal
+
+Each act reveals automatically when you enter it. There may be a short pause while the map is prepared; pressing T afterward has no full-act reveal left to do. Returning to an already revealed act does not repeat the work. Starting a new game starts fresh.
+
+## Optional performance recording
+
+Recording is **off by default**. The FPS improvements and automatic map reveal stay on. You do not need to change anything for normal play.
+
+If you need a performance report, close the game and open `mxl-diagnostics.ini` in Notepad. Change `enabled=0` to `enabled=1`, save, and start the game. The report appears in the `mxl-diagnostics` folder beside `Game.exe`; it records frame and sound timings.
+
+When finished, set `enabled=0` again and restart. Keep `audio=1` to include sound timings when recording. This controls recording only; it does not mute or change game audio. Existing reports are kept until you delete them.
 
 ## ReShade
 

@@ -1,14 +1,16 @@
 # Keeping your settings and restoring a backup
 
-The [main guide](../README.md#install--copy-paste-play) is the normal installation: copy five files and play.
+The [main guide](../README.md#install--copy-paste-play) is the normal installation: copy six files and play.
 
 ## Keep your existing settings
 
-Back up your current files. After setting the launcher options in the main guide and closing the game and launcher, copy only **`glide3x.dll`, `ddraw.dll` and `d2gl.mpq`**. Keep your own `d2gl.ini` and `d2fps.ini`.
+Back up your current files. After setting the launcher options in the main guide and closing the game and launcher, copy only **`glide3x.dll`, `ddraw.dll`, `d2gl.mpq` and `mxl-diagnostics.ini`**. Keep your own `d2gl.ini` and `d2fps.ini`.
 
 Open **Ctrl+O → FPS** and make sure high FPS in game, high FPS in menus and smooth movement are enabled. Save any changes and restart. Keep your preferred FPS target.
 
-If you have no INIs, use the two included in the download.
+The supplied `mxl-diagnostics.ini` turns performance recording off without disabling the fixes. If you have no graphics/FPS INIs, use the two included in the download.
+
+Already using our DX12 1.0 or a private beta? Replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`. Your matching MPQ and graphics/FPS settings can stay as they are.
 
 ## ReShade
 

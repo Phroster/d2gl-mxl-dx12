@@ -11,15 +11,15 @@ python .\scripts\package.py --build-dir 'C:\MXL-DX12-Build'
 
 The build fetches pinned shader compiler sources, builds both x86 renderer DLLs and runs the native shader, timing, GPU and menu checks. It does not install files into a game. Add `-SkipGpuTests` when building without a usable DX12 GPU.
 
-The DLLs are in the build directory's `Release` folder. Packaging writes `dist/mxl-smooth-motion-dx12-1.0.zip`.
+The DLLs are in the build directory's `Release` folder. Packaging writes `dist/mxl-smooth-motion-dx12-1.1.zip`.
 
 Use the CMake build for DX12. The imported Visual Studio project files describe the original renderer. The internal `experimental/` directory retains its historical name; its DX12 implementation is the main renderer.
 
 [Dependency versions](../experimental/DEPENDENCIES.json) · [Architecture](ARCHITECTURE.md) · [Validation](VALIDATION.md)
 
-## Accepted 1.0 binaries
+## Release 1.1 binaries
 
-The promoted 1.0 download keeps the exact renderer binaries accepted during the DX12 checkpoint. Their Windows file metadata still identifies the original 0.1 build. The package/release is version 1.0; documentation and repository promotion do not change the rendering code.
+Version 1.1 includes the tested geometry-upload fix and automatic act reveal from private beta 5. Performance recording is disabled by default and is independent of automatic reveal. Both renderer DLLs carry Windows file version 1.1.0.0.
 
 The package manifest records the file hashes and source revision. The release includes a corresponding source archive.
 
