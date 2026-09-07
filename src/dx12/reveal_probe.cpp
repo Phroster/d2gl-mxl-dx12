@@ -24,6 +24,8 @@ RevealInitFn original_prepare_room=nullptr;
 PVOID original_dt1=nullptr,original_tile_grid=nullptr;
 RevealLookupFn original_lookup=nullptr;
 RevealLayerFn original_layer=nullptr;
+constexpr uint32_t all_sites=(1u<<13)-1;
+uint32_t selected_sites=all_sites;
 uintptr_t sigma_base=0;
 bool probe_ready=false;
 struct Context {uint64_t id;int32_t act;};
@@ -199,10 +201,16 @@ bool attach() {
         {&original_tile_grid,reinterpret_cast<PVOID>(&tile_grid_hook)},
         {reinterpret_cast<PVOID*>(&original_lookup),reinterpret_cast<PVOID>(&lookup_hook)},
         {reinterpret_cast<PVOID*>(&original_layer),reinterpret_cast<PVOID>(&layer_hook)}};
-    for(const auto& hook:hooks)if(error==NO_ERROR)error=DetourAttach(hook.original,hook.replacement);
+    unsigned attached=0;
+    for(size_t i=0;i<std::size(hooks) && error==NO_ERROR;++i)if(selected_sites&(1u<<i)){
+        error=DetourAttach(hooks[i].original,hooks[i].replacement);
+        if(error==NO_ERROR)++attached;
+    }
     if(error==NO_ERROR)error=DetourTransactionCommit();else DetourTransactionAbort();
     for(auto thread:threads)CloseHandle(thread);
-    note(error==NO_ERROR?"reveal_thirteen_hooks_ready":"reveal_hooks_unavailable",error);return error==NO_ERROR;
+    if(error==NO_ERROR)note(attached==13?"reveal_thirteen_hooks_ready":"reveal_partial_depth_hooks_ready",attached);
+    else note("reveal_hooks_unavailable",error);
+    return error==NO_ERROR;
 }
 bool file_hash(HMODULE module,const char* expected) {
     wchar_t path[32768]{};if(!GetModuleFileNameW(module,path,32768))return false;
@@ -222,6 +230,21 @@ bool file_hash(HMODULE module,const char* expected) {
 bool signature(uintptr_t base,const RevealSite& site) noexcept {
     __try {for(size_t i=0;i<32;++i)if(site.mask[i] && reinterpret_cast<const uint8_t*>(base+site.rva)[i]!=site.bytes[i])return false;return true;}
     __except(EXCEPTION_EXECUTE_HANDLER){return false;}
+}
+bool lookup_signature(uintptr_t base) noexcept {
+    return signature(base,reveal_sites[11]) ||
+        (signature(base,sigma_lookup_site) && read32(base+0x2d9db)==0x8d);
+}
+void signature_bytes(uintptr_t base,size_t index) noexcept {
+    // Diagnostic data only: never accept or patch a mismatching entrypoint.
+    char message[96]{};
+    const auto prefix=sprintf_s(message,"reveal_mismatch_bytes_%u_",unsigned(index));
+    if(prefix<0)return;
+    for(size_t i=0;i<32;i+=4){
+        const auto value=read32(base+reveal_sites[index].rva+i);
+        for(size_t j=0;j<4;++j)sprintf_s(message+prefix+(i+j)*2,3,"%02x",(value>>(j*8))&255);
+    }
+    note(message,index);
 }
 }
 bool start_reveal_probe(HWND window) {
@@ -264,21 +287,28 @@ bool start_reveal_probe(HWND window) {
     // If attachment fails, the all-or-nothing transaction preserves the direct
     // original entrypoint, which is still suitable for automatic reveal.
     if(enabled()){
-        bool deep_signatures_match=true;
-        for(size_t i=6;i<13;++i)if(!signature(i==12?sb:cb,reveal_sites[i])){
-            note("reveal_deep_signature_mismatch",i);deep_signatures_match=false;break;
+        // Each depth site is optional. A runtime patch at an unrelated helper
+        // must not discard all the supported measurements. Every selected hook
+        // still passes its exact signature, and the transaction remains atomic.
+        selected_sites=(1u<<6)-1;
+        for(size_t i=6;i<13;++i){
+            const auto base=i==12?sb:cb;
+            if(i==11?lookup_signature(base):signature(base,reveal_sites[i]))selected_sites|=1u<<i;
+            else {note("reveal_deep_signature_mismatch",i);signature_bytes(base,i);}
         }
-        if(deep_signatures_match)attach();
+        attach();
     }
     probe_ready=window && mxl::reveal::start(window,sb,&root_hook);
     if(!probe_ready)note("auto_reveal_start_failed");
     return probe_ready;
 }
 #ifdef MXL_REVEAL_TEST
-bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload,const RevealDeepFns& deep) {
+bool test_reveal_lookup_signature(uintptr_t base) {return lookup_signature(base);}
+bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload,const RevealDeepFns& deep,uint32_t sites) {
     original_root=root;original_level=level;original_room=room;original_init=init;original_load=load;original_unload=unload;
     original_preset=deep.preset;original_build_area=deep.build_area;original_prepare_room=deep.prepare_room;
     original_dt1=deep.dt1;original_tile_grid=deep.tile_grid;original_lookup=deep.lookup;original_layer=deep.layer;
+    selected_sites=sites&all_sites;
     return attach();
 }
 #endif

@@ -1,4 +1,5 @@
 #include "reveal_probe.h"
+#include "reveal_signatures.h"
 #include "diagnostics.h"
 #include <array>
 #include <cstring>
@@ -13,6 +14,7 @@ alignas(4) std::array<uint8_t,0x240> level_data{};
 alignas(4) std::array<uint8_t,0x80> room_data{};
 alignas(4) std::array<uint8_t,0x490> misc_data{};
 alignas(4) std::array<uint8_t,0x40> map_data{};
+alignas(4) std::array<uint8_t,0x2da00> lookup_image{};
 constexpr DWORD incoming_error=0x10203040, outgoing_error=0x4142;
 enum class ThrowAt { None, Root, Build, Dt1, Grid };
 ThrowAt throw_at=ThrowAt::None;
@@ -153,14 +155,25 @@ __declspec(noinline) uintptr_t __cdecl root_mock() {
 }
 int wmain(int argc,wchar_t** argv) {
     try {
-        require(argc==2 && start(nullptr,argv[1]),"Start test diagnostics.");
+        const bool omit_lookup=argc==3 && !wcscmp(argv[2],L"--skip-lookup");
+        require((argc==2 || omit_lookup) && start(nullptr,argv[1]),"Start test diagnostics.");
+        const uint32_t sites=((1u<<13)-1)&~(omit_lookup?(1u<<11):0u);
+        const auto lookup_base=reinterpret_cast<uintptr_t>(lookup_image.data());
+        memcpy(lookup_image.data()+0x2d9b0,reveal_sites[11].bytes,32);
+        require(test_reveal_lookup_signature(lookup_base),"Pristine lookup signature rejected.");
+        write32(lookup_image.data(),0x2d9cb,0x234);write32(lookup_image.data(),0x2d9db,0x8d);
+        require(test_reveal_lookup_signature(lookup_base),"Exact Sigma lookup extension rejected.");
+        write32(lookup_image.data(),0x2d9cb,0x238);
+        require(!test_reveal_lookup_signature(lookup_base),"Unknown lookup size accepted.");
+        write32(lookup_image.data(),0x2d9cb,0x234);write32(lookup_image.data(),0x2d9db,0x8c);
+        require(!test_reveal_lookup_signature(lookup_base),"Mismatching Sigma zero-init count accepted.");
         write32(level_data.data(),0x1d0,42);write32(level_data.data(),0x1b4,uint32_t(reinterpret_cast<uintptr_t>(misc_data.data())));
         write32(room_data.data(),0x58,uint32_t(reinterpret_cast<uintptr_t>(level_data.data())));write32(room_data.data(),0x34,12);write32(room_data.data(),0x38,34);
         RevealDeepFns deep{preset_mock,build_mock,prepare_mock,reinterpret_cast<void*>(&dt1_mock),reinterpret_cast<void*>(&grid_mock),lookup_mock,layer_mock};
         auto invalid_deep=deep;invalid_deep.dt1=nullptr;
-        require(!test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,invalid_deep),"Partial hook transaction accepted a missing deep entrypoint.");
+        require(!test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,invalid_deep,sites),"Partial hook transaction accepted a missing deep entrypoint.");
         SetLastError(incoming_error);finished(root_mock(),0x98765432);
-        require(test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,deep),"Install guarded test hooks.");
+        require(test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,deep,sites),"Install guarded test hooks.");
         volatile uint32_t canary=0xA5A55A5A;volatile RevealRootFn root=root_mock;
         SetLastError(incoming_error);finished(root(),0x98765432);require(canary==0xA5A55A5A,"Root stack changed.");
         for(const auto stage:{ThrowAt::Root,ThrowAt::Build,ThrowAt::Dt1,ThrowAt::Grid}){
@@ -186,9 +199,22 @@ int wmain(int argc,wchar_t** argv) {
             for(const auto* phase:{"act","level_rooms","room","level_generation","load_room","unload_room","preset_generation","preset_build_area","preset_room_prepare","dt1_load","room_tile_grid","level_lookup","automap_layer"})
                 if(line.find(std::string(",")+phase+",")!=std::string::npos)++phases[phase];
         }
-        require(rows==40 && coordinates && layer_identity,"Wrong phase count, identity or exception cleanup.");
-        require(phases["act"]==2 && phases["preset_generation"]==2 && phases["preset_build_area"]==4 && phases["preset_room_prepare"]==4 && phases["dt1_load"]==3 && phases["room_tile_grid"]==2 && phases["level_lookup"]==5 && phases["automap_layer"]==2,"Wrong nested deep phase counts.");
-        std::cout<<"PASS: thirteen hooks, x86 cdecl/fastcall/stdcall/register arguments, EAX, nonvolatile registers, incoming/outgoing last-error, stack, nested phases, deep exceptions and inactive forwarding.\n";
+        // The production writer intentionally drops on lock contention. Require
+        // every missing phase to be covered by that counter, and reject any
+        // excess or unexpected rows rather than assuming recording is lossless.
+        const size_t expected_rows=omit_lookup?35:40;
+        const auto dropped=dropped_records();
+        require(rows<=expected_rows && rows+dropped>=expected_rows && coordinates && layer_identity,"Wrong phase count, identity or exception cleanup.");
+        const std::map<std::string,size_t> expected_phases={{"act",2},{"level_rooms",2},{"room",4},
+            {"level_generation",2},{"load_room",4},{"unload_room",4},{"preset_generation",2},
+            {"preset_build_area",4},{"preset_room_prepare",4},{"dt1_load",3},{"room_tile_grid",2},
+            {"level_lookup",omit_lookup?0u:5u},{"automap_layer",2}};
+        size_t missing=0;
+        for(const auto& [phase,count]:expected_phases){
+            require(phases[phase]<=count,"Unexpected nested deep phase count.");missing+=count-phases[phase];
+        }
+        require(missing<=dropped,"Missing deep phases without a recorded drop.");
+        std::cout<<"PASS: "<<(omit_lookup?12:13)<<" selected hooks, x86 cdecl/fastcall/stdcall/register arguments, EAX, nonvolatile registers, incoming/outgoing last-error, stack, nested phases, deep exceptions and inactive forwarding.\n";
         return 0;
     }catch(const std::exception& error){stop(true);std::cerr<<error.what()<<"\n";return 1;}
 }
