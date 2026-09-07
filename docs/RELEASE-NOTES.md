@@ -37,6 +37,8 @@ Your FPS target follows your monitor by default. Game speed stays the same.
 
 **Keep the existing `d2fps.dll`.** The game still needs it. Back up your current files before replacing custom settings.
 
+The ZIP contains only the six installation files and a single `LICENSES.txt` notice. All guides, screenshots and developer tools are available in the repository.
+
 ### ⬆️ Upgrading an existing installation?
 
 Replace **`glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`**. Keep your graphics/FPS INIs and matching MPQ to preserve your setup.
@@ -64,3 +66,5 @@ Preparing a new act's map can briefly pause the game on entry. Pressing **T** af
 Special thanks to the original projects' contributors, Blizzard North and the Diablo II modding community.
 
 [📖 Player guide](https://github.com/Phroster/d2gl-mxl-dx12#readme) · [⚙️ Settings](https://github.com/Phroster/d2gl-mxl-dx12/blob/master/docs/SETTINGS.md)
+
+[Source for this release](https://github.com/Phroster/d2gl-mxl-dx12/tree/v1.0) · [Source download](https://github.com/Phroster/d2gl-mxl-dx12/archive/refs/tags/v1.0.zip) · [Licensing & credits](https://github.com/Phroster/d2gl-mxl-dx12/blob/v1.0/docs/LICENSING.md)

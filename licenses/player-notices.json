@@ -1,0 +1,51 @@
+[
+  {
+    "title": "D2GL upstream component notices: D2DX, Detours, GLEW, GLM, Dear ImGui and stb",
+    "source": "https://github.com/GavinK88/d2gl-mxl-1.0/blob/6284091f4923b6c5a617b9f4caedac292064aae4/THIRD_PARTY_LICENSES.md",
+    "file": "licenses/D2GL-DEPENDENCIES.txt"
+  },
+  {
+    "title": "glslang: pinned shader compiler license notices",
+    "source": "https://github.com/DiligentGraphics/glslang/blob/275822a6261ee689aadb1da5f09a0ec2f058685c/LICENSE.txt",
+    "file": "licenses/glslang.txt",
+    "build_dependency": "glslang",
+    "dependency_file": "LICENSE.txt"
+  },
+  {
+    "title": "SPIRV-Cross: Apache License 2.0",
+    "source": "https://github.com/DiligentGraphics/SPIRV-Cross/blob/1a6169566c73d3da552748fc372fe2bbb856e46e/LICENSE",
+    "file": "licenses/SPIRV-Cross.txt",
+    "build_dependency": "spirv_cross",
+    "dependency_file": "LICENSE"
+  },
+  {
+    "title": "SPIRV-Cross contributors and Khronos header notices",
+    "source": "https://github.com/DiligentGraphics/SPIRV-Cross/tree/1a6169566c73d3da552748fc372fe2bbb856e46e",
+    "file": "licenses/SPIRV-Cross-Header-Notices.txt"
+  },
+  {
+    "title": "Vendored 3dfx Glide interface header license",
+    "source": "https://github.com/GavinK88/d2gl-mxl-1.0/blob/6284091f4923b6c5a617b9f4caedac292064aae4/d2gl/vendor/include/glide3/COPYING.txt",
+    "file": "licenses/Glide-Headers.txt"
+  },
+  {
+    "title": "ProggyClean font embedded in Dear ImGui: MIT License",
+    "source": "https://github.com/bluescan/proggyfonts/blob/master/LICENSE",
+    "file": "licenses/ProggyClean-MIT.txt"
+  },
+  {
+    "title": "Built-in FXAA and LumaSharpen shader notices",
+    "source": "d2gl/d2gl/src/graphic/shaders/postfx.glsl",
+    "file": "licenses/Builtin-Shader-Notices.txt"
+  },
+  {
+    "title": "Shader notices retained in the matching D2GL MPQ",
+    "source": "https://github.com/libretro/slang-shaders",
+    "file": "licenses/MPQ-Shader-Notices.txt"
+  },
+  {
+    "title": "GNU GPL version 2 for separately licensed shaders",
+    "source": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt",
+    "file": "licenses/GPL-2.0.txt"
+  }
+]
