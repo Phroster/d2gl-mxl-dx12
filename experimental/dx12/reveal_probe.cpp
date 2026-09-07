@@ -1,6 +1,7 @@
 #include "reveal_probe.h"
 #include "reveal_signatures.h"
 #include "diagnostics.h"
+#include "auto_reveal.h"
 #include <detours/detours.h>
 #include <tlhelp32.h>
 #include <wincrypt.h>
@@ -117,7 +118,7 @@ bool signature(uintptr_t base,const RevealSite& site) noexcept {
     __except(EXCEPTION_EXECUTE_HANDLER){return false;}
 }
 }
-bool start_reveal_probe() {
+bool start_reveal_probe(HWND window) {
     static bool attempted=false;if(attempted)return probe_ready;attempted=true;if(!enabled())return false;
     const auto sigma=GetModuleHandleW(L"D2Sigma.dll"),common=GetModuleHandleW(L"D2Common.dll");
     if(!sigma || !common){note("reveal_modules_unavailable");return false;}
@@ -131,7 +132,9 @@ bool start_reveal_probe() {
     original_root=reinterpret_cast<RevealRootFn>(sb+reveal_sites[0].rva);original_level=reinterpret_cast<RevealNodeFn>(sb+reveal_sites[1].rva);
     original_room=reinterpret_cast<RevealNodeFn>(sb+reveal_sites[2].rva);original_init=reinterpret_cast<RevealInitFn>(cb+reveal_sites[3].rva);
     original_load=reinterpret_cast<RevealRoomDataFn>(cb+reveal_sites[4].rva);original_unload=reinterpret_cast<RevealRoomDataFn>(cb+reveal_sites[5].rva);
-    sigma_base=sb;probe_ready=attach();return probe_ready;
+    sigma_base=sb;probe_ready=attach();
+    if(probe_ready && window && !mxl::reveal::start(window,sb,&root_hook))note("auto_reveal_start_failed");
+    return probe_ready;
 }
 #ifdef MXL_REVEAL_TEST
 bool test_reveal_probe(RevealRootFn root,RevealNodeFn level,RevealNodeFn room,RevealInitFn init,RevealRoomDataFn load,RevealRoomDataFn unload) {

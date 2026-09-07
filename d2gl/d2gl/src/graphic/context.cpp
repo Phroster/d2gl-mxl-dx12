@@ -32,6 +32,7 @@
 #include <imgui/imgui_impl_dx12.h>
 #include <imgui/imgui_impl_win32.h>
 #include "diagnostics.h"
+#include "auto_reveal.h"
 
 namespace d2gl {
 namespace {thread_local uint64_t diagnostic_build_start=0;}
@@ -675,6 +676,7 @@ void Context::setBlendState(uint32_t index)
 
 void Context::beginFrame()
 {
+    mxl::reveal::begin_frame(App.hwnd);
     diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
 	if (!App.wndproc && App.game.screen == GameScreen::Menu)
 		App.wndproc = (WNDPROC)SetWindowLongA(App.hwnd, GWL_WNDPROC, (LONG)win32::WndProc);
@@ -744,6 +746,7 @@ void Context::presentFrame()
 	m_frame.average_frame_time = std::reduce(iter, m_frame.frame_times.end()) / m_frame.frame_sample_count;
 	m_frame.frame_sample_count += m_frame.frame_sample_count == MAX_FRAMETIME_SAMPLE_COUNT ? 0 : 1;
 	m_frame.frame_count++;
+    mxl::reveal::end_frame(App.hwnd,App.game.screen==GameScreen::InGame);
 }
 
 void Context::setViewport(glm::ivec2 size, glm::ivec2 offset)
