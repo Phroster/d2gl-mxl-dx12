@@ -79,13 +79,13 @@ Each act reveals automatically when you enter it. There may be a short pause whi
 
 Recording is **off by default**. The FPS improvements and automatic map reveal stay on. You do not need to change anything for normal play.
 
-If you need a performance report, close the game and open `mxl-diagnostics.ini` in Notepad. Change `enabled=0` to `enabled=1`, save, and start the game. The report appears in the `mxl-diagnostics` folder beside `Game.exe`; it records frame and sound timings.
+To record frame and sound timings, close the game and open `mxl-diagnostics.ini` in Notepad. Change `enabled=0` to `enabled=1`, save, and start the game. Reports appear in the `mxl-diagnostics` folder beside `Game.exe`.
 
 When finished, set `enabled=0` again and restart. Keep `audio=1` to include sound timings when recording. This controls recording only; it does not mute or change game audio. Existing reports are kept until you delete them.
 
 ## ReShade
 
-Use the official [ReShade installer](https://reshade.me) for your `Game.exe` and choose **DirectX 10/11/12**. Keep your preset and shader folder. An existing OpenGL ReShade installation needs to be switched to DirectX; the verified setup loads ReShade as `dxgi.dll`.
+Use the official [ReShade installer](https://reshade.me) for your `Game.exe` and choose **DirectX 10/11/12**. Keep your preset and shader folder. An existing OpenGL ReShade installation needs to be switched to DirectX.
 
 ## Troubleshooting
 
