@@ -1,4 +1,4 @@
-# Private diagnostic beta 3
+# Private diagnostic beta 4
 
 This keeps the current DX12 renderer, ReShade support and multiplayer smoothing fix, and adds measurements for the remaining crowded-combat drops. It is a private test build, separate from public 1.0.
 
@@ -7,6 +7,8 @@ Beta 2 fixes the repeated geometry uploads found in the first capture. It upload
 The map-reveal delay is separate. T key-down/up and time spent handling those messages are now timestamped to identify the next reveal precisely. The key is forwarded unchanged. CSV reports are also readable while recording, so live analysis no longer requires stopping the capture.
 
 Beta 3 adds `input.csv` for T key-down: wall time, the game thread's CPU time/cycles, process I/O and page-fault changes, and the forwarded window-procedure module/offset. These extra queries run only on T, not every frame. CPU time versus wall time separates active work from time spent waiting or descheduled. I/O counters cover the whole process and include cached reads; page faults include soft faults, so neither is proof of slow storage. Missing counters are marked unavailable. Up to 4,096 T profiles are retained per session. The renderer and upload fix are unchanged.
+
+Beta 4 traces the actual reveal calls found in the supported MXL binary. `reveal.csv` separates act reveal, level generation, per-level room traversal, individual rooms, and temporary room load/unload. Full file hashes, instruction signatures and the registered reveal callback are checked before attaching. Nothing is queued, skipped or moved to another thread yet. This measures the boundaries needed for a possible gradual-reveal change. Up to 262,144 phase rows are retained. The scopes are nested, so their totals must not be added together. Hook readiness or a compatibility failure is recorded in the session notes.
 
 Replace only `glide3x.dll` and `ddraw.dll`, and add `mxl-diagnostics.ini` beside Game.exe. Keep your existing graphics/FPS settings, MPQ, official D2FPS, ReShade and hotkeys. A full game restart is required.
 
