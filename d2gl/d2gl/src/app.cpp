@@ -19,6 +19,7 @@
 #include "pch.h"
 #include "d2/common.h"
 #include "helpers.h"
+#include "mxl_smoothing.h"
 #include "option/ini.h"
 #include "win32.h"
 
@@ -98,7 +99,10 @@ void dllAttach(HMODULE hmodule)
 	App.hmodule = hmodule;
 
 	option::loadIni();
+	// D2FPS is managed by this build. Extra user DLLs remain configurable.
+	helpers::loadDlls("d2fps.dll:stdcall:_Init@0");
 	helpers::loadDlls(App.dlls_early);
+	MxlSmoothing_Initialize();
 
 	d2::initHooks();
 	win32::initHooks();

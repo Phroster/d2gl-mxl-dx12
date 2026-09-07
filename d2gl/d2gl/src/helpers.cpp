@@ -440,11 +440,16 @@ void loadDlls(const std::string& dlls, bool late)
 		dll.erase(remove_if(dll.begin(), dll.end(), isspace), dll.end());
 		if (dll != "") {
 			auto segments = splitToVector(dll, ':');
+			auto module_name = segments[0];
+			strToLower(module_name);
+			const bool fps_entry = module_name == "d2fps.dll" && segments.size() == 3 && segments[1] == "stdcall" && segments[2] == "_Init@0";
+			if (fps_entry && App.d2fps_mod)
+				continue;
 			auto handle = LoadLibraryA(segments[0].c_str());
 			if (handle) {
 				auto log_str = segments[0] + " loaded";
+				bool called = false;
 				if (segments.size() == 3) {
-					bool called = false;
 					if (segments[1] == "cdecl") {
 						if (auto func = (void(__cdecl*)())GetProcAddress(handle, segments[2].c_str())) {
 							called = true;
@@ -465,7 +470,7 @@ void loadDlls(const std::string& dlls, bool late)
 						log_str += " and " + segments[1] + " " + segments[2] + " function called";
 				}
 				trace_log("%s.", log_str.c_str());
-				if (!late && dll == "d2fps.dll:stdcall:_Init@0") {
+				if (!late && fps_entry && called) {
 					App.d2fps_mod = true;
 					App.foreground_fps.active = false;
 					App.background_fps.active = false;

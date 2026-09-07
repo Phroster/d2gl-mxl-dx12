@@ -17,6 +17,8 @@
 */
 
 #include "pch.h"
+#include "fps_menu.h"
+#include "mxl_smoothing.h"
 #include "menu.h"
 #include "d2/common.h"
 #include "helpers.h"
@@ -112,7 +114,7 @@ Menu::Menu()
 	m_fonts[12] = font2.size ? io.Fonts->AddFontFromMemoryTTF((void*)font2.data, font2.size, 12.0f) : io.Fonts->Fonts[0];
 
 	App.menu_title += (ISGLIDE3X() ? " (Glide / " : " (DDraw / ");
-	App.menu_title += "OpenGL: " + App.gl_ver_str + " / D2LoD: " + helpers::getVersionString() + " / " + helpers::getLangString() + ")";
+	App.menu_title += "Renderer: " + App.gl_ver_str + " / D2LoD: " + helpers::getVersionString() + " / " + helpers::getLangString() + ")";
 }
 
 void Menu::toggle(bool force)
@@ -183,7 +185,7 @@ void Menu::draw()
 		ImGui::SetCursorPos({ 450.0f, 74.0f });
 		ImGui::PushFont(m_fonts[14]);
 		ImGui::PushStyleColor(ImGuiCol_Text, m_colors[Color::Gray]);
-		ImGui::Text("D2GL v%s by Bayaraa. MXL v%s", App.version_str.c_str(), App.mxl_ver.c_str());
+		ImGui::Text("v%s | D2GL %s by Bayaraa", App.mxl_ver.c_str(), App.version_str.c_str());
 		ImGui::PopStyleColor();
 		ImGui::PopFont();	
 		// ImGui::SetTabItemClosed("Screen");
@@ -401,6 +403,10 @@ void Menu::draw()
 				ImGui::EndDisabled();
 			ImGui::EndDisabled();*/
 			childSeparator("##w6");
+			ImGui::TextUnformatted(MxlSmoothing_IsActive() ? "Multiplayer Smoothing Fix: On" : "Multiplayer Smoothing Fix: Unavailable");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip(MxlSmoothing_IsActive() ? "Built in and enabled automatically." : "See mxl-smoothing.log for the supported-file check.");
+			}
 			ImGui::BeginDisabled(App.d2fps_mod);
 				drawCheckbox_m("Motion Prediction", App.motion_prediction, "D2DX's motion prediction feature.", motion_prediction)
 				{
@@ -475,6 +481,14 @@ void Menu::draw()
 			tabEnd();
 		}
 #endif
+        if (tabBegin("FPS", 4, &active_tab)) {
+            childBegin("##dx12-fps", false, true);
+            ImGui::PushFont(m_fonts[17]);
+            mxl::dx12::draw_fps_settings();
+            ImGui::PopFont();
+            childEnd();
+            tabEnd();
+        }
 		ImGui::EndTabBar();
 	}
 	ImGui::PopFont();

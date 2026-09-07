@@ -64,6 +64,7 @@ struct HDTextMasking {
 };
 
 class CommandBuffer {
+    uint64_t m_diagnostic_frame_id=0;
 	uint32_t m_count = 0;
 	Command* m_command = nullptr;
 	std::array<Command, 2048> m_commands;
