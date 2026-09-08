@@ -2,6 +2,7 @@
 #include "input_profile.h"
 #include "reveal_probe.h"
 #include "asset_probe.h"
+#include "sound_probe.h"
 #include <array>
 #include <atomic>
 #include <algorithm>
@@ -12,10 +13,12 @@
 
 namespace mxl::diag {
 namespace {
-constexpr size_t Metrics=size_t(Metric::Count), Counts=size_t(Count::Count), AudioOps=size_t(Audio::Count), Capacity=8192;
+constexpr size_t Metrics=size_t(Metric::Count), Counts=size_t(Count::Count), AudioOps=size_t(Audio::Count), NativeOps=size_t(NativeSound::Count), Capacity=8192;
 const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms","producer_build_ms"};
 const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures"};
-const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d"};
+const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d","get_status","get_current_position","release","query_interface"};
+const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep"};
+static_assert(std::size(native_names)==NativeOps);
 static_assert(std::size(metric_names)==Metrics && std::size(count_names)==Counts && std::size(audio_names)==AudioOps);
 struct Record {
     const char* kind="note"; uint64_t id=0,at=0; uint32_t tid=0;
@@ -31,6 +34,7 @@ struct State {
     std::wstring directory; SRWLOCK lock=SRWLOCK_INIT;
     std::array<Record,Capacity> queue{}; size_t read=0,write=0,size=0;
     std::array<AudioTotals,AudioOps> audio_totals{};
+    std::array<AudioTotals,NativeOps> native_totals{};
 };
 State& state() { static State* s=new State;return *s; }
 thread_local Record frame;
@@ -69,8 +73,8 @@ void write_input(FILE* file,const Record& r) {
 }
 DWORD WINAPI writer(void*) {
     auto& s=state();SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
-    FILE* file=nullptr;FILE* inputs=nullptr;FILE* reveals=nullptr;FILE* assets=nullptr;
-    uint32_t part=0,input_count=0,reveal_count=0,asset_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
+    FILE* file=nullptr;FILE* inputs=nullptr;FILE* reveals=nullptr;FILE* assets=nullptr;FILE* native=nullptr;
+    uint32_t part=0,input_count=0,reveal_count=0,asset_count=0,native_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
     auto open=[&](){
         const auto name=s.directory+L"\\events-"+std::to_wstring(part%3)+L".csv";
         file=_wfsopen(name.c_str(),L"wb",_SH_DENYNO);
@@ -85,7 +89,19 @@ DWORD WINAPI writer(void*) {
         while(s.size && count<batch.size()) {batch[count++]=s.queue[s.read];s.read=(s.read+1)%Capacity;--s.size;}
         ReleaseSRWLockExclusive(&s.lock);
         for(size_t i=0;i<count;++i){
-            if(!strcmp(batch[i].kind,"asset")) {
+            if(!strcmp(batch[i].kind,"native_sound")) {
+                if(!native && native_count==0){
+                    native=_wfsopen((s.directory+L"\\native-sound.csv").c_str(),L"wb",_SH_DENYNO);
+                    if(native)fputs("operation,session_ms,thread_id,duration_ms,caller,object,argument,result,path,path_status\n",native);
+                }
+                if(native && native_count<131072) {
+                    const auto& r=batch[i];
+                    fprintf(native,"%s,%.6f,%u,%.6f,%llu,%llu,%llu,%lld,\"",native_names[r.counts[0]],milliseconds(r.at-s.started),r.tid,r.duration,
+                        (unsigned long long)r.counts[1],(unsigned long long)r.counts[2],(unsigned long long)r.counts[3],(long long)r.value);
+                    for(const char* c=r.detail;*c;++c){if(*c=='\"')fputc('\"',native);fputc(*c,native);}
+                    fprintf(native,"\",%llu\n",(unsigned long long)r.counts[4]);++native_count;
+                }else ++s.dropped;
+            } else if(!strcmp(batch[i].kind,"asset")) {
                 if(!assets && asset_count==0){
                     assets=_wfsopen((s.directory+L"\\assets.csv").c_str(),L"wb",_SH_DENYNO);
                     if(assets)fputs("operation,source,handle,session_ms,thread_id,duration_ms,path,path_status,requested_bytes,completed_bytes,output_valid,result\n",assets);
@@ -129,8 +145,15 @@ DWORD WINAPI writer(void*) {
                     r.counts[0]=calls;r.counts[1]=errors;strcpy_s(r.detail,audio_names[i]);write_record(file,r);
                 }
             }
+            for(size_t i=0;i<NativeOps;++i) {
+                auto& a=s.native_totals[i];const auto calls=a.calls.exchange(0),elapsed=a.elapsed.exchange(0),maximum=a.maximum.exchange(0);
+                if(calls || elapsed || maximum) {
+                    Record r;r.kind="native_sound_summary";r.at=now;r.duration=milliseconds(elapsed);r.interval=milliseconds(maximum);
+                    r.counts[0]=calls;strcpy_s(r.detail,native_names[i]);write_record(file,r);
+                }
+            }
             Record status;status.kind="logger";status.at=now;status.value=s.dropped.load();strcpy_s(status.detail,"dropped_records");write_record(file,status);
-            fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);if(assets)fflush(assets);last_summary=now;
+            fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);if(assets)fflush(assets);if(native)fflush(native);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
                 fprintf(out,"MXL Smooth Motion DX12 1.0 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
@@ -144,6 +167,7 @@ DWORD WINAPI writer(void*) {
         if(count==0) Sleep(50);
     }
     if(inputs){fflush(inputs);fclose(inputs);}if(reveals){fflush(reveals);fclose(reveals);}
+    if(native){fflush(native);fclose(native);}
     if(assets){fflush(assets);fclose(assets);}fflush(file);fclose(file);return 0;
 }
 }
@@ -181,6 +205,12 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nassets=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
             s.threshold,unsigned(s.audio),unsigned(s.assets));
         fputs("Audio summaries: duration_ms=sum of completed call wall times; interval_ms=largest call; draws=calls; indices=failed calls.\n"
+              "native-sound.csv: verified Client/Fog async load/get/free and file I/O; D2Sound lock acquire/outer hold, waits, sleeps and Storm music.\n"
+              "Native details: calls at least 0.5 ms plus every async load/free and client open/close; at most 131072 rows. Paths bounded to 95 bytes.\n"
+              "Native path_status: 0=complete, 1=truncated, 2=unreadable, 3=not a path operation. Object IDs may be reused; async load/free bound job lifetimes.\n"
+              "Native caller is an absolute return address; native_sound_client_base/module_base notes allow module-relative attribution.\n"
+              "Native argument: async load priority (signed 32-bit), file read byte count, wait timeout or sleep duration; result is unchanged native return bits, zero for void calls.\n"
+              "Native summaries: duration_ms=sum, interval_ms=max, draws=calls. Scopes nest; do not add lock holds to contained calls. Worker waits alone are not game-thread stalls.\n"
               "input.csv: T handler thread CPU/cycles plus process-wide I/O and page-fault deltas.\n"
               "Wall minus CPU includes waits and descheduling, not just explicit Sleep. CPU accounting has finite granularity.\n"
               "I/O counts include cached/device I/O and other threads; they are not physical disk bytes. Fault counts include soft faults.\n"
@@ -236,6 +266,20 @@ void audio_call(Audio operation,uint64_t start,uint64_t end,HRESULT result) noex
     if(milliseconds(elapsed)<state().audio_threshold && SUCCEEDED(result))return;
     Record r;r.kind="audio";r.at=start;r.duration=milliseconds(elapsed);r.tid=GetCurrentThreadId();r.value=result;
     strcpy_s(r.detail,audio_names[size_t(operation)]);put(r);
+}
+void native_sound_call(NativeSound operation,uint64_t began,uint64_t ended,uintptr_t caller,uintptr_t object,
+    uint32_t argument,uintptr_t result,const char* path,unsigned path_status) noexcept {
+    if(!audio_enabled() || size_t(operation)>=NativeOps)return;
+    const auto elapsed=ended-began;auto& total=state().native_totals[size_t(operation)];
+    ++total.calls;total.elapsed.fetch_add(elapsed);
+    auto maximum=total.maximum.load();while(maximum<elapsed && !total.maximum.compare_exchange_weak(maximum,elapsed)){}
+    const bool lifetime=operation==NativeSound::AsyncLoad || operation==NativeSound::AsyncFree ||
+        operation==NativeSound::ClientOpen || operation==NativeSound::ClientClose;
+    if(!lifetime && milliseconds(elapsed)<state().audio_threshold)return;
+    Record r;r.kind="native_sound";r.at=began;r.tid=GetCurrentThreadId();r.duration=milliseconds(elapsed);
+    r.counts[0]=unsigned(operation);r.counts[1]=caller;r.counts[2]=object;r.counts[3]=argument;r.counts[4]=path_status;r.value=result;
+    strncpy_s(r.detail,path,_TRUNCATE);for(char& c:r.detail)if(c=='\r' || c=='\n')c=' ';
+    put(r);
 }
 void note(const char* message,int64_t value) noexcept {Record r;r.at=ticks();r.tid=GetCurrentThreadId();r.value=value;strncpy_s(r.detail,message,_TRUNCATE);put(r);}
 void asset_call(AssetOperation operation,unsigned source,uintptr_t handle,uint64_t began,uint64_t ended,

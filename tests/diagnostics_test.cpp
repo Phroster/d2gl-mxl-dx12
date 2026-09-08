@@ -32,6 +32,12 @@ int wmain(int argc,wchar_t** argv) {
         require(SUCCEEDED(buffer->SetCurrentPosition(0)),"Cursor forwarding failed.");
         mxl::dx12::check(buffer->Play(0,0,0),"Silent playback forwarding");
         require(SUCCEEDED(buffer->Stop()),"Stop forwarding failed.");
+        DWORD status=0,play=0,write=0;
+        require(SUCCEEDED(buffer->GetStatus(&status)),"GetStatus forwarding failed.");
+        require(SUCCEEDED(buffer->GetCurrentPosition(&play,&write)),"GetCurrentPosition forwarding failed.");
+        IUnknown* extended=nullptr;
+        const auto query=buffer->QueryInterface(IID_IUnknown,reinterpret_cast<void**>(&extended));
+        require(SUCCEEDED(query) && extended,"QueryInterface forwarding failed.");extended->Release();
         IDirectSoundBuffer* duplicate=nullptr;require(SUCCEEDED(device->DuplicateSoundBuffer(buffer,&duplicate)),"Duplicate forwarding failed.");
         duplicate->Release();buffer->Release();device->Release();DestroyWindow(window);
         {
@@ -66,6 +72,8 @@ int wmain(int argc,wchar_t** argv) {
         require(data.find("gpu,1,")!=std::string::npos,"Delayed GPU timestamp record missing.");
         require(data.find("audio_summary,")!=std::string::npos,"Audio totals missing.");
         require(data.find(",play,")!=std::string::npos && data.find(",lock,")!=std::string::npos,"Sound operations not observed.");
+        for(const char* operation:{",get_status,",",get_current_position,",",release,",",query_interface,"})
+            require(data.find(operation)!=std::string::npos,"Extended DirectSound operation not observed.");
         std::cout<<"PASS: silent DirectSound forwarding, GPU timestamps, frame rows, concurrent writer and clean stop.\n";
         return 0;
     }catch(const std::exception& error){mxl::diag::stop(true);std::cerr<<error.what()<<"\n";return 1;}
