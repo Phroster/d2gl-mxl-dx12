@@ -9,7 +9,7 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = "mxl-smooth-motion-dx12-1.0"
+NAME = "mxl-smooth-motion-dx12-1.1"
 REPOSITORY = "https://github.com/Phroster/d2gl-mxl-dx12"
 PLAYER_FILES = frozenset({
     "glide3x.dll", "ddraw.dll", "d2gl.mpq", "d2gl.ini", "d2fps.ini",
@@ -23,7 +23,7 @@ def sha256(data):
 
 def license_notices(commit, dependencies):
     sections = [
-        "MXL Smooth Motion DX12 1.0 - copyright, licenses and source\n\n"
+        "MXL Smooth Motion DX12 1.1 - copyright, licenses and source\n\n"
         "The modified D2GL code is free software under GNU GPL version 3\n"
         "or (at your option) any later version. It comes WITHOUT ANY WARRANTY.\n"
         "Original D2GL: Copyright (C) 2023 Bayaraa.\n"
@@ -99,7 +99,7 @@ def main():
     temporary.replace(archive)
     digest = sha256(archive.read_bytes())
     manifest = {
-        "product": "MXL Smooth Motion DX12", "version": "1.0",
+        "product": "MXL Smooth Motion DX12", "version": "1.1",
         "source_commit": commit, "source_repository": REPOSITORY,
         "performance_recording_default": False, "automatic_act_reveal": True,
         "zip_sha256": digest,

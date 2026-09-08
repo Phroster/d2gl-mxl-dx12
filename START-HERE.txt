@@ -1,4 +1,4 @@
-MXL SMOOTH MOTION DX12 1.0
+MXL SMOOTH MOTION DX12 1.1
 Smoother gameplay and sharper visuals for Median XL.
 
 Smooth movement in single player and online, steadier crowded fights,
@@ -37,7 +37,7 @@ Ctrl+O > FPS: FPS limit and movement settings. Save and restart.
 Alt+Enter: fullscreen or windowed mode.
 
 Your FPS target follows your monitor by default.
-Preparing a new act's map can briefly pause the game on entry.
+A new act's map is prepared during loading, before play begins.
 Pressing T afterward does not repeat the full reveal.
 
 RESHADE

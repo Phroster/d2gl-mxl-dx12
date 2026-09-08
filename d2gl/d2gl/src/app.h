@@ -38,7 +38,7 @@ struct D2GLApp {
 	bool ready = false;
 	bool direct = false;
 
-	std::string menu_title = "MXL Smooth Motion - DX12 Experiment";
+	std::string menu_title = "MXL Smooth Motion DX12 1.1";
 	std::string version_str = "1.3.3";
 	std::string ini_file = "d2gl.ini";
 	std::string mpq_file = "d2gl.mpq";

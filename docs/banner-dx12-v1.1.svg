@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="270" viewBox="0 0 1100 270" role="img" aria-labelledby="title desc">
 <title id="title">MXL Smooth Motion DX12</title>
-<desc id="desc">Smoother gameplay and sharper visuals for Median XL.</desc>
+<desc id="desc">Improved performance. Less stuttering. Smoother movement.</desc>
 <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#11161d"/><stop offset="1" stop-color="#20252d"/></linearGradient><linearGradient id="gold"><stop stop-color="#a36a32"/><stop offset="1" stop-color="#efc886"/></linearGradient></defs>
 <rect width="1100" height="270" rx="20" fill="url(#bg)"/>
 <path d="M36 68 H152 M24 104 H135 M40 140 H120" stroke="#a36a32" stroke-width="4" stroke-linecap="round" opacity=".6"/>
 <path d="M90 188 L150 65 L187 148 L230 86 L261 188" fill="none" stroke="url(#gold)" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
 <text x="300" y="76" font-family="Segoe UI,Arial,sans-serif" font-size="18" letter-spacing="4" fill="#d7b986">DIABLO II · MEDIAN XL</text>
 <text x="296" y="137" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="48" fill="#f7f2e9">MXL Smooth Motion DX12</text>
-<text x="300" y="179" font-family="Segoe UI,Arial,sans-serif" font-size="23" fill="#c3c8d0">Smoother gameplay and sharper visuals for Median XL.</text>
+<text x="300" y="179" font-family="Segoe UI,Arial,sans-serif" font-size="21" fill="#c3c8d0">Improved performance. Less stuttering. Smoother movement.</text>
 <rect x="300" y="209" width="70" height="27" rx="6" fill="#d7b986"/>
-<text x="335" y="228" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="15" fill="#161c24">v1.0</text>
+<text x="335" y="228" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-weight="700" font-size="15" fill="#161c24">v1.1</text>
 <text x="386" y="228" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#a7afba">Community edition</text>
 </svg>

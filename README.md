@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.0.svg" alt="MXL Smooth Motion DX12 — smoother gameplay and sharper visuals for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.1.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
 </p>
 
 <p align="center">
-  <strong>Enjoy Median XL with smoother movement, steadier battles and sharper visuals.</strong><br>
-  D2GL graphics and D2FPS movement smoothing, brought together with DirectX 12.
+  <strong>Improved performance, less stuttering and smoother movement for Median XL.</strong><br>
+  Easy to install and ready to play.
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip"><strong>⬇️ Download 1.0</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download 1.1</strong></a>
   &nbsp; · &nbsp;
   <a href="#install--copy-paste-play">📦 Installation</a>
   &nbsp; · &nbsp;
@@ -17,76 +17,44 @@
 
 ---
 
-## ✨ What you get
+## ✨ What it does
 
-| | In your game |
-|---|---|
-| 🎮 **Smoother movement** | Play above the original 25 FPS in single player and online, with smoother movement between game updates. |
-| ⚔️ **Steadier crowded fights** | Improved performance in busy areas with lots of enemies and effects. |
-| 🖼️ **Sharper visuals** | HD text and cursor, upscaling, sharpening, bloom and other picture options. |
-| 🗺️ **Automatic map reveal** | Your act map reveals on entry, so pressing T afterward does not repeat the full reveal. |
-| 🎨 **ReShade support** | Use your favourite DirectX ReShade presets alongside the built-in graphics options. |
+- **Improved performance** in busy areas and large fights.
+- **Less stuttering** and fewer sudden FPS drops during combat and exploration.
+- **Smoother movement** in single player and online.
+- **Automatic map reveal** when you enter an act.
 
-The game keeps its normal speed. Your FPS target follows your monitor by default, and you can change it in the settings.
+The game runs at its normal speed, and the frame rate follows your monitor by default. Performance depends on your PC and graphics settings.
 
 <a id="install--copy-paste-play"></a>
 
-## 📦 Install in four steps
+## 📦 How to install
 
-1. **Set up the launcher.** Let Median XL finish updating. Choose **Glide or DirectDraw**, turn **Windowed** off, and tick both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
+1. **Open the Median XL launcher** and let it finish updating. Choose **Glide or DirectDraw**, turn **Windowed** off, and enable both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
 
-   ![Enable Glide3x.dll and Ddraw.dll in the Median XL launcher](docs/launcher-settings.png)
+   ![Launcher settings](docs/launcher-settings.png)
 
-2. **Close the game and launcher.** [Download the ZIP](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip) and extract it.
+2. **Close the game and launcher.** [Download 1.1](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
 
-3. **Copy these six files** into your Median XL game folder, beside `Game.exe`. Choose **Replace** when asked.
+3. **Copy the extracted files** into your Median XL game folder, next to `Game.exe`. Replace files when asked.
 
-   ```text
-   glide3x.dll
-   ddraw.dll
-   d2gl.mpq
-   d2gl.ini
-   d2fps.ini
-   mxl-diagnostics.ini
-   ```
+4. **Launch the game and play.** The included settings are ready to use.
 
-4. **Launch Median XL and play.** Movement smoothing and automatic map reveal turn on by themselves.
+**Keep the game's existing `d2fps.dll` — it is required.**
 
-**Keep the game's existing `d2fps.dll`.** It is required and is not replaced by this download.
+**Already installed?** Close the game and launcher, then replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and matching `d2gl.mpq` to preserve your settings.
 
-The ZIP contains only these six installation files and one `LICENSES.txt` notice. Guides, screenshots and developer tools are available in this repository.
+## ⚙️ Quick settings
 
-The included settings are ready to use. Back up your current files first if you want to keep a custom setup.
+- **Ctrl+O:** change graphics options. Open the **FPS** tab to set a frame-rate limit; save and restart afterward.
+- **Alt+Enter:** switch between fullscreen and windowed mode.
+- **Optional ReShade:** select `Game.exe` and **DirectX 10/11/12** in the [ReShade installer](https://reshade.me).
 
-### ⬆️ Already using MXL Smooth Motion DX12?
+[Full settings guide](docs/SETTINGS.md) · [Installation and backups](docs/INSTALL.md)
 
-Close the game and launcher, then replace **`glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`**. Keep your existing `d2gl.ini`, `d2fps.ini` and matching `d2gl.mpq` to preserve your settings.
+## 💻 What you need
 
-## ⚙️ Make it yours
-
-| You want to… | Here's how |
-|---|---|
-| Change the picture | Press **Ctrl+O** for shaders, sharpening, bloom, HD text and cursor options. |
-| Set an FPS limit | Open **Ctrl+O → FPS**. Save your changes and restart the game. |
-| Switch fullscreen or windowed | Press **Alt+Enter**. Keep Windowed off in the launcher. |
-| Check movement smoothing | Open **Ctrl+O** and look for **Multiplayer Smoothing Fix: On**. |
-| Edit settings in Notepad | Close the game, edit `d2gl.ini` or `d2fps.ini`, save and launch again. |
-
-**Map reveal:** preparing a new act's map can briefly pause the game on entry. Returning to an already revealed act does not repeat the work; a new game starts fresh.
-
-[📖 Full settings guide](docs/SETTINGS.md) · [Keep your settings or restore a backup](docs/INSTALL.md)
-
-## 🎨 Using ReShade
-
-Select `Game.exe` in the [ReShade installer](https://reshade.me) and choose **DirectX 10/11/12**. Keep your preset and shader folder.
-
-Already using OpenGL ReShade? Switch it to **DirectX 10/11/12**. ReShade is optional and downloaded separately.
-
-## 💻 Requirements
-
-- **Median XL 2.14.0** with **Diablo II: Lord of Destruction 1.13c**.
-- **Windows 10 or newer**.
-- A graphics card that supports **DirectX 12**.
+Median XL **2.14.0**, Diablo II: Lord of Destruction **1.13c**, **Windows 10 or newer**, and a **DirectX 12** graphics card.
 
 ## 💛 Credits & thanks
 
@@ -108,7 +76,7 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 ---
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.0</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.1</strong></a>
 </p>
 
 <details>
