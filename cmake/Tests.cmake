@@ -3,6 +3,11 @@ target_include_directories(dx12_reveal_probe_test PRIVATE d2gl/d2gl/vendor/inclu
 target_compile_definitions(dx12_reveal_probe_test PRIVATE MXL_REVEAL_TEST WIN32_LEAN_AND_MEAN NOMINMAX)
 target_link_libraries(dx12_reveal_probe_test PRIVATE mxl_diagnostics)
 add_executable(dx12_input_profile_test tests/input_profile_test.cpp)
+add_executable(dx12_tile_cache_test tests/tile_cache_test.cpp)
+target_link_libraries(dx12_tile_cache_test PRIVATE mxl_diagnostics)
+target_compile_definitions(dx12_tile_cache_test PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+add_test(NAME dx12_tile_cache_test COMMAND $<TARGET_FILE:dx12_tile_cache_test>)
+set_tests_properties(dx12_tile_cache_test PROPERTIES TIMEOUT 60)
 add_executable(dx12_asset_probe_test tests/asset_probe_test.cpp src/dx12/asset_probe.cpp)
 target_compile_definitions(dx12_asset_probe_test PRIVATE MXL_ASSET_TEST WIN32_LEAN_AND_MEAN NOMINMAX)
 target_link_libraries(dx12_asset_probe_test PRIVATE mxl_diagnostics)
@@ -59,10 +64,14 @@ add_test(NAME reveal_before_scene_unsupported COMMAND ${CMAKE_COMMAND}
 set_tests_properties(reveal_before_scene_unsupported PROPERTIES TIMEOUT 60)
 set(mxl_log_tests dx12_diagnostics_test dx12_upload_cache_test dx12_input_profile_test dx12_reveal_probe_test dx12_auto_reveal_test dx12_asset_probe_test)
 foreach(test IN LISTS mxl_log_tests)
+  set(extra_flags)
+  if(test STREQUAL "dx12_asset_probe_test")
+    list(APPEND extra_flags "-DASSET_RECORDING=ON")
+  endif()
   add_test(NAME ${test} COMMAND ${CMAKE_COMMAND}
     "-DTEST_EXECUTABLE=$<TARGET_FILE:${test}>"
     "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/${test}"
-    "-DMODE=report" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
+    "-DMODE=report" ${extra_flags} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
   set_tests_properties(${test} PROPERTIES TIMEOUT 60)
 endforeach()
 foreach(mode missing disabled enabled)

@@ -64,6 +64,7 @@ int wmain(int argc,wchar_t** argv){
         slots[3]=page+3;
         DWORD old=0;require(VirtualProtect(page,4096,PAGE_READONLY,&old)!=0,"Protect imports.");
         require(start(nullptr,argv[1]),"Start logger.");
+        require(assets_enabled(),"Asset fixture must explicitly enable recording.");
         require(test_asset_imports(slots,open_original,read_original,close_original),"Install verified imports.");
         MEMORY_BASIC_INFORMATION info{};VirtualQuery(page,&info,sizeof(info));require(info.Protect==PAGE_READONLY,"Import page protection changed.");
         void* handle=nullptr;expected_output=&handle;
