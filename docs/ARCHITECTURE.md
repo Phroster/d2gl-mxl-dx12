@@ -46,6 +46,10 @@ For first-encounter stalls, `assets=1` additionally records logical D2CMP/D2Soun
 
 `archive_hash_cache_ready=1` confirms the additional native hook installed; `archive_hash_hits` and `archive_hash_native_calls` report totals since the previous frame submission on that thread. Those counts concern filename calculations, not skipped file reads. A successful guard or controlled native benchmark does not establish the improvement of a subsequent live frame.
 
+With `enabled=1` and `audio=1`, the native sound probe additionally checks the exact D2Client, D2Sound, Fog and Storm files, then verifies and atomically replaces fifteen existing import pointers. It measures Client async sound-file submission, buffer collection and release, Client archive I/O, native sound lock acquisition and outer recursive hold duration, module-local waits/sleeps, and Storm music calls. It changes no timeout, thread priority, loading policy or sound output. Unknown files/imports disable this additional probe independently of gameplay features. `native_sound_imports_ready=15` confirms installation; module-base notes resolve recorded caller addresses.
+
+`native-sound.csv` holds calls lasting at least 0.5 ms plus async-job and file-handle lifetime records, capped at 131072 rows. Its bounded paths use the same path-status convention as asset records. Native summaries in the main events CSV include all completed calls. These scopes can nest: do not add lock holds to contained operations, or mistake the audio worker's normal timed wait for a game-thread hitch. Correlate thread, time interval and shared lock object to establish contention. DirectSound coverage also includes `GetStatus`, `GetCurrentPosition`, buffer `Release` and `QueryInterface`. These are diagnostic scopes, not a sound-stutter fix.
+
 ## Launcher and ReShade
 
 Enable both custom graphics DLL checkboxes under the launcher's **Unofficial Graphic Drivers** section. The unchanged MPQ matches the inspected official distribution.

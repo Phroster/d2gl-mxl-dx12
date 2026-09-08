@@ -73,7 +73,7 @@ void install_3d(void* object,bool listener);
 #define AUDIO_SIMPLE(name,operation,signature,args) \
     using name##Fn=HRESULT(WINAPI*)signature; Hooks<name##Fn> name##_hooks; \
     template<size_t I> HRESULT WINAPI name##_hook signature { \
-        const auto start=begin_call();const auto result=name##_hooks.original[I] args; \
+        const auto incoming=GetLastError();const auto start=begin_call();SetLastError(incoming);const auto result=name##_hooks.original[I] args; \
         const auto last_error=GetLastError();finish_call(Audio::operation,start,result);SetLastError(last_error);return result; }
 #define BIND(name,address) queue(name##_hooks,address,std::array<name##Fn,Variants>{name##_hook<0>,name##_hook<1>,name##_hook<2>,name##_hook<3>},changes)
 
@@ -85,15 +85,24 @@ AUDIO_SIMPLE(volume,Volume,(void* self,LONG value),(self,value))
 AUDIO_SIMPLE(pan,Pan,(void* self,LONG value),(self,value))
 AUDIO_SIMPLE(frequency,Frequency,(void* self,DWORD value),(self,value))
 AUDIO_SIMPLE(cursor,Cursor,(void* self,DWORD value),(self,value))
+AUDIO_SIMPLE(status,Status,(void* self,DWORD* flags),(self,flags))
+AUDIO_SIMPLE(get_cursor,GetCursor,(void* self,DWORD* play,DWORD* write),(self,play,write))
 AUDIO_SIMPLE(restore,Restore,(void* self),(self))
 AUDIO_SIMPLE(parameters3d,Parameters3D,(void* self,LPCDS3DBUFFER parameters,DWORD apply),(self,parameters,apply))
 AUDIO_SIMPLE(position3d,Position3D,(void* self,D3DVALUE x,D3DVALUE y,D3DVALUE z,DWORD apply),(self,x,y,z,apply))
 AUDIO_SIMPLE(commit3d,Commit3D,(void* self),(self))
 
+using releaseFn=ULONG(WINAPI*)(void*);Hooks<releaseFn> release_hooks;
+template<size_t I> ULONG WINAPI release_hook(void* self) {
+    const auto incoming=GetLastError();const auto start=begin_call();SetLastError(incoming);
+    const auto references=release_hooks.original[I](self);const auto last_error=GetLastError();
+    finish_call(Audio::Release,start,S_OK);SetLastError(last_error);return references;
+}
 using queryFn=HRESULT(WINAPI*)(void*,REFIID,void**);Hooks<queryFn> query_hooks;
 template<size_t I> HRESULT WINAPI query_hook(void* self,REFIID iid,void** result) {
+    const auto incoming=GetLastError();const auto start=begin_call();SetLastError(incoming);
     const auto hr=query_hooks.original[I](self,iid,result);
-    const auto last_error=GetLastError();
+    const auto last_error=GetLastError();finish_call(Audio::Query,start,hr);
     if(SUCCEEDED(hr)&&result&&*result&&audio_enabled()) {
         if(iid==IID_IDirectSound3DBuffer)install_3d(*result,false);
         else if(iid==IID_IDirectSound3DListener)install_3d(*result,true);
@@ -135,7 +144,7 @@ void install_buffer(void* object) {
     }
     try {
     std::lock_guard guard(install_mutex);auto table=*reinterpret_cast<void***>(object);std::vector<Change> changes;
-    BIND(query,table[0]);BIND(lock_buffer,table[11]);BIND(play,table[12]);BIND(cursor,table[13]);
+    BIND(query,table[0]);BIND(release,table[2]);BIND(get_cursor,table[4]);BIND(status,table[9]);BIND(lock_buffer,table[11]);BIND(play,table[12]);BIND(cursor,table[13]);
     BIND(volume,table[15]);BIND(pan,table[16]);BIND(frequency,table[17]);BIND(stop_buffer,table[18]);
     BIND(unlock_buffer,table[19]);BIND(restore,table[20]);commit(changes);
     }catch(...){note("audio_buffer_hook_exception");}

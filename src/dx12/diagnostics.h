@@ -9,7 +9,7 @@ enum class Metric : uint32_t { Render, InputWait, FenceWait, Present, LatencyWai
 enum class Count : uint32_t { Draws, Indices, TextureBytes, BufferBytes, SpillBytes, Pipelines,
     BindingMisses, Barriers, Minimap, Width, Height, GameScreen, Textures, Count };
 enum class Audio : uint32_t { Factory, CreateBuffer, DuplicateBuffer, Play, Stop, Lock, Unlock,
-    Volume, Pan, Frequency, Cursor, Restore, Parameters3D, Position3D, Commit3D, Count };
+    Volume, Pan, Frequency, Cursor, Restore, Parameters3D, Position3D, Commit3D, Status, GetCursor, Release, Query, Count };
 bool start(HWND window, const std::wstring& test_directory = {});
 bool enabled() noexcept;
 bool audio_enabled() noexcept;
