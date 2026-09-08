@@ -195,7 +195,8 @@ bool start(HWND window,const std::wstring& test_directory) {
               "Asset path_status: 0=complete, 1=truncated, 2=unreadable, 3=no path for this operation. output_valid refers to open handle or read byte output.\n"
               "Asset handles can be reused; match successful open/close lifetimes before assigning read paths. Missing opens leave unknown paths.\n"
               "Archive read time includes Storm processing, not just physical disk access; this does not time later sprite decoding or sound mixing. Async reads time submission only.\n"
-              "At most 131072 asset records per session. These imports forward every request without caching, preloading, skipping or changing its arguments.\n"
+              "At most 131072 asset records per session. Rows time logical requests, including any guarded DT1 sector caching; internal cache reads are included in the parent duration.\n"
+              "tile_cache_* and archive_hash_* notes report optional, independently guarded caches. Hash reuse is limited to one native CMP file open and never caches archive selection.\n"
               "Frame render_ms includes nested scopes. Do not add them together.\n"
               "No per-frame disk writes on game/render/audio threads; the queue can drop samples instead of blocking.\n"
               "At most three 32 MiB CSV files per session. Create an empty STOP file here to stop recording.\n",file);fclose(file);
