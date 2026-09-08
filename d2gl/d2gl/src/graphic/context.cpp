@@ -33,6 +33,7 @@
 #include <imgui/imgui_impl_win32.h>
 #include "diagnostics.h"
 #include "auto_reveal.h"
+#include "tile_cache.h"
 
 namespace d2gl {
 namespace {thread_local uint64_t diagnostic_build_start=0;}
@@ -678,6 +679,7 @@ void Context::beginFrame()
 {
     mxl::reveal::begin_frame(App.hwnd);
     diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
+    mxl::tiles::begin_frame(App.game.screen==GameScreen::InGame);
 	if (!App.wndproc && App.game.screen == GameScreen::Menu)
 		App.wndproc = (WNDPROC)SetWindowLongA(App.hwnd, GWL_WNDPROC, (LONG)win32::WndProc);
 
@@ -711,6 +713,8 @@ void Context::bindDefaultFrameBuffer()
 void Context::presentFrame()
 {
     if (!m_rendering) return;
+
+    mxl::tiles::end_frame();
 	flushVertices();
 	setVertexFlagW(0);
 	m_command_buffer[m_frame_index].pushCommand(CommandType::Submit);
