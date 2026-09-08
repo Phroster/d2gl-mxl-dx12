@@ -156,7 +156,7 @@ DWORD WINAPI writer(void*) {
             fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);if(assets)fflush(assets);if(native)fflush(native);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
-                fprintf(out,"MXL Smooth Motion DX12 1.0 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
+                fprintf(out,"MXL Smooth Motion DX12 1.1 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
                     s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load());fclose(out);
             }
             if(GetFileAttributesW((s.directory+L"\\STOP").c_str())!=INVALID_FILE_ATTRIBUTES) {
@@ -197,7 +197,7 @@ bool start(HWND window,const std::wstring& test_directory) {
     std::error_code error;std::filesystem::create_directories(s.directory,error);if(error)return false;
     FILE* file=nullptr;
     if(!_wfopen_s(&file,(s.directory+L"\\session.txt").c_str(),L"wb") && file) {
-        fprintf(file,"MXL Smooth Motion DX12 1.0 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
+        fprintf(file,"MXL Smooth Motion DX12 1.1 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,

@@ -1,8 +1,16 @@
-# 🎮 MXL Smooth Motion DX12 1.0
+# 🎮 MXL Smooth Motion DX12 1.1
 
 **Smoother movement, steadier battles and sharper visuals for Median XL.**
 
-### [⬇️ Download & play](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip)
+### [⬇️ Download & play](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip)
+
+## 🚀 New in 1.1
+
+- **Fewer sound stutters in combat**, including Act V, with sound kept on.
+- **Less repeated scenery and file-loading work** as monsters, effects and new areas appear.
+- **Map reveal prepared during act loading**, before the first scene appears, with less repeated preparation.
+
+Together, these changes help keep FPS steadier and reduce sudden drops in busy areas. Your hardware, picture settings and the scene still determine the FPS you can reach.
 
 ## ✨ Included
 
@@ -18,7 +26,7 @@ Your FPS target follows your monitor by default. Game speed stays the same.
 
 1. **Open the Median XL launcher** and let updates finish. Choose **Glide or DirectDraw**, turn **Windowed** off, and enable both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
 
-   ![Enable Glide3x.dll and Ddraw.dll in the launcher](https://raw.githubusercontent.com/Phroster/d2gl-mxl-dx12/v1.0/docs/launcher-settings.png)
+   ![Enable Glide3x.dll and Ddraw.dll in the launcher](https://raw.githubusercontent.com/Phroster/d2gl-mxl-dx12/v1.1/docs/launcher-settings.png)
 
 2. **Close the game and launcher.** Download and extract the ZIP above.
 
@@ -50,7 +58,7 @@ Replace **`glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`**. Keep your grap
 - **Alt+Enter:** switch fullscreen and windowed mode.
 - **ReShade:** select `Game.exe` and **DirectX 10/11/12** in its installer. ReShade is downloaded separately.
 
-Preparing a new act's map can briefly pause the game on entry. Pressing **T** afterward does not repeat the full reveal.
+A new act's map is prepared during loading, which can add a short pause before play begins. Pressing **T** afterward does not repeat the full reveal.
 
 **Requires:** Median XL 2.14.0, Diablo II: Lord of Destruction 1.13c, Windows 10+ and a DirectX 12 graphics card.
 
@@ -67,4 +75,4 @@ Special thanks to the original projects' contributors, Blizzard North and the Di
 
 [📖 Player guide](https://github.com/Phroster/d2gl-mxl-dx12#readme) · [⚙️ Settings](https://github.com/Phroster/d2gl-mxl-dx12/blob/master/docs/SETTINGS.md)
 
-[Source for this release](https://github.com/Phroster/d2gl-mxl-dx12/tree/v1.0) · [Source download](https://github.com/Phroster/d2gl-mxl-dx12/archive/refs/tags/v1.0.zip) · [Licensing & credits](https://github.com/Phroster/d2gl-mxl-dx12/blob/v1.0/docs/LICENSING.md)
+[Source for this release](https://github.com/Phroster/d2gl-mxl-dx12/tree/v1.1) · [Source download](https://github.com/Phroster/d2gl-mxl-dx12/archive/refs/tags/v1.1.zip) · [Licensing & credits](https://github.com/Phroster/d2gl-mxl-dx12/blob/v1.1/docs/LICENSING.md)

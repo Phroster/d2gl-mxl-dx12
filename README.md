@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.0.svg" alt="MXL Smooth Motion DX12 — smoother gameplay and sharper visuals for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.1.svg" alt="MXL Smooth Motion DX12 — smoother gameplay and sharper visuals for Median XL" width="880">
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip"><strong>⬇️ Download 1.0</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download 1.1</strong></a>
   &nbsp; · &nbsp;
   <a href="#install--copy-paste-play">📦 Installation</a>
   &nbsp; · &nbsp;
@@ -29,6 +29,14 @@
 
 The game keeps its normal speed. Your FPS target follows your monitor by default, and you can change it in the settings.
 
+### 🚀 What's new in 1.1
+
+- **Fewer sound stutters:** fixes long sound-loading pauses during combat, including in Act V, while keeping sound enabled.
+- **Less loading work:** reuses scenery data and speeds up finding monster and effect files, reducing brief interruptions as you explore.
+- **Smoother act entry:** prepares the map reveal during loading, before the first scene appears, and reduces repeated map preparation.
+
+These improvements give each frame more time to finish, helping keep FPS steadier and reducing sudden drops in busy areas. Actual FPS still depends on your hardware, settings and what's happening on screen.
+
 <a id="install--copy-paste-play"></a>
 
 ## 📦 Install in four steps
@@ -37,7 +45,7 @@ The game keeps its normal speed. Your FPS target follows your monitor by default
 
    ![Enable Glide3x.dll and Ddraw.dll in the Median XL launcher](docs/launcher-settings.png)
 
-2. **Close the game and launcher.** [Download the ZIP](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip) and extract it.
+2. **Close the game and launcher.** [Download the ZIP](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip) and extract it.
 
 3. **Copy these six files** into your Median XL game folder, beside `Game.exe`. Choose **Replace** when asked.
 
@@ -72,7 +80,7 @@ Close the game and launcher, then replace **`glide3x.dll`, `ddraw.dll` and `mxl-
 | Check movement smoothing | Open **Ctrl+O** and look for **Multiplayer Smoothing Fix: On**. |
 | Edit settings in Notepad | Close the game, edit `d2gl.ini` or `d2fps.ini`, save and launch again. |
 
-**Map reveal:** preparing a new act's map can briefly pause the game on entry. Returning to an already revealed act does not repeat the work; a new game starts fresh.
+**Map reveal:** a new act's map is prepared during loading, which can add a short pause before play begins. Returning to an already revealed act does not repeat the work; a new game starts fresh.
 
 [📖 Full settings guide](docs/SETTINGS.md) · [Keep your settings or restore a backup](docs/INSTALL.md)
 
@@ -108,7 +116,7 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 ---
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.0/mxl-smooth-motion-dx12-1.0.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.0</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.1</strong></a>
 </p>
 
 <details>
