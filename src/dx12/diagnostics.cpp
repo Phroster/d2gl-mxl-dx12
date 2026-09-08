@@ -17,7 +17,7 @@ constexpr size_t Metrics=size_t(Metric::Count), Counts=size_t(Count::Count), Aud
 const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms","producer_build_ms"};
 const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures"};
 const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d","get_status","get_current_position","release","query_interface"};
-const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep"};
+const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep","async_ready"};
 static_assert(std::size(native_names)==NativeOps);
 static_assert(std::size(metric_names)==Metrics && std::size(count_names)==Counts && std::size(audio_names)==AudioOps);
 struct Record {
@@ -205,7 +205,7 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nassets=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
             s.threshold,unsigned(s.audio),unsigned(s.assets));
         fputs("Audio summaries: duration_ms=sum of completed call wall times; interval_ms=largest call; draws=calls; indices=failed calls.\n"
-              "native-sound.csv: verified Client/Fog async load/get/free and file I/O; D2Sound lock acquire/outer hold, waits, sleeps and Storm music.\n"
+              "native-sound.csv: verified Client/Fog async load/ready/get/free and file I/O; D2Sound lock acquire/outer hold, waits, sleeps and Storm music.\n"
               "Native details: calls at least 0.5 ms plus every async load/free and client open/close; at most 131072 rows. Paths bounded to 95 bytes.\n"
               "Native path_status: 0=complete, 1=truncated, 2=unreadable, 3=not a path operation. Object IDs may be reused; async load/free bound job lifetimes.\n"
               "Native caller is an absolute return address; native_sound_client_base/module_base notes allow module-relative attribution.\n"

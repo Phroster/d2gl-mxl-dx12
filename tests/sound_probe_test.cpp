@@ -29,7 +29,7 @@ void* __fastcall load(void* pool,const char* name,BOOL async,LONG offset,int siz
     SetLastError(Outgoing);return job;
 }
 void* __fastcall buffer(void* id){entered(1);require(id==job,"Async buffer argument changed.");Sleep(2);SetLastError(Outgoing);return data;}
-void __fastcall free_job(void* id){entered(2);require(id==job,"Async free argument changed.");SetLastError(Outgoing);}
+BOOL __fastcall ready_job(void* id){entered(2);require(id==job,"Async ready argument changed.");Sleep(2);SetLastError(Outgoing);return 7;}
 uint32_t __fastcall open(const char* name,void** output){entered(3);require(name==path && output,"Open arguments changed.");*output=job;SetLastError(Outgoing);return 0x1234;}
 uint32_t __fastcall read(void* handle,void* target,uint32_t bytes,uint32_t* completed,uint32_t a5,uint32_t a6,uint32_t a7) {
     entered(4);require(handle==job && target==data && bytes==17 && completed && a5==0x155 && a6==0x266 && a7==0x377,"Read arguments changed.");
@@ -56,7 +56,7 @@ void call(void** page,unsigned op) {
             switch(op) {
                 case 0:require(reinterpret_cast<decltype(&load)>(page[op])(data,path,7,-9,123,job,data,-2,path,0x31b)==job,"Load return changed.");break;
                 case 1:require(reinterpret_cast<decltype(&buffer)>(page[op])(job)==data,"Buffer return changed.");break;
-                case 2:reinterpret_cast<decltype(&free_job)>(page[op])(job);break;
+                case 2:require(reinterpret_cast<decltype(&ready_job)>(page[op])(job)==7,"Ready return changed.");break;
                 case 3:require(reinterpret_cast<decltype(&open)>(page[op])(path,&output)==0x1234 && output==job,"Open output changed.");break;
                 case 4:require(reinterpret_cast<decltype(&read)>(page[op])(job,data,17,&completed,0x155,0x266,0x377)==0x2345 && completed==17,"Read output changed.");break;
                 case 5:require(reinterpret_cast<decltype(&close)>(page[op])(job)==0x3456,"Close return changed.");break;
@@ -75,7 +75,7 @@ void call(void** page,unsigned op) {
 int wmain(int argc,wchar_t** argv) {
     try {
         require(argc==2,"Expected output directory.");
-        void* originals[]={reinterpret_cast<void*>(&load),reinterpret_cast<void*>(&buffer),reinterpret_cast<void*>(&free_job),
+        void* originals[]={reinterpret_cast<void*>(&load),reinterpret_cast<void*>(&buffer),reinterpret_cast<void*>(&ready_job),
             reinterpret_cast<void*>(&open),reinterpret_cast<void*>(&read),reinterpret_cast<void*>(&close),
             reinterpret_cast<void*>(&enter),reinterpret_cast<void*>(&leave),reinterpret_cast<void*>(&wait),reinterpret_cast<void*>(&sleep),
             reinterpret_cast<void*>(&music_begin),reinterpret_cast<void*>(&music_end),reinterpret_cast<void*>(&music_position),
@@ -116,7 +116,7 @@ int wmain(int argc,wchar_t** argv) {
         require(recursive_holds==1,"Recursive critical section hold double counted or lost.");
         require(wait_seen,"Contended native acquisition missing.");
         require(all.find("co\"\"ld,first.wav")!=std::string::npos,"Native path CSV escaping broken.");
-        require(all.find("async_buffer,")!=std::string::npos && all.find("async_free,")!=std::string::npos,"Async detail records missing.");
+        require(all.find("async_buffer,")!=std::string::npos && all.find("async_ready,")!=std::string::npos,"Async detail records missing.");
         DeleteCriticalSection(&locks[0]);DeleteCriticalSection(&locks[1]);VirtualFree(page,0,MEM_RELEASE);
         std::cout<<"PASS: 15 native imports, x86 ABI, LastError, outputs, exceptions, recursive/contended locks, CSV paths and disabled forwarding.\n";return 0;
     }catch(const std::exception& error){stop(true);std::cerr<<error.what()<<"\n";return 1;}
