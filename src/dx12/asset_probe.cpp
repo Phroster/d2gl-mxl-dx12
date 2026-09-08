@@ -1,6 +1,7 @@
 #include "asset_probe.h"
 #include "diagnostics.h"
 #include "tile_cache.h"
+#include "archive_hash_cache.h"
 #include <intrin.h>
 #include <atomic>
 #include <wincrypt.h>
@@ -18,6 +19,17 @@ ReadFn original_read=nullptr;
 CloseFn original_close=nullptr;
 bool installed=false;
 std::atomic<bool> use_tile_cache{false};
+std::atomic<bool> use_hash_cache{false};
+
+uint32_t invoke_cmp_open(archive_hash::Scope* scope,const char* name,void** handle) {
+    __try {return original_open(name,handle);}
+    __finally {scope->leave();}
+}
+uint32_t __fastcall cmp_open(const char* name,void** handle) {
+    const auto incoming=GetLastError();
+    archive_hash::Scope scope(name,use_hash_cache.load());SetLastError(incoming);
+    return invoke_cmp_open(&scope,name,handle);
+}
 
 unsigned copy_name(const char* name,char (&out)[96]) noexcept {
     __try {
@@ -33,7 +45,7 @@ uint32_t output32(const void* address,bool& valid) noexcept {
 }
 template<unsigned Source> uint32_t __fastcall open_hook(const char* name,void** handle) {
     const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
-    const auto invoke=[&](){if constexpr(Source==0){if(use_tile_cache)return tiles::open(name,handle,caller);}return original_open(name,handle);};
+    const auto invoke=[&](){if constexpr(Source==0){if(use_tile_cache)return tiles::open(name,handle,caller);return cmp_open(name,handle);}return original_open(name,handle);};
     if(!assets_enabled())return invoke();
     const auto incoming=GetLastError();char snapshot[96]{};const auto status=copy_name(name,snapshot);
     const auto began=ticks();SetLastError(incoming);
@@ -128,15 +140,16 @@ bool install(void*** slots,OpenFn open,ReadFn read,CloseFn close) {
 }
 bool start_assets() {
     if(installed)return true;
-    wchar_t executable[32768]{};bool cache_requested=false;
+    wchar_t executable[32768]{};bool cache_requested=false,hash_requested=false;
     if(GetModuleFileNameW(nullptr,executable,32768)){
         auto* filename=wcsrchr(executable,L'\\');
         if(filename && !_wcsicmp(filename+1,L"Game.exe")){
             wcscpy_s(filename+1,32768-(filename+1-executable),L"d2gl.ini");
             cache_requested=GetPrivateProfileIntW(L"Other",L"tile_file_cache",1,executable)!=0;
+            hash_requested=GetPrivateProfileIntW(L"Other",L"archive_hash_cache",1,executable)!=0;
         }
     }
-    if(!assets_enabled() && !cache_requested)return false;
+    if(!assets_enabled() && !cache_requested && !hash_requested)return false;
     const auto fog=GetModuleHandleW(L"Fog.dll"),cmp=GetModuleHandleW(L"D2CMP.dll"),sound=GetModuleHandleW(L"D2sound.dll");
     if(!fog || !cmp || !sound ||
         !file_hash(fog,"53f015869c495c760d2c5a6d8d836c8b5f0f5437b69ca0dbf0d977dfa5ec96cf") ||
@@ -156,16 +169,18 @@ bool start_assets() {
     const auto seek=reinterpret_cast<tiles::SeekFn>(GetProcAddress(fog,MAKEINTRESOURCEA(10106)));
     const auto size=reinterpret_cast<tiles::SizeFn>(GetProcAddress(fog,MAKEINTRESOURCEA(10105)));
     const auto archive=storm?reinterpret_cast<tiles::ArchiveFn>(GetProcAddress(storm,MAKEINTRESOURCEA(264))):nullptr;
-    const bool cache_ready=cache_requested && storm && seek && size && archive &&
-        file_hash(storm,"a4f31ef82f49dbf1af206e23072aa1401a2ef7f99cb9dc794d5fa59c519290ef") &&
+    const bool storm_known=storm && file_hash(storm,"a4f31ef82f49dbf1af206e23072aa1401a2ef7f99cb9dc794d5fa59c519290ef");
+    const bool cache_ready=cache_requested && storm_known && seek && size && archive &&
         tile_code_ready(reinterpret_cast<uintptr_t>(fog),cb,reinterpret_cast<uintptr_t>(storm)) &&
         read_slot(reinterpret_cast<void**>(cb+0x1c044))==reinterpret_cast<void*>(seek) &&
         read_slot(reinterpret_cast<void**>(cb+0x1c004))==reinterpret_cast<void*>(size);
     // The only eligible open is D2CMP's DT1 block loader, CALL at +0xbcec.
     // Its header/DCC/DC6 readers and all D2Sound calls retain the native path.
-    if(cache_ready)tiles::configure({open,read,close,seek,size,archive},cb+0xbcf1);
+    if(cache_ready)tiles::configure({cmp_open,read,close,seek,size,archive},cb+0xbcf1);
     const bool ready=install(slots,open,read,close);
     use_tile_cache=ready && cache_ready;
+    use_hash_cache=ready && hash_requested && storm_known && archive_hash::start(storm);
+    note("archive_hash_cache_ready",use_hash_cache?1:0);
     note("tile_cache_ready",use_tile_cache?1:0);
     note(ready?"asset_imports_ready":"asset_imports_unavailable",ready?6:0);return ready;
 }

@@ -1,4 +1,5 @@
 #include "tile_cache.h"
+#include "archive_hash_cache.h"
 #include "diagnostics.h"
 #include <cstring>
 #include <new>
@@ -132,6 +133,7 @@ void configure(Api api,uintptr_t tile_open_return){native=api;caller_address=til
 void begin_frame(bool in_game){local_cache().begin(native,in_game && caller_address!=0);}
 void end_frame(){
     const auto error=GetLastError();const auto s=cache.end();
+    archive_hash::flush_stats();
     if(s.open_hits || s.prefetches || s.prefetch_failures){
         diag::note("tile_cache_open_hits",s.open_hits);diag::note("tile_cache_read_hits",s.read_hits);
         diag::note("tile_cache_prefetched_bytes",s.cached_bytes);diag::note("tile_cache_served_bytes",s.served_bytes);
