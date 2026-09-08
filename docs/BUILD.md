@@ -19,7 +19,7 @@ cmake --build C:/MXL-DX12-Build --config Release --parallel 6
 ctest --test-dir C:/MXL-DX12-Build -C Release --output-on-failure
 ```
 
-The native checks cover rendering, shaders, the settings menu, movement timing, uploads, automatic reveal and optional recording. GPU tests require a working DirectX 12 device. Test output stays in the build directory.
+The native checks cover rendering, shaders, the settings menu, movement timing, uploads, automatic reveal, native sound cancellation and optional recording. GPU tests require a working DirectX 12 device. Test output stays in the build directory.
 
 ## Create the player download
 

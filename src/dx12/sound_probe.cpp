@@ -10,7 +10,7 @@ namespace mxl::diag {
 namespace {
 using LoadFn=void*(__fastcall*)(void*,const char*,BOOL,LONG,int,void*,void*,int,const char*,int);
 using BufferFn=void*(__fastcall*)(void*);
-using FreeFn=void(__fastcall*)(void*);
+using ReadyFn=BOOL(__fastcall*)(void*);
 using OpenFn=uint32_t(__fastcall*)(const char*,void**);
 using ReadFn=uint32_t(__fastcall*)(void*,void*,uint32_t,uint32_t*,uint32_t,uint32_t,uint32_t);
 using CloseFn=uint32_t(__fastcall*)(void*);
@@ -20,7 +20,7 @@ using SleepFn=void(WINAPI*)(DWORD);
 using MusicBeginFn=int(WINAPI*)(HANDLE,int,unsigned,DWORD,int,int,int);
 using MusicEndFn=BOOL(WINAPI*)(HANDLE);
 using MusicPositionFn=BOOL(WINAPI*)(HANDLE,void*,void*);
-LoadFn load_original=nullptr; BufferFn buffer_original=nullptr; FreeFn free_original=nullptr;
+LoadFn load_original=nullptr; BufferFn buffer_original=nullptr; ReadyFn ready_original=nullptr;
 OpenFn open_original=nullptr; ReadFn read_original=nullptr; CloseFn close_original=nullptr;
 SectionFn enter_original=nullptr,leave_original=nullptr;
 WaitFn wait_original[2]{}; SleepFn sleep_original[2]{};
@@ -59,10 +59,10 @@ void* __fastcall buffer_hook(void* job) {
     SetLastError(incoming);auto* result=buffer_original(job);const auto error=GetLastError();
     finish(NativeSound::AsyncBuffer,began,caller,reinterpret_cast<uintptr_t>(job),0,reinterpret_cast<uintptr_t>(result));SetLastError(error);return result;
 }
-void __fastcall free_hook(void* job) {
+BOOL __fastcall ready_hook(void* job) {
     const auto incoming=GetLastError();const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());const auto began=begin();
-    SetLastError(incoming);free_original(job);const auto error=GetLastError();
-    finish(NativeSound::AsyncFree,began,caller,reinterpret_cast<uintptr_t>(job),0,0);SetLastError(error);
+    SetLastError(incoming);const auto result=ready_original(job);const auto error=GetLastError();
+    finish(NativeSound::AsyncReady,began,caller,reinterpret_cast<uintptr_t>(job),0,result);SetLastError(error);return result;
 }
 uint32_t __fastcall open_hook(const char* path,void** output) {
     const auto incoming=GetLastError();const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());const auto began=begin();
@@ -148,7 +148,7 @@ bool exchange(void** slot,void* expected,void* replacement) noexcept {
 bool install(void*** slots,void** originals,void* first_lock,void* second_lock) {
     if(installed)return true;
     if(!slots || !originals || !first_lock || !second_lock || first_lock==second_lock)return false;
-    void* replacements[]={reinterpret_cast<void*>(&load_hook),reinterpret_cast<void*>(&buffer_hook),reinterpret_cast<void*>(&free_hook),
+    void* replacements[]={reinterpret_cast<void*>(&load_hook),reinterpret_cast<void*>(&buffer_hook),reinterpret_cast<void*>(&ready_hook),
         reinterpret_cast<void*>(&open_hook),reinterpret_cast<void*>(&read_hook),reinterpret_cast<void*>(&close_hook),
         reinterpret_cast<void*>(&enter_hook),reinterpret_cast<void*>(&leave_hook),reinterpret_cast<void*>(&wait_hook<0>),reinterpret_cast<void*>(&sleep_hook<0>),
         reinterpret_cast<void*>(&music_begin_hook),reinterpret_cast<void*>(&music_end_hook),reinterpret_cast<void*>(&music_position_hook),
@@ -157,7 +157,7 @@ bool install(void*** slots,void** originals,void* first_lock,void* second_lock) 
         if(!originals[i] || reinterpret_cast<uintptr_t>(slots[i])%alignof(void*) || read_slot(slots[i])!=originals[i])return false;
         for(size_t j=0;j<i;++j)if(slots[j]==slots[i])return false;
     }
-    load_original=reinterpret_cast<LoadFn>(originals[0]);buffer_original=reinterpret_cast<BufferFn>(originals[1]);free_original=reinterpret_cast<FreeFn>(originals[2]);
+    load_original=reinterpret_cast<LoadFn>(originals[0]);buffer_original=reinterpret_cast<BufferFn>(originals[1]);ready_original=reinterpret_cast<ReadyFn>(originals[2]);
     open_original=reinterpret_cast<OpenFn>(originals[3]);read_original=reinterpret_cast<ReadFn>(originals[4]);close_original=reinterpret_cast<CloseFn>(originals[5]);
     enter_original=reinterpret_cast<SectionFn>(originals[6]);leave_original=reinterpret_cast<SectionFn>(originals[7]);
     wait_original[0]=reinterpret_cast<WaitFn>(originals[8]);sleep_original[0]=reinterpret_cast<SleepFn>(originals[9]);
@@ -182,11 +182,11 @@ bool start_sound_probe() {
         note("native_sound_identity_unavailable");return false;
     }
     const auto cb=reinterpret_cast<uintptr_t>(client),sb=reinterpret_cast<uintptr_t>(sound);
-    const uintptr_t addresses[]={cb+0xcedac,cb+0xcedb8,cb+0xcedbc,cb+0xceda8,cb+0xcee54,cb+0xced9c,
+    const uintptr_t addresses[]={cb+0xcedac,cb+0xcedb8,cb+0xcedb0,cb+0xceda8,cb+0xcee54,cb+0xced9c,
         sb+0xf11c,sb+0xf120,sb+0xf118,sb+0xf0c4,sb+0xf16c,sb+0xf168,sb+0xf164,cb+0xcefb0,cb+0xcefa0};
     void** slots[15]{};for(unsigned i=0;i<15;++i)slots[i]=reinterpret_cast<void**>(addresses[i]);
     const auto ordinal=[](HMODULE module,WORD id){return reinterpret_cast<void*>(GetProcAddress(module,MAKEINTRESOURCEA(id)));};
-    void* originals[]={ordinal(fog,10091),ordinal(fog,10094),ordinal(fog,10097),ordinal(fog,10102),ordinal(fog,10104),ordinal(fog,10103),
+    void* originals[]={ordinal(fog,10091),ordinal(fog,10094),ordinal(fog,10092),ordinal(fog,10102),ordinal(fog,10104),ordinal(fog,10103),
         reinterpret_cast<void*>(GetProcAddress(kernel,"EnterCriticalSection")),reinterpret_cast<void*>(GetProcAddress(kernel,"LeaveCriticalSection")),
         reinterpret_cast<void*>(GetProcAddress(kernel,"WaitForSingleObject")),reinterpret_cast<void*>(GetProcAddress(kernel,"Sleep")),
         ordinal(storm,255),ordinal(storm,257),ordinal(storm,258),

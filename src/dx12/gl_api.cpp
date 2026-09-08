@@ -6,6 +6,7 @@
 #include "diagnostics.h"
 #include "audio_diagnostics.h"
 #include "sound_probe.h"
+#include "sound_cancel.h"
 #include "asset_probe.h"
 #include "tile_cache.h"
 #include "reveal_probe.h"
@@ -18,6 +19,7 @@ void initialize(HWND window) {
     try {if(diag::start(window)){diag::start_audio();diag::start_sound_probe();}}catch(...){diag::note("diagnostics_initialization_failed");diag::stop();}
     // Tile caching, like act-entry reveal, is independent of opt-in recording.
     diag::start_assets();
+    mxl::sound_cancel::start();
     // Act-entry reveal is a gameplay feature, independent of opt-in recording.
     diag::start_reveal_probe(window);
     state().device=std::make_unique<Device>(window,false);
