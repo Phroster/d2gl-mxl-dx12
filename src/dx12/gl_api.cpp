@@ -5,6 +5,7 @@
 #include <sstream>
 #include "diagnostics.h"
 #include "audio_diagnostics.h"
+#include "asset_probe.h"
 #include "reveal_probe.h"
 
 namespace mxl::dx12 {
@@ -12,7 +13,7 @@ State& state() { static State* value=new State;return *value; }
 static void require(bool condition,const char* message) { if(!condition) throw std::runtime_error(message); }
 void initialize(HWND window) {
     require(!state().device,"DX12 already initialized");
-    try {if(diag::start(window))diag::start_audio();}catch(...){diag::note("diagnostics_initialization_failed");diag::stop();}
+    try {if(diag::start(window)){diag::start_audio();diag::start_assets();}}catch(...){diag::note("diagnostics_initialization_failed");diag::stop();}
     // Act-entry reveal is a gameplay feature, independent of opt-in recording.
     diag::start_reveal_probe(window);
     state().device=std::make_unique<Device>(window,false);

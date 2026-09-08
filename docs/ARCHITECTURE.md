@@ -36,6 +36,8 @@ Automatic act reveal calls Median XL's original routine on the game thread throu
 
 Performance recording is off unless `[Diagnostics] enabled=1` is explicitly set in `mxl-diagnostics.ini`. With recording off, no diagnostic writer, audio timing hooks, reveal timing detours or GPU timestamp queries are started. The upload fix and guarded automatic reveal remain active. A process-wide owner prevents duplicate reveal initialization across the two renderer DLLs.
 
+For first-encounter stalls, `assets=1` additionally records the installed D2CMP/D2Sound archive open/read/close calls in `assets.csv`. Six import slots are checked against the hash-verified Fog exports before atomic pointer replacement; unknown modules or modified imports leave the probe inactive. Calls preserve native arguments, results and `LastError`. The probe neither preloads nor changes cache contents. Filenames are bounded, output validity is explicit, and the writer caps the file at 131072 records. The analyzer resolves successful file-handle lifetimes before correlating reads with slow frames. These timings include Storm processing and cached reads, exclude later decoding/mixing, and cover submission only for asynchronous reads.
+
 ## Launcher and ReShade
 
 Enable both custom graphics DLL checkboxes under the launcher's **Unofficial Graphic Drivers** section. The unchanged MPQ matches the inspected official distribution.

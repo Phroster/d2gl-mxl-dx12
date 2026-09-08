@@ -1,6 +1,7 @@
 #include "diagnostics.h"
 #include "input_profile.h"
 #include "reveal_probe.h"
+#include "asset_probe.h"
 #include <array>
 #include <atomic>
 #include <algorithm>
@@ -24,7 +25,7 @@ struct Record {
 };
 struct AudioTotals { std::atomic<uint64_t> calls{0},elapsed{0},maximum{0},errors{0}; };
 struct State {
-    std::atomic<bool> active{false},quitting{false}; bool audio=true,testing=false;
+    std::atomic<bool> active{false},quitting{false}; bool audio=true,assets=false,testing=false;
     std::atomic<uint64_t> dropped{0}; HWND window=nullptr; HANDLE worker=nullptr,owner=nullptr;
     LARGE_INTEGER frequency{}; uint64_t started=0; double threshold=10.0,audio_threshold=.5;
     std::wstring directory; SRWLOCK lock=SRWLOCK_INIT;
@@ -68,7 +69,8 @@ void write_input(FILE* file,const Record& r) {
 }
 DWORD WINAPI writer(void*) {
     auto& s=state();SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
-    FILE* file=nullptr;FILE* inputs=nullptr;FILE* reveals=nullptr;uint32_t part=0,input_count=0,reveal_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
+    FILE* file=nullptr;FILE* inputs=nullptr;FILE* reveals=nullptr;FILE* assets=nullptr;
+    uint32_t part=0,input_count=0,reveal_count=0,asset_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
     auto open=[&](){
         const auto name=s.directory+L"\\events-"+std::to_wstring(part%3)+L".csv";
         file=_wfsopen(name.c_str(),L"wb",_SH_DENYNO);
@@ -83,7 +85,21 @@ DWORD WINAPI writer(void*) {
         while(s.size && count<batch.size()) {batch[count++]=s.queue[s.read];s.read=(s.read+1)%Capacity;--s.size;}
         ReleaseSRWLockExclusive(&s.lock);
         for(size_t i=0;i<count;++i){
-            if(!strcmp(batch[i].kind,"reveal")) {
+            if(!strcmp(batch[i].kind,"asset")) {
+                if(!assets && asset_count==0){
+                    assets=_wfsopen((s.directory+L"\\assets.csv").c_str(),L"wb",_SH_DENYNO);
+                    if(assets)fputs("operation,source,handle,session_ms,thread_id,duration_ms,path,path_status,requested_bytes,completed_bytes,output_valid,result\n",assets);
+                }
+                if(assets && asset_count<131072){
+                    const auto& r=batch[i];const char* operations[]={"open","read","close"};
+                    fprintf(assets,"%s,%s,%llu,%.6f,%u,%.6f,\"",operations[r.counts[0]],r.counts[1]?"D2Sound":"D2CMP",
+                        (unsigned long long)r.id,milliseconds(r.at-s.started),r.tid,r.duration);
+                    for(const char* c=r.detail;*c;++c){if(*c=='\"')fputc('\"',assets);fputc(*c,assets);}
+                    fprintf(assets,"\",%llu,%llu,%llu,%llu,%lld\n",(unsigned long long)r.counts[4],
+                        (unsigned long long)r.counts[2],(unsigned long long)r.counts[3],(unsigned long long)r.counts[5],(long long)r.value);
+                    ++asset_count;
+                }else ++s.dropped;
+            } else if(!strcmp(batch[i].kind,"reveal")) {
                 if(!reveals && reveal_count==0){
                     reveals=_wfsopen((s.directory+L"\\reveal.csv").c_str(),L"wb",_SH_DENYNO);
                     if(reveals)fputs("trace_id,phase,session_ms,thread_id,duration_ms,act,level,room_x,room_y,resident_before\n",reveals);
@@ -114,7 +130,7 @@ DWORD WINAPI writer(void*) {
                 }
             }
             Record status;status.kind="logger";status.at=now;status.value=s.dropped.load();strcpy_s(status.detail,"dropped_records");write_record(file,status);
-            fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);last_summary=now;
+            fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);if(assets)fflush(assets);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
                 fprintf(out,"MXL Smooth Motion DX12 1.0 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
@@ -127,13 +143,15 @@ DWORD WINAPI writer(void*) {
         if(s.quitting && count==0) break;
         if(count==0) Sleep(50);
     }
-    if(inputs){fflush(inputs);fclose(inputs);}if(reveals){fflush(reveals);fclose(reveals);}fflush(file);fclose(file);return 0;
+    if(inputs){fflush(inputs);fclose(inputs);}if(reveals){fflush(reveals);fclose(reveals);}
+    if(assets){fflush(assets);fclose(assets);}fflush(file);fclose(file);return 0;
 }
 }
 uint64_t ticks() noexcept {LARGE_INTEGER t;QueryPerformanceCounter(&t);return uint64_t(t.QuadPart);}
 double milliseconds(uint64_t elapsed) noexcept {return state().frequency.QuadPart?double(elapsed)*1000.0/state().frequency.QuadPart:0;}
 bool enabled() noexcept {return state().active.load(std::memory_order_relaxed);}
 bool audio_enabled() noexcept {return enabled()&&state().audio;}
+bool assets_enabled() noexcept {return enabled()&&state().assets;}
 bool start(HWND window,const std::wstring& test_directory) {
     auto& s=state();if(s.worker)return enabled();
     wchar_t executable[32768]{};GetModuleFileNameW(nullptr,executable,32768);
@@ -146,6 +164,7 @@ bool start(HWND window,const std::wstring& test_directory) {
     if(!s.owner)return false;
     if(GetLastError()==ERROR_ALREADY_EXISTS){CloseHandle(s.owner);s.owner=nullptr;return false;}
     s.audio=GetPrivateProfileIntW(L"Diagnostics",L"audio",1,ini.c_str())!=0;
+    s.assets=GetPrivateProfileIntW(L"Diagnostics",L"assets",0,ini.c_str())!=0;
     s.threshold=std::clamp(GetPrivateProfileIntW(L"Diagnostics",L"slow_frame_ms",10,ini.c_str()),5u,1000u);
     QueryPerformanceFrequency(&s.frequency);s.started=ticks();s.window=window;s.testing=!test_directory.empty();
     SYSTEMTIME utc{},local{};GetSystemTime(&utc);GetLocalTime(&local);wchar_t session[80];
@@ -159,8 +178,8 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,
             local.wYear,local.wMonth,local.wDay,local.wHour,local.wMinute,local.wSecond,local.wMilliseconds);
-        fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
-            s.threshold,unsigned(s.audio));
+        fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nassets=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
+            s.threshold,unsigned(s.audio),unsigned(s.assets));
         fputs("Audio summaries: duration_ms=sum of completed call wall times; interval_ms=largest call; draws=calls; indices=failed calls.\n"
               "input.csv: T handler thread CPU/cycles plus process-wide I/O and page-fault deltas.\n"
               "Wall minus CPU includes waits and descheduling, not just explicit Sleep. CPU accounting has finite granularity.\n"
@@ -172,6 +191,11 @@ bool start(HWND window,const std::wstring& test_directory) {
               "Reveal depth probe: preset generation/layout, preset preparation, DT1 loading, tile grids, level lookup and automap layer selection.\n"
               "Depth scopes forward the original game functions without deferring, skipping or replacing reveal work. Missing rows may reflect dropped records.\n"
               "At most 262144 reveal phase rows per session. No work is deferred or skipped by this probe.\n"
+              "assets.csv: opt-in D2CMP/D2Sound archive open/read/close wall times through verified Fog imports. Paths are bounded to 95 bytes.\n"
+              "Asset path_status: 0=complete, 1=truncated, 2=unreadable, 3=no path for this operation. output_valid refers to open handle or read byte output.\n"
+              "Asset handles can be reused; match successful open/close lifetimes before assigning read paths. Missing opens leave unknown paths.\n"
+              "Archive read time includes Storm processing, not just physical disk access; this does not time later sprite decoding or sound mixing. Async reads time submission only.\n"
+              "At most 131072 asset records per session. These imports forward every request without caching, preloading, skipping or changing its arguments.\n"
               "Frame render_ms includes nested scopes. Do not add them together.\n"
               "No per-frame disk writes on game/render/audio threads; the queue can drop samples instead of blocking.\n"
               "At most three 32 MiB CSV files per session. Create an empty STOP file here to stop recording.\n",file);fclose(file);
@@ -213,6 +237,14 @@ void audio_call(Audio operation,uint64_t start,uint64_t end,HRESULT result) noex
     strcpy_s(r.detail,audio_names[size_t(operation)]);put(r);
 }
 void note(const char* message,int64_t value) noexcept {Record r;r.at=ticks();r.tid=GetCurrentThreadId();r.value=value;strncpy_s(r.detail,message,_TRUNCATE);put(r);}
+void asset_call(AssetOperation operation,unsigned source,uintptr_t handle,uint64_t began,uint64_t ended,
+    const char* name,unsigned name_status,uint32_t requested,uint32_t completed,bool completed_valid,uint32_t result) noexcept {
+    if(!enabled() || unsigned(operation)>2 || source>1)return;
+    Record r;r.kind="asset";r.id=handle;r.at=began;r.tid=GetCurrentThreadId();r.duration=milliseconds(ended-began);
+    r.counts[0]=unsigned(operation);r.counts[1]=source;r.counts[2]=requested;r.counts[3]=completed;
+    r.counts[4]=name_status;r.counts[5]=completed_valid;r.value=result;
+    strncpy_s(r.detail,name,_TRUNCATE);put(r);
+}
 void reveal_event(uint64_t trace,const char* phase,uint64_t began,uint64_t ended,int32_t act,int32_t level,int32_t x,int32_t y,bool resident) noexcept {
     if(!enabled())return;Record r;r.kind="reveal";r.id=trace;r.at=began;r.tid=GetCurrentThreadId();r.duration=milliseconds(ended-began);
     r.counts[0]=uint32_t(act);r.counts[1]=uint32_t(level);r.counts[2]=uint32_t(x);r.counts[3]=uint32_t(y);r.counts[4]=resident;
