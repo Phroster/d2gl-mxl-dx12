@@ -271,9 +271,33 @@ bool lookup_signature(uintptr_t base) noexcept {
 bool preselection_signature(uintptr_t base) noexcept {
     return signature(base,reveal_generation_order_site) && signature(base,reveal_sites[12]);
 }
-bool before_scene_signature(uintptr_t base) noexcept {
-    return base && ((signature(base,reveal_before_scene_sites[0]) && signature(base,reveal_before_scene_sites[1])) ||
-        (signature(base,reveal_before_scene_sigma_sites[0]) && signature(base,reveal_before_scene_sigma_sites[1])));
+enum class BeforeScenePath { Unsupported, Native, Sigma, D2Fps };
+BeforeScenePath before_scene_signature(uintptr_t base,uintptr_t fps=0) noexcept {
+    if(!base)return BeforeScenePath::Unsupported;
+    if(signature(base,reveal_before_scene_sites[0]) && signature(base,reveal_before_scene_sites[1]))return BeforeScenePath::Native;
+    if(signature(base,reveal_before_scene_sigma_sites[0]) && signature(base,reveal_before_scene_sigma_sites[1]))return BeforeScenePath::Sigma;
+    if(!fps)return BeforeScenePath::Unsupported;
+    for(const auto& site:reveal_before_scene_fps_sites)if(!signature(base,site))return BeforeScenePath::Unsupported;
+    if(!signature(base,reveal_before_scene_fps_resume_site) || !signature(fps,reveal_before_scene_fps_entry_site))return BeforeScenePath::Unsupported;
+    for(const auto& site:reveal_before_scene_fps_player_sites)if(!signature(fps,site))return BeforeScenePath::Unsupported;
+    // x86 CALL rel32 arithmetic is modulo 2^32. A call to another module or
+    // another D2FPS entrypoint must fail, even with otherwise identical NOPs.
+    const auto displacement=uint32_t(fps+reveal_before_scene_fps_draw-(base+reveal_before_scene_fps_call+5));
+    if(read32(base+reveal_before_scene_fps_call+1)!=displacement)return BeforeScenePath::Unsupported;
+    return BeforeScenePath::D2Fps;
+}
+void before_scene_mismatch_bytes(uintptr_t base) noexcept {
+    if(!base)return;
+    for(unsigned index=0;index<2;++index){
+        char message[112]{};
+        const auto prefix=sprintf_s(message,"reveal_before_scene_bytes_%u_",index);
+        if(prefix<0)return;
+        for(size_t i=0;i<32;i+=4){
+            const auto value=read32(base+0x44e34+index*32+i);
+            for(size_t j=0;j<4;++j)sprintf_s(message+prefix+(i+j)*2,3,"%02x",(value>>(j*8))&255);
+        }
+        note(message,index);
+    }
 }
 void signature_bytes(uintptr_t base,size_t index) noexcept {
     // Diagnostic data only: never accept or patch a mismatching entrypoint.
@@ -347,17 +371,27 @@ bool start_reveal_probe(HWND window) {
         }else {preselection_sigma=0;preselection_caller=0;}
     }
     const auto client=GetModuleHandleW(L"D2Client.dll");
-    const bool before_scene_supported=client &&
-        file_hash(client,"dd8bc6025de921216a97c17f97cd1a50fbb85926e838ec60e13451448836d906") &&
-        before_scene_signature(reinterpret_cast<uintptr_t>(client));
-    if(!before_scene_supported)note("reveal_before_scene_unsupported");
+    const auto client_base=reinterpret_cast<uintptr_t>(client);
+    auto before_scene_path=BeforeScenePath::Unsupported;
+    if(client && file_hash(client,"dd8bc6025de921216a97c17f97cd1a50fbb85926e838ec60e13451448836d906")){
+        before_scene_path=before_scene_signature(client_base);
+        if(before_scene_path==BeforeScenePath::Unsupported){
+            const auto fps=GetModuleHandleW(L"D2FPS.dll");
+            if(fps && file_hash(fps,"db9de4d4d320a7b70e66fe6b4aaa0e6f1560a5300a4993cc81cf4512ab1240c1"))
+                before_scene_path=before_scene_signature(client_base,reinterpret_cast<uintptr_t>(fps));
+            else note("reveal_before_scene_fps_identity_unavailable");
+        }
+    }else note("reveal_before_scene_client_identity_unavailable");
+    const bool before_scene_supported=before_scene_path!=BeforeScenePath::Unsupported;
+    if(before_scene_supported)note("reveal_before_scene_ready",int(before_scene_path));
+    else {note("reveal_before_scene_unsupported");before_scene_mismatch_bytes(client_base);}
     probe_ready=window && mxl::reveal::start(window,sb,&root_hook,before_scene_supported);
     if(!probe_ready)note("auto_reveal_start_failed");
     return probe_ready;
 }
 #ifdef MXL_REVEAL_TEST
 bool test_reveal_lookup_signature(uintptr_t base) {return lookup_signature(base);}
-bool test_reveal_before_scene_signature(uintptr_t base) {return before_scene_signature(base);}
+bool test_reveal_before_scene_signature(uintptr_t base,uintptr_t fps) {return before_scene_signature(base,fps)!=BeforeScenePath::Unsupported;}
 bool test_reveal_preselection(uintptr_t sigma,uintptr_t caller) {
     preselection_sigma=0;preselection_caller=0;
     if(!sigma || !caller || !preselection_signature(sigma))return false;

@@ -303,7 +303,9 @@ void preselection_scenarios() {
 }
 void before_scene_signature_scenarios() {
     std::vector<uint8_t> client(0x45000);
+    std::vector<uint8_t> fps(0xe900);
     const auto base=reinterpret_cast<uintptr_t>(client.data());
+    const auto fps_base=reinterpret_cast<uintptr_t>(fps.data());
     const auto place=[&](const auto& sites){for(const auto& site:sites)memcpy(client.data()+site.rva,site.bytes,32);};
     require(!test_reveal_before_scene_signature(0),"Missing Client accepted for before-scene reveal.");
     for(const auto& sites:{reveal_before_scene_sites,reveal_before_scene_sigma_sites}){
@@ -321,6 +323,42 @@ void before_scene_signature_scenarios() {
     place(reveal_before_scene_sigma_sites);
     memcpy(client.data()+reveal_before_scene_sites[1].rva,reveal_before_scene_sites[1].bytes,32);
     require(!test_reveal_before_scene_signature(base),"Mixed Sigma/stock before-scene halves accepted.");
+
+    // Reproduce the installed D2FPS descriptor's Patch::call_c_at output:
+    // 73 bytes at +44E51, call offset 8, then a short jump over the padding.
+    // This deliberately does not copy the new replacement signature fixture.
+    place(reveal_before_scene_sites);
+    memset(client.data()+0x44e51,0x90,73);
+    client[0x44e59]=0xe8;
+    write32(client.data(),0x44e5a,uint32_t(fps_base+0xe710-(base+0x44e5e)));
+    client[0x44e5e]=0xeb;client[0x44e5f]=58;
+    memcpy(client.data()+reveal_before_scene_fps_resume_site.rva,reveal_before_scene_fps_resume_site.bytes,32);
+    memcpy(fps.data()+reveal_before_scene_fps_entry_site.rva,reveal_before_scene_fps_entry_site.bytes,32);
+    for(const auto& site:reveal_before_scene_fps_player_sites)memcpy(fps.data()+site.rva,site.bytes,32);
+    require(!test_reveal_before_scene_signature(base),"D2FPS replacement accepted without its verified module.");
+    require(!test_reveal_before_scene_signature(base,1),"Unreadable D2FPS image accepted.");
+    require(!test_reveal_before_scene_signature(1,fps_base),"Unreadable Client image accepted.");
+    require(test_reveal_before_scene_signature(base,fps_base),"Installed D2FPS draw replacement rejected.");
+    require(!test_reveal_before_scene_signature(base,fps_base+1),"D2FPS module/entrypoint displacement was not checked.");
+    for(const auto& site:reveal_before_scene_fps_sites)for(size_t i=0;i<32 && site.rva+i<0x44e9a;++i){
+        auto& byte=client[site.rva+i];byte^=1;
+        // The only masked bytes in this replacement are CALL rel32. Their
+        // exact loaded-module target is validated separately, so mutations
+        // of those four bytes must fail too.
+        require(!test_reveal_before_scene_signature(base,fps_base),"Changed D2FPS call/padding/boundary accepted.");
+        byte^=1;
+    }
+    const auto check_site=[&](const RevealSite& site,std::vector<uint8_t>& image){
+        for(size_t i=0;i<32;++i){
+            auto& byte=image[site.rva+i];byte^=1;
+            require(test_reveal_before_scene_signature(base,fps_base)==(site.mask[i]==0),"D2FPS native-resume/player guard accepted changed code or rejected a relocation.");
+            byte^=1;
+        }
+    };
+    check_site(reveal_before_scene_fps_resume_site,client);
+    check_site(reveal_before_scene_fps_entry_site,fps);
+    for(const auto& site:reveal_before_scene_fps_player_sites)check_site(site,fps);
+    require(test_reveal_before_scene_signature(base,fps_base),"Restored D2FPS boundary rejected.");
 }
 int wmain(int argc,wchar_t** argv) {
     try {
