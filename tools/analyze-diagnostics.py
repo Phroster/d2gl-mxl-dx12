@@ -77,6 +77,44 @@ def reveal_scope_coverage(parent, scopes):
                 for name, items in sorted(phases.items())}}
 
 
+def asset_scopes(folder):
+    path = Path(folder) / "assets.csv"
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8", newline="") as source:
+        rows = [r for r in csv.DictReader(source) if r.get("result") is not None]
+    events = []
+    for r in rows:
+        event = dict(operation=r["operation"], source=r["source"], handle=int(r["handle"]),
+                     session_ms=float(r["session_ms"]), duration_ms=float(r["duration_ms"]),
+                     thread_id=int(r["thread_id"]), path=r["path"] or None,
+                     path_status=int(r["path_status"]), requested_bytes=int(r["requested_bytes"]),
+                     completed_bytes=int(r["completed_bytes"]) if r["output_valid"] == "1" else None,
+                     result=int(r["result"]))
+        event["end_ms"] = event["session_ms"] + event["duration_ms"]
+        events.append(event)
+    # Apply completed successful lifetime operations before each read starts.
+    # A failed close does not release the name; failed or missing opens never
+    # invent a name. Opens replace earlier lifetimes when handles are reused.
+    lifecycle = sorted((e for e in events if e["operation"] in ("open", "close") and e["result"] and e["handle"]),
+                       key=lambda e: e["end_ms"])
+    live = {}
+    cursor = 0
+    for read in sorted((e for e in events if e["operation"] == "read"), key=lambda e: e["session_ms"]):
+        while cursor < len(lifecycle) and lifecycle[cursor]["end_ms"] <= read["session_ms"]:
+            event = lifecycle[cursor]
+            if event["operation"] == "open":
+                live[event["handle"]] = event
+            else:
+                live.pop(event["handle"], None)
+            cursor += 1
+        opened = live.get(read["handle"])
+        if opened and opened["path_status"] in (0, 1):
+            read["path"] = opened["path"]
+            read["path_status"] = opened["path_status"]
+    return events
+
+
 def analyze(folder):
     rows = []
     for path in sorted(Path(folder).glob("events-*.csv")):
@@ -92,6 +130,7 @@ def analyze(folder):
     gpu = defaultdict(float)
     producer = {}
     audio = [r for r in rows if r["type"] == "audio"]
+    assets = asset_scopes(folder)
     audio_totals = Counter()
     for r in rows:
         if r["type"] == "gpu":
@@ -112,6 +151,8 @@ def analyze(folder):
         item["producer_wait_ms"] = float(p["duration_ms"]) if p else None
         item["producer_build_ms"] = float(p["producer_build_ms"]) if p and "producer_build_ms" in p else None
         item["overlapping_sound_calls"] = [{"operation": a["detail"], "ms": float(a["duration_ms"]), "thread": int(a["thread_id"])} for a in overlap[:20]]
+        item["overlapping_asset_calls"] = sorted((a for a in assets if a["session_ms"] < end and a["end_ms"] > start),
+                                                key=lambda a: a["duration_ms"], reverse=True)[:20]
         worst.append(item)
     notes = [{"event": r["detail"], "session_ms": float(r["session_ms"]), "value": int(r["value"])} for r in rows if r["type"] == "note" and not r["detail"].startswith("shader_compile")]
     band_summary = {"frames": len(band)}
@@ -164,10 +205,32 @@ def analyze(folder):
                 "generation_phase_breakdown": [reveal_scope_coverage(s, scopes) for s in generation_scopes[:15]],
                 "deep_probe_phases_observed": [name for name in REVEAL_DEEP_PHASES if name in phases],
                 "deep_probe_phases_not_observed": [name for name in REVEAL_DEEP_PHASES if name not in phases]})
-    return {"session": str(folder), "focused_gameplay_frames": len(frames), "slow_frames": len(slow),
+    reads = [a for a in assets if a["operation"] == "read"]
+    file_reads = defaultdict(list)
+    for event in reads:
+        if event["path"] is not None:
+            file_reads[event["path"]].append(event)
+    asset_summary = {"records": len(assets), "operations": dict(Counter(a["operation"] for a in assets)),
+        "unmatched_reads": sum(a["path"] is None for a in reads),
+        "slowest_reads": sorted(reads, key=lambda a: a["duration_ms"], reverse=True)[:20],
+        "files_by_total_read_ms": sorted((dict(path=path, calls=len(items),
+             total_read_ms=sum(a["duration_ms"] for a in items), max_read_ms=max(a["duration_ms"] for a in items),
+             requested_bytes=sum(a["requested_bytes"] for a in items),
+             valid_completed_bytes=sum(a["completed_bytes"] or 0 for a in items)) for path, items in file_reads.items()),
+             key=lambda a: a["total_read_ms"], reverse=True)[:20],
+        "limits": "Only the guarded D2CMP/D2Sound Fog imports are measured. Missing open/close records or handle reuse can limit filename attribution. A truncated path is flagged. Read wall time includes Storm work and cached I/O; it is not a physical-disk measurement and excludes later sprite decoding/mixing. Async reads time submission only. Overlap is correlation, not cause."}
+    metadata = {}
+    for filename in ("session.txt", "status.txt"):
+        path = Path(folder) / filename
+        if path.exists():
+            metadata[filename] = dict(line.split("=", 1) for line in path.read_text(encoding="utf-8-sig").splitlines() if "=" in line)
+    return {"session": str(folder), "metadata": metadata,
+            "retained_event_range_ms": [float(rows[0]["session_ms"]), float(rows[-1]["session_ms"])] if rows else None,
+            "focused_gameplay_frames": len(frames), "slow_frames": len(slow),
             "median_frame_ms": statistics.median(float(r["interval_ms"]) for r in frames) if frames else None,
             "dropped_records": max((int(r["value"]) for r in rows if r["type"] == "logger"), default=0),
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
+            "asset_io": asset_summary,
             "fps_75_to_85": band_summary,
             "T_profiles": input_profiles,
             "reveal_traces": reveal_traces,
