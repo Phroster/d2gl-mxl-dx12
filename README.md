@@ -25,7 +25,6 @@
 - **Automatic map reveal** when you enter an act.
 - **Loot that stands out:** beams, sparkles and glowing pulses for valuable drops, with bigger effects for your best finds.
 - **Easy loot pickup:** readable names stay visible above selected drops. Click the glow or name to pick them up, even with your inventory open.
-- **Faster game entry** with loot effects ready when you start playing.
 
 The game runs at its normal speed, and the frame rate follows your monitor by default. Performance depends on your PC and graphics settings.
 
