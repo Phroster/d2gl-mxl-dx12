@@ -1,8 +1,8 @@
 # Native loot effects implementation
 
-Release 1.13 uses animated Diablo sprites for real ground items, with readable
+Release 1.14 uses animated Diablo sprites for real ground items, with readable
 names and optional click-to-pickup interaction. The included 2,468-base catalog
-has 64 item profiles. See the [loot guide](loot-effects-guide.md) for categories,
+has 66 item profiles. See the [loot guide](loot-effects-guide.md) for categories,
 progression rules and controls. These categories describe visual importance,
 not trade prices or affix rolls, and do not read the user's native filter rules.
 
@@ -46,12 +46,23 @@ frame budgets allow 12 minor, 24 valuable and 24 major effects; common supplies
 cannot consume the major-item allowance. Sprite tile counts bound drawing work.
 These limits are not a measurement of frame times in a crowded live game.
 
+The shared Glide sprite cache keys texture contents by both width and height.
+Reusing an address or identical bytes at another aspect ratio cannot reuse an
+incompatible atlas rectangle. Current-frame sprite slots remain pinned.
+
 ## Labels and pickup
 
-Names come from the native item-name formatter, with a bounded cache. Labels
+Names come from Sigma's inventory-tooltip formatter, with a bounded cache.
+Equipment and jewel text uses Sigma's rarity colour independently of effect
+colour. This preserves the same rare name and quality shown in inventory. Labels
 follow both dropping and grounded items; a missing name is retried on the next
 draw. The four rank scales are 0.95, 1.10, 1.25 and 1.40 relative to the normal
 dropped-item font, in addition to the user's HD text scale.
+
+Nonmagical equipment with the native runeword flag is classified before ordinary
+tier cutoffs. Finished runewords retain names, effects and click targets without
+changing item quality or the native filter matcher. The optional native filter
+profile separately aligns the selected sacred-base keep and map rules.
 
 Nearby names are measured before drawing and arranged into stacks ordered by
 effect importance, item quality and equipment tier. Full multiline bounds and

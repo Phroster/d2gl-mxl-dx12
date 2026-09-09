@@ -19,6 +19,11 @@ inline Appearance classify(uint32_t type, uint32_t mode, uint32_t base, uint32_t
     if (type != 4 || (mode != 3 && mode != 5) || base >= std::size(bases)) return {};
     const auto& b = bases[base];
     if(b.disabled) return {};
+    // A finished runeword retains its nonmagical base quality. Protect the
+    // actual runeword flag before ordinary base/tier cutoffs, including when
+    // the player drops it in town. Never infer a runeword from its text colour.
+    if(b.gear && !b.jewel && quality>=1 && quality<=3 && (flags&0x4000000u))
+        return appearance(b.sacred?P_SacredRuneword:P_Runeword);
     if(b.potionGrade && !useful_potion(b.potionGrade,playerLevel)) return {};
     if(b.profile==P_GemLesser && playerLevel>=50) return {};
     if(b.profile==P_Angelic || b.profile==P_Mastercrafted) return appearance(b.profile);

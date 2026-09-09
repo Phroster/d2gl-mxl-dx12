@@ -79,7 +79,12 @@ const SubTextureInfo* TextureManager::getSubTextureInfo(uint32_t address, uint16
 		return nullptr;
 	}
 
-	auto hash = g_glide_texture.hash[address];
+	// Native cells reuse addresses across aspect ratios. Equal bytes do not
+	// imply equal textures: a 256x128 upload cannot back a 128x256 draw. In
+	// particular transparent animation frames otherwise reveal old pixels in
+	// the part of the atlas slot the previous rectangle never initialized.
+	const uint64_t hash = uint64_t(g_glide_texture.hash[address])
+		| (uint64_t(width) << 32) | (uint64_t(height) << 48);
 	auto& data = m_data[size];
 
 	if (data.cache.find(address) == data.cache.end())

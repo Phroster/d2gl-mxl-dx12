@@ -12,6 +12,12 @@ namespace mxl::native_loot {
 // visible air between them. All coordinates are native game pixels.
 constexpr int loot_label_padding=3;
 constexpr int loot_label_gap=8;
+inline unsigned loot_label_color(unsigned nativeColor,unsigned effectColor,bool equipment) {
+    // Equipment names retain Sigma's rarity colour independently of the
+    // effect palette. Runes, gems and supplies keep their category colours.
+    constexpr unsigned colors[]={3,4,2,11,1,0};
+    return equipment ? (nativeColor<16?nativeColor:0) : (effectColor<std::size(colors)?colors[effectColor]:0);
+}
 inline unsigned loot_label_priority(unsigned rank,unsigned quality,unsigned tier,bool sacred) {
     // Match the effects' importance first. Break equipment ties by quality,
     // then sacred/tier status; base IDs and trade-price guesses are not value.

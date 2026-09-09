@@ -16,7 +16,20 @@ Names stay visible on loot with effects. Click the glow or name to pick it up wi
 
 Loot effects are enabled by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. Your native lootfilter, notifications and map markers keep their existing settings.
 
+## Loot filter
+
+The optional `mxl-loot-filter.json` keeps valuable drops and removes lower-tier
+clutter as you level. It includes native notifications and map markers.
+Copy the file's contents, then open **Game Settings → Loot Filter Settings →
+Import Configuration from Clipboard** and select **SimpleFilterSoftNotify+ Progression**.
+Copying the file into the game folder alone does not activate it.
+
+Keep your previous filter profile if you want to switch back. The renderer's
+effects and permanent names protect finished runewords independently of the
+native filter; that protection requires loot effects to remain enabled.
+
 ## ReShade
+
 
 Run the official [ReShade installer](https://reshade.me), select your game folder's `Game.exe`, and choose **DirectX 10/11/12**. Keep your existing preset and shader folder.
 

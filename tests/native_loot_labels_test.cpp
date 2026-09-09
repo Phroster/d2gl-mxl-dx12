@@ -28,6 +28,14 @@ void verify(std::span<const LootLabelRequest> items,HitRect world,bool all=true)
 }
 int main() {
     try {
+        for(unsigned effectColor=0;effectColor<6;++effectColor) {
+            require(loot_label_color(9,effectColor,true)==9,"rare equipment took the effect's colour");
+            require(loot_label_color(4,effectColor,true)==4,"unique equipment lost its gold label");
+            require(loot_label_color(2,effectColor,true)==2,"set equipment lost its green label");
+            require(loot_label_color(8,effectColor,true)==8,"crafted equipment lost its orange label");
+            require(loot_label_color(3,effectColor,true)==3,"magic jewel lost its blue label");
+        }
+        require(loot_label_color(0,1,false)==4 && loot_label_color(0,3,false)==11,"material category colours changed");
         const HitRect world=world_input_rect(0,1600,900);
         std::array separate={item(1,1,2,0,false,{200,200,310,228}),item(2,4,7,0,true,{900,500,1180,564})};
         const auto before=separate;

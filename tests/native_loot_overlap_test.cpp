@@ -9,6 +9,10 @@
 #include <sstream>
 
 namespace {
+// Exercise exactly the shader embedded in the shipped renderer.
+const char glideShader[] =
+#include "../d2gl/d2gl/src/graphic/shaders/glide.glsl.h"
+;
 constexpr unsigned width=256, height=192, extent=128;
 struct Vertex { uint16_t xy[2]; float uv[2]; uint32_t colour1,colour2; uint16_t tex[2]; uint8_t flags[4]; };
 void require(bool ok,const char* text) { if(!ok) throw std::runtime_error(text); }
@@ -67,9 +71,8 @@ int main() {
             for(unsigned c=0;c<4;++c) colours[i+256][c]=i/255.f;
         }
         glGenBuffers(1,&ubo);glBindBuffer(GL_UNIFORM_BUFFER,ubo);glBufferData(GL_UNIFORM_BUFFER,sizeof(colours),colours,GL_STATIC_DRAW);glBindBufferRange(GL_UNIFORM_BUFFER,7,ubo,0,sizeof(colours));
-        std::ifstream file(std::filesystem::path(MXL_SOURCE_DIR)/"d2gl/d2gl/src/graphic/shaders/glide.glsl");std::stringstream source;source<<file.rdbuf();
-        auto program=glCreateProgram();glAttachShader(program,compile(GL_VERTEX_SHADER,"#version 450\n#define VERTEX 1\n"+source.str()));
-        glAttachShader(program,compile(GL_FRAGMENT_SHADER,"#version 450\n#define FRAGMENT 1\n"+source.str()));glLinkProgram(program);glUseProgram(program);
+        auto program=glCreateProgram();glAttachShader(program,compile(GL_VERTEX_SHADER,std::string("#version 450\n#define VERTEX 1\n")+glideShader));
+        glAttachShader(program,compile(GL_FRAGMENT_SHADER,std::string("#version 450\n#define FRAGMENT 1\n")+glideShader));glLinkProgram(program);glUseProgram(program);
         float identity[]={1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};glUniformMatrix4fv(glGetUniformLocation(program,"u_MVP"),1,GL_FALSE,identity);
         glUniform1i(glGetUniformLocation(program,"u_Texture"),0);glUniformBlockBinding(program,glGetUniformBlockIndex(program,"ubo_Colors"),7);
         glEnable(GL_BLEND);

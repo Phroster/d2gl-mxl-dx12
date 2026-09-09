@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.13.svg" alt="MXL Smooth Motion DX12 1.13" width="880">
+  <img src="docs/banner-dx12-v1.14.svg" alt="MXL Smooth Motion DX12 1.14" width="880">
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip"><strong>Download 1.13</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.14/mxl-smooth-motion-dx12-1.14.zip"><strong>Download 1.14</strong></a>
 </p>
 
 - Improved performance and fewer FPS drops.
 - Smoother movement.
-- Loot effects and easier pickup.
+- Loot effects, a leveling filter and easier pickup.
 - Automatic map reveal.
 
 <a id="install--copy-paste-play"></a>
@@ -29,6 +29,8 @@
 **Updating?** Replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`; add `mxl-native-loot.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and `d2gl.mpq` to keep your settings.
 
 **Controls:** Ctrl+O for settings · Alt+Enter for fullscreen · Click loot to pick it up.
+
+**Loot filter:** The ZIP includes an optional leveling filter. [Import instructions](docs/INSTALL.md#loot-filter).
 
 [Installation guide](docs/INSTALL.md) · [Settings](docs/SETTINGS.md) · [Loot guide](docs/loot-effects-guide.md)
 

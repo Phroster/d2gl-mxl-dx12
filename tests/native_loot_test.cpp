@@ -55,6 +55,12 @@ int main(int argc,char** argv) {
         const auto& b=bases[base];
         require(b.profile<ProfileCount,"catalog profile outside animation set");
         if(b.disabled) continue;
+        if(b.gear && !b.jewel) {
+            for(unsigned mode:{3u,5u}) for(unsigned quality:{1u,2u,3u}) for(unsigned eth:{0u,0x400000u}) {
+                const auto runeword=classify(4,mode,base,quality,0x4000810u|eth,150,150);
+                require(runeword.profile==(b.sacred?P_SacredRuneword:P_Runeword),"finished runeword hidden by base progression");
+            }
+        }
         if(b.gear && !b.jewel && !b.profile) require(!classify(4,3,base,4,0,120).rank,"ordinary blue gear gained effects");
         if(b.tier && !b.profile) {
             require(classify(4,3,base,6,0,cutoff[b.tier]-1).profile==P_Rare,"leveling rare omitted");

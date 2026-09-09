@@ -19,7 +19,9 @@ PROFILES=[('None',0,0,'Beam'),
  ('Cycle',2,3,'Shrine'),('LargeCycle',3,3,'Shrine'),('GoldenCycle',4,1,'Shrine'),
  ('Essence',2,0,'Arcane'),('Special',3,3,'Quest'),('Scroll',2,3,'Quest'),
  ('Cache',2,1,'Treasure'),('Treasure',3,1,'Treasure'),('CraftScroll',3,3,'Shrine'),('Dye',2,3,'Orb'),
- ('HealingPotion',1,4,'Orb'),('ManaPotion',1,0,'Orb')]
+ ('HealingPotion',1,4,'Orb'),('ManaPotion',1,0,'Orb'),
+ # Finished runewords reuse the accepted gold rune artwork at two ranks.
+ ('Runeword',2,1,'Rune'),('SacredRuneword',3,1,'Rune')]
 PROFILE_ID={p[0]:i for i,p in enumerate(PROFILES)}
 CRAFT={'Ancient Armor','Light Plate','Leather Gloves','Gauntlets','Boots','Greaves','Light Belt','Plated Belt','Circlet','Diadem','Warp Blade','Naginata','Reflex Bow','Recurve Bow','Stinger Crossbow','War Scepter','Flamen Staff','Bonesplitter','Blackguard Helm','Hundsgugel','Setzschild','Gilded Shield','Aerin Shield','Ceremonial Armor','Scythe','Raptor Scythe'}
 SUPERIOR={'Warp Blade','Naginata','Reflex Bow','Recurve Bow','Stinger Crossbow','War Scepter','Crystal Sword','Kriegsmesser','Ancient Armor','Light Plate','Diadem','Plated Belt','Greaves','Gauntlets','Scythe','Raptor Scythe'}

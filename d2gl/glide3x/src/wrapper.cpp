@@ -61,7 +61,7 @@ void Wrapper::reportTextureCache()
 	m_cache_report_time = now;
 	std::ofstream out(std::filesystem::path(helpers::getCurrentDir()) /
 		("mxl-sprite-cache-" + std::to_string(GetCurrentProcessId()) + ".log"), std::ios::app);
-	out << "frame_safe_cache frame=" << ctx->getFrameCount() << " reclaimed_slots=" << stats.reclaimed_slots
+	out << "frame_safe_cache layout=width-height-v2 frame=" << ctx->getFrameCount() << " reclaimed_slots=" << stats.reclaimed_slots
 		<< " exhausted=" << stats.exhausted << " missing_source=" << stats.missing_source
 		<< " skipped_sprites=" << m_skipped_sprites;
 	for (const auto size : {256, 128, 64, 32, 16, 8}) out << " used_" << size << '=' << m_texture_manager->getUsage(size);

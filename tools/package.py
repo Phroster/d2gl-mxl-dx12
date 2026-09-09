@@ -9,11 +9,12 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = "mxl-smooth-motion-dx12-1.13"
+NAME = "mxl-smooth-motion-dx12-1.14"
 REPOSITORY = "https://github.com/Phroster/d2gl-mxl-dx12"
 PLAYER_FILES = frozenset({
     "glide3x.dll", "ddraw.dll", "d2gl.mpq", "d2gl.ini", "d2fps.ini",
     "mxl-diagnostics.ini", "mxl-native-loot.ini", "LICENSES.txt",
+    "mxl-loot-filter.json",
 })
 
 
@@ -23,7 +24,7 @@ def sha256(data):
 
 def license_notices(commit, dependencies):
     sections = [
-        "MXL Smooth Motion DX12 1.13 - copyright, licenses and source\n\n"
+        "MXL Smooth Motion DX12 1.14 - copyright, licenses and source\n\n"
         "The modified D2GL code is free software under GNU GPL version 3\n"
         "or (at your option) any later version. It comes WITHOUT ANY WARRANTY.\n"
         "Original D2GL: Copyright (C) 2023 Bayaraa.\n"
@@ -66,6 +67,7 @@ def main():
         "d2fps.ini": ROOT / "defaults/d2fps.ini",
         "mxl-diagnostics.ini": ROOT / "mxl-diagnostics.ini",
         "mxl-native-loot.ini": ROOT / "mxl-native-loot.ini",
+        "mxl-loot-filter.json": ROOT / "defaults/mxl-loot-filter.json",
     }
     files = {name: path.read_bytes() for name, path in inputs.items()}
     diagnostics = configparser.ConfigParser()
@@ -78,6 +80,11 @@ def main():
         raise ValueError("Release loot effects must default to on")
     if loot.getint("NativeLoot", "ClickEffects") != 1:
         raise ValueError("Release effect pickup must default to on")
+    profile = json.loads(files["mxl-loot-filter.json"])
+    if set(profile) != {"name", "rules", "default_show_items"} or not profile["default_show_items"] or not profile["rules"]:
+        raise ValueError("Expected one portable native filter profile")
+    if any(not r["show_item"] and (r["notify"] or r["automap"]) for r in profile["rules"]):
+        raise ValueError("Hidden items must not notify or mark the map")
     ini = (ROOT / "defaults/d2gl.ini").read_text(encoding="utf-8")
     ini = ini.replace(
         "; Preferred OpenGL Version (must be 3.3 or between 4.0 to 4.6).\ngl_ver_major=4\ngl_ver_minor=6",
@@ -106,11 +113,13 @@ def main():
     temporary.replace(archive)
     digest = sha256(archive.read_bytes())
     manifest = {
-        "product": "MXL Smooth Motion DX12", "version": "1.13",
+        "product": "MXL Smooth Motion DX12", "version": "1.14",
         "source_commit": commit, "source_repository": REPOSITORY,
         "performance_recording_default": False, "automatic_act_reveal": True,
         "native_loot_effects_default": True,
         "native_loot_pickup_default": True,
+        "native_filter_profile": profile["name"],
+        "native_filter_import_required": True,
         "zip_sha256": digest,
         "files": [{"name": name, "bytes": len(data), "sha256": sha256(data)}
                   for name, data in sorted(files.items())],

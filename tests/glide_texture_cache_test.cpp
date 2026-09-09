@@ -69,6 +69,21 @@ int main() {
         require(cache.stats().reclaimed_slots > 3000, "pressure diagnostics did not count reclamation");
         require(!cache.getSubTextureInfo(999999, 256, 256, 256, 1008), "missing source was accepted");
         require(cache.stats().missing_source == 1, "missing source diagnostics");
+        // Different native cell shapes can have identical packed bytes. In
+        // particular a transparent 256x128 landing frame and a 128x256 cell
+        // hash identically. Reusing only the first rectangle leaves old art
+        // visible in the lower part of the second rectangle.
+        cache.clearCache();
+        std::vector<uint8_t> atlas(512*512,0xa7);
+        TextureManager shapes({{256,1}},[&](const uint8_t* pixels,const SubTextureInfo& slot,uint16_t w,uint16_t h) {
+            for(unsigned y=0;y<h;++y)std::copy_n(pixels+y*w,w,atlas.data()+(slot.offset.y+y)*512+slot.offset.x);
+        });
+        std::fill(bytes.begin(),bytes.end(),0);g_glide_texture.hash[0]=123;
+        const auto wide=*shapes.getSubTextureInfo(0,256,256,128,1);
+        const auto tall=*shapes.getSubTextureInfo(0,256,128,256,1);
+        for(unsigned y=0;y<256;++y)for(unsigned x=0;x<128;++x)
+            require(atlas[(tall.offset.y+y)*512+tall.offset.x+x]==0,"changed sprite shape exposed stale atlas pixels");
+        require(id(wide)!=id(tall),"different sprite shapes shared a queued texture slot");
         std::cout << "PASS: production sprite cache pressure, frame pinning, animation versions and reset.\n";
     } catch (const std::exception& e) { std::cerr << "FAIL: " << e.what() << '\n'; return 1; }
 }

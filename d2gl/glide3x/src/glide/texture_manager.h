@@ -35,7 +35,7 @@ struct SubTextureInfo {
 
 struct TextureCache {
 	uint32_t last_used_frame = 0;
-	std::unordered_map<uint32_t, uint16_t> items;
+	std::unordered_map<uint64_t, uint16_t> items;
 };
 
 struct TextureManagerData {

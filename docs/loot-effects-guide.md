@@ -36,6 +36,7 @@ for remembered items. This applies only to items selected for effects.
 | Signets | Floating gold seals, with more height and light for greater signets |
 | Uniques / sacred uniques / sets | Tall gold or green beams; sacred equipment gets an even taller pillar and star crown |
 | Rares | Small amber marks while leveling; sacred rares get brighter marks |
+| Finished runewords | Gold rune effects; sacred runewords get a taller effect and larger name |
 | Useful sacred bases | Blue ground brackets or glow; ethereal bases get extra emphasis |
 | Sacred scythes | A floating crescent; sacred unique/set scythes add a gold/green beam |
 | Relics, effigies and unique mystic orbs | Large magical symbols and orbiting light; relics and unique orbs get top-level beams |
@@ -45,7 +46,7 @@ for remembered items. This applies only to items selected for effects.
 | Caches and treasure | A chest-shaped marker with a burst of light |
 | Named endgame rewards | Explicit coverage for mirrors, brands, winds, tenets, marks, crafting scrolls and other untyped rewards |
 
-There are 64 item profiles across 13 visual families. Related materials can share artwork. These
+There are 66 item profiles across 13 visual families. Related materials can share artwork. These
 priorities describe item category and progression, not trade prices or affix rolls.
 
 The effects follow the existing cleanup preferences: imperfect gems stop
@@ -54,10 +55,14 @@ levels 31/51/77/90. Health and mana potion grades 1/2/3/4 stop at character
 levels 20/40/70/110; the strongest potions remain eligible.
 Uniques, sets, crafted and honorific equipment remain eligible. Ordinary blue
 equipment stays quiet, while crafting jewels retain a small glimmer.
+Finished runewords keep their effect and permanent name at every level, even
+when their ordinary base would be filtered out. This also covers player drops.
 
 These effect categories use the included item catalog and progression rules,
 not a live reading of your filter configuration. Your native filter still
-controls its own labels, notifications and map markers. Effects
+controls its own labels, notifications and map markers. The optional included
+filter preserves the selected sacred bases with silent map markers; see
+[import instructions](INSTALL.md#loot-filter). Effects
 are capped at 12 small, 24 medium and 24 large items per frame; large loot has a
 separate allowance so common items cannot consume it. A crowded pile may exceed
 those visual limits. Animation artwork is included in the renderer and loaded

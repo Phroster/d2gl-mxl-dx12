@@ -54,11 +54,15 @@ std::filesystem::path directory;
 using SelectionUpdate = void(__stdcall*)();
 using Selectable = int(__stdcall*)(d2::UnitAny*,int,int,int);
 using CursorItem = d2::UnitAny*(__stdcall*)(void*);
-using ItemName = void(__stdcall*)(d2::UnitAny*,wchar_t*,uint32_t);
+// Sigma's third argument requests a base-only name; it is not a buffer size.
+// Its own tooltip uses a 512-wchar buffer and passes zero for the full name.
+using ItemName = int(__stdcall*)(d2::UnitAny*,wchar_t*,int);
+using ItemColor = uint32_t(__fastcall*)(d2::UnitAny*);
 SelectionUpdate originalSelection=nullptr;
 Selectable selectable=nullptr;
 CursorItem cursorItem=nullptr;
 ItemName itemName=nullptr;
+ItemColor itemColor=nullptr;
 void *selectAddress=nullptr,*worldMouseAddress=nullptr;
 uint32_t *selectionLocked=nullptr,*cursorAction=nullptr;
 bool pickupActive=false,hoveredValid=false;
@@ -85,6 +89,8 @@ std::array<mxl::native_loot::HoverLabel,60> groundLabels{};
 unsigned groundLabelCount=0;
 bool labelsPainted=false;
 uint64_t permanentLabels=0,nameFormats=0,fallingLabels=0,emptyNameRetries=0;
+unsigned nameDiagnostics=0;
+std::array<mxl::native_loot::GroundEntry,16> nameDiagnosticItems{};
 uint64_t labelPlacements=0,labelMoves=0,labelSpaceLimited=0;
 using StartupClock=std::chrono::steady_clock;
 double startupTotalMs=0,startupHashMs=0,startupUnpackMs=0,startupNormalizeMs=0;
@@ -127,6 +133,7 @@ void report(const char* status)
             mxl::native_loot::spectacle_scale(1),mxl::native_loot::spectacle_scale(2),
             mxl::native_loot::spectacle_scale(3),mxl::native_loot::spectacle_scale(4));
         std::fprintf(f,"  falling_labels=%llu empty_name_retries=%llu\n",fallingLabels,emptyNameRetries);
+        std::fprintf(f,"  name_formatter=sigma-708d0 equipment_colors=sigma-713d0 ready=%d\n",itemName && itemColor);
         std::fprintf(f,"  label_layout=value-stacks placements=%llu moved=%llu space_limited=%llu\n",labelPlacements,labelMoves,labelSpaceLimited);
         std::fprintf(f,"  startup_ms=%.3f hash_ms=%.3f unpack_ms=%.3f normalize_ms=%.3f embedded_assets=%u\n",
             startupTotalMs,startupHashMs,startupUnpackMs,startupNormalizeMs,startupAssets);
@@ -195,10 +202,26 @@ NameEntry& nameFor(d2::UnitAny* unit,const mxl::native_loot::GroundEntry& entry,
         // rather than caching an empty result for the normal five seconds.
         if(slot->used && mxl::native_loot::same_identity(slot->item,entry) && !slot->text[0]) ++emptyNameRetries;
         *slot={};slot->used=true;slot->item=entry;slot->flags=data.dwFlags;slot->quality=unsigned(data.dwQuality);
-        // The same native 1.13c item-name formatter used by ground/inventory
-        // labels. No selection changes and no names guessed from rarity.
-        itemName(unit,slot->text.data(),uint32_t(slot->text.size()-1));
+        // Use the formatter called by Sigma's inventory tooltip. The stock
+        // D2Client formatter indexes rare affixes one record earlier.
+        if(!itemName(unit,slot->text.data(),0)) slot->text[0]=0;
         slot->text.back()=0;slot->updated=now;++nameFormats;
+        // Bounded evidence for later name/quality reports; no per-frame I/O.
+        if(slot->text[0] && unsigned(data.dwQuality)>=6 && unsigned(data.dwQuality)<=9
+            && nameDiagnostics<nameDiagnosticItems.size()
+            && std::none_of(nameDiagnosticItems.begin(),nameDiagnosticItems.begin()+nameDiagnostics,
+                [&](const auto& old) { return mxl::native_loot::same_identity(old,entry); })) {
+            nameDiagnosticItems[nameDiagnostics++]=entry;
+            std::array<char,2048> utf8{};
+            WideCharToMultiByte(CP_UTF8,0,slot->text.data(),-1,utf8.data(),int(utf8.size()),nullptr,nullptr);
+            for(auto& c:utf8) if(c=='\n' || c=='\r') c='|';
+            const auto path=directory/("mxl-native-loot-"+std::to_string(GetCurrentProcessId())+".log");
+            if(FILE* f=_wfopen(path.c_str(),L"a")) {
+                std::fprintf(f,"  sigma_item_name id=%u base=%u quality=%u color=%u rare_prefix=%u rare_suffix=%u name=%s\n",
+                    entry.id,entry.base,unsigned(data.dwQuality),itemColor(unit),unsigned(data.wRarePrefix),unsigned(data.wRareSuffix),utf8.data());
+                std::fclose(f);
+            }
+        }
     }
     slot->lastSeen=now;
     return *slot;
@@ -512,7 +535,14 @@ void initialize()
     active = result == NO_ERROR;
     report(active ? "enabled: bigger native loot, star showers, tall beams and pulses (spectacle-v5)" : "disabled: draw hooks could not attach");
     if(!active) return;
-    itemName=reinterpret_cast<ItemName>(client+0x914f0);
+    const auto sigma=reinterpret_cast<uint8_t*>(GetModuleHandleW(L"D2Sigma.dll"));
+    const uint8_t nameEntry[]={0x81,0xec,0x88,0x02,0x00,0x00,0x53,0x55,0x56,0x8b,0xb4,0x24,0x98,0x02,0x00,0x00,0x57};
+    const uint8_t colorEntry[]={0x53,0x57,0x8b,0xf9,0x85,0xff};
+    if(!std::memcmp(sigma+0x708d0,nameEntry,sizeof(nameEntry))
+        && !std::memcmp(sigma+0x713d0,colorEntry,sizeof(colorEntry))) {
+        itemName=reinterpret_cast<ItemName>(sigma+0x708d0);
+        itemColor=reinterpret_cast<ItemColor>(sigma+0x713d0);
+    } else report("permanent labels disabled: Sigma name/color entry differs from verified build");
     if(!GetPrivateProfileIntW(L"NativeLoot",L"ClickEffects",1,ini.c_str())) return;
     // Check relocated absolute operands as well as opcodes. Refuse interaction
     // if another component has changed any of the verified entry points.
@@ -698,7 +728,8 @@ void drawLabels()
                 old.relative.right+pos.x-padding,old.relative.bottom+pos.y-padding};
             request.hasPrevious=true;break;
         }
-        draws[count++]={i,look.rank,look.colour,unit->v110.dwMode,pos,name.text.data(),selected==unit};
+        const auto color=mxl::native_loot::loot_label_color(itemColor(unit),look.colour,base.gear || base.jewel);
+        draws[count++]={i,look.rank,color,unit->v110.dwMode,pos,name.text.data(),selected==unit};
     }
     mxl::native_loot::arrange_loot_labels({requests.data(),count},
         mxl::native_loot::world_input_rect(viewport.panels,viewport.width,viewport.height));
@@ -706,8 +737,7 @@ void drawLabels()
         const auto& request=requests[i];const auto& draw=draws[i];
         if(!request.visible) { ++labelSpaceLimited;continue; }
         const auto& bounds=request.placed;
-        constexpr uint32_t colors[]={3,4,2,11,1,0};
-        if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,colors[draw.colour],draw.rank,draw.hovered)) continue;
+        if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,draw.colour,draw.rank,draw.hovered)) continue;
         constexpr int padding=mxl::native_loot::loot_label_padding;
         groundLabels[groundLabelCount++]={pickItems[draw.item],
             {bounds.left-draw.anchor.x-padding,bounds.top-draw.anchor.y-padding,
