@@ -297,7 +297,7 @@ bool HDText::drawText(const wchar_t* str, int x, int y, uint32_t color, uint32_t
 	return true;
 }
 
-bool HDText::drawLootLabel(const wchar_t* str,int x,int y,uint32_t color,unsigned rank,bool hovered,glm::ivec4& bounds)
+bool HDText::prepareLootLabel(const wchar_t* str,unsigned rank,glm::vec2& size,glm::vec2& padding)
 {
 	if(!str || !*str || !getFont(16)) return false;
 	rank=glm::clamp(rank,1u,4u);
@@ -306,14 +306,28 @@ bool HDText::drawLootLabel(const wchar_t* str,int x,int y,uint32_t color,unsigne
 	if(!font) font=getFont(16)->scaledCopy(scale);
 	font->setSize();
 	const auto text=font->getTextSize(str);
+	padding=glm::vec2(3.4f,glm::max(1.4f,(18.f-getFont(16)->getFontSize())/2.f))*scale;
+	size=text+padding*2.f;
+	return true;
+}
+
+bool HDText::measureLootLabel(const wchar_t* str,unsigned rank,glm::ivec2& size)
+{
+	glm::vec2 measured{},padding{};
+	if(!prepareLootLabel(str,rank,measured,padding)) return false;
+	size={int(std::ceil(measured.x)),int(std::ceil(measured.y))};
+	return size.x>0 && size.y>0;
+}
+
+bool HDText::drawLootLabel(const wchar_t* str,int left,int top,uint32_t color,unsigned rank,bool hovered)
+{
+	glm::vec2 size{},padding{};
+	// Measuring other labels updates the shared rank font's line widths. Restore
+	// this name's metrics immediately before drawing, including multiline names.
+	if(!prepareLootLabel(str,rank,size,padding)) return false;
+	auto& font=m_loot_fonts[glm::clamp(rank,1u,4u)-1];
 	const float fontSize=font->getFontSize();
-	const glm::vec2 padding=glm::vec2(3.4f,glm::max(1.4f,(18.f-getFont(16)->getFontSize())/2.f))*scale;
-	const glm::vec2 size=text+padding*2.f;
-	const auto area=mxl::native_loot::world_input_rect(*d2::screen_shift,*d2::screen_width,*d2::screen_height);
-	if(area.right<=area.left || area.bottom<=area.top || size.x>area.right-area.left-4) return false;
-	glm::vec2 pos{float(x)-size.x*.5f,float(y)-12.f-size.y};
-	pos.x=glm::clamp(pos.x,float(area.left+2),float(area.right-2)-size.x);
-	pos.y=glm::clamp(pos.y,float(area.top+2),float(area.bottom-2)-size.y);
+	const glm::vec2 pos{float(left),float(top)};
 	// Four cached fonts share the existing atlas and follow effect importance.
 	// Inventory tooltips and other text keep their own font sizes.
 	m_object_bg->setFlags(2);
@@ -323,7 +337,6 @@ bool HDText::drawLootLabel(const wchar_t* str,int x,int y,uint32_t color,unsigne
 	font->setAlign(TextAlign::Center);font->setShadow(0);
 	font->setMasking(false);font->setOpacity(1.f);
 	font->drawText(str,pos+padding+glm::vec2(0,fontSize),g_text_colors.at(getColor(color)),true);
-	bounds={int(std::floor(pos.x)),int(std::floor(pos.y)),int(std::ceil(pos.x+size.x)),int(std::ceil(pos.y+size.y))};
 	return true;
 }
 

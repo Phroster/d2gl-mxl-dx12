@@ -1,6 +1,6 @@
 # Native loot effects implementation
 
-Release 1.12 uses animated Diablo sprites for real ground items, with readable
+Release 1.13 uses animated Diablo sprites for real ground items, with readable
 names and optional click-to-pickup interaction. The included 2,468-base catalog
 has 64 item profiles. See the [loot guide](loot-effects-guide.md) for categories,
 progression rules and controls. These categories describe visual importance,
@@ -52,6 +52,14 @@ Names come from the native item-name formatter, with a bounded cache. Labels
 follow both dropping and grounded items; a missing name is retried on the next
 draw. The four rank scales are 0.95, 1.10, 1.25 and 1.40 relative to the normal
 dropped-item font, in addition to the user's HD text scale.
+
+Nearby names are measured before drawing and arranged into stacks ordered by
+effect importance, item quality and equipment tier. Full multiline bounds and
+clickable borders stay separate. Stable item identities retain settled positions;
+inventory panels and the HUD bound the available area. Dense piles use another
+column when a stack fills the visible height. Label sizes and effect artwork
+are unchanged. The label layout regression covers ordering, spacing, clicking,
+camera movement, panel boundaries and the full 60-item draw budget.
 
 A guarded native selection-update hook extends item selection to visible effect
 and label bounds. It uses native item eligibility and respects menus, the HUD,

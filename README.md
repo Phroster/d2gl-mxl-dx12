@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.12.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.13.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.12/mxl-smooth-motion-dx12-1.12.zip"><strong>⬇️ Download 1.12</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip"><strong>⬇️ Download 1.13</strong></a>
   &nbsp; · &nbsp;
   <a href="#install--copy-paste-play">📦 Installation</a>
   &nbsp; · &nbsp;
@@ -25,6 +25,7 @@
 - **Automatic map reveal** when you enter an act.
 - **Loot that stands out:** beams, sparkles and glowing pulses for valuable drops, with bigger effects for your best finds.
 - **Easy loot pickup:** readable names stay visible above selected drops. Click the glow or name to pick them up, even with your inventory open.
+- **Readable loot piles:** names stack without overlapping, with the best finds on top.
 
 The game runs at its normal speed, and the frame rate follows your monitor by default. Performance depends on your PC and graphics settings.
 
@@ -36,7 +37,7 @@ The game runs at its normal speed, and the frame rate follows your monitor by de
 
    ![Launcher settings](docs/launcher-settings.png)
 
-2. **Close the game and launcher.** [Download 1.12](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.12/mxl-smooth-motion-dx12-1.12.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
+2. **Close the game and launcher.** [Download 1.13](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
 
 3. **Copy the extracted files** into your Median XL game folder, next to `Game.exe`. Replace files when asked.
 
@@ -80,7 +81,7 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 ---
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.12/mxl-smooth-motion-dx12-1.12.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.12</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.13</strong></a>
 </p>
 
 <details>

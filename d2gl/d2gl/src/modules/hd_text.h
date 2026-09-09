@@ -88,7 +88,8 @@ public:
 
 	bool drawText(const wchar_t* str, int x, int y, uint32_t color, uint32_t centered, uint32_t trans_lvl = 5);
 	bool drawFramedText(const wchar_t* str, int x, int y, uint32_t color, uint32_t centered);
-	bool drawLootLabel(const wchar_t* str,int x,int y,uint32_t color,unsigned rank,bool hovered,glm::ivec4& bounds);
+	bool measureLootLabel(const wchar_t* str,unsigned rank,glm::ivec2& size);
+	bool drawLootLabel(const wchar_t* str,int left,int top,uint32_t color,unsigned rank,bool hovered);
 	bool drawRectangledText(const wchar_t* str, int x, int y, uint32_t rect_transparency, uint32_t color);
 	bool drawSolidRect(int left, int top, int right, int bottom, uint32_t color, int draw_mode);
 
@@ -120,6 +121,7 @@ public:
 	static void drawItemQuantity(bool draw, int x = 0, int y = 0);
 
 private:
+	bool prepareLootLabel(const wchar_t* str,unsigned rank,glm::vec2& size,glm::vec2& padding);
 	void drawMonsterHealthBar(d2::UnitAny* unit);
 	void drawPlayerHealthBar(d2::UnitAny* unit);
 

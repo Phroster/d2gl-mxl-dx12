@@ -8,6 +8,7 @@
 #include "native_loot_rules.h"
 #include "native_loot_layer.h"
 #include "native_loot_pickup.h"
+#include "native_loot_labels.h"
 #include "option/menu.h"
 #include "hd_text.h"
 #include <detours/detours.h>
@@ -83,6 +84,7 @@ std::array<mxl::native_loot::HoverLabel,60> groundLabels{};
 unsigned groundLabelCount=0;
 bool labelsPainted=false;
 uint64_t permanentLabels=0,nameFormats=0,fallingLabels=0,emptyNameRetries=0;
+uint64_t labelPlacements=0,labelMoves=0,labelSpaceLimited=0;
 using StartupClock=std::chrono::steady_clock;
 double startupTotalMs=0,startupHashMs=0,startupUnpackMs=0,startupNormalizeMs=0;
 unsigned startupAssets=0;
@@ -121,6 +123,7 @@ void report(const char* status)
             mxl::native_loot::spectacle_scale(1),mxl::native_loot::spectacle_scale(2),
             mxl::native_loot::spectacle_scale(3),mxl::native_loot::spectacle_scale(4));
         std::fprintf(f,"  falling_labels=%llu empty_name_retries=%llu\n",fallingLabels,emptyNameRetries);
+        std::fprintf(f,"  label_layout=value-stacks placements=%llu moved=%llu space_limited=%llu\n",labelPlacements,labelMoves,labelSpaceLimited);
         std::fprintf(f,"  startup_ms=%.3f hash_ms=%.3f unpack_ms=%.3f normalize_ms=%.3f embedded_assets=%u\n",
             startupTotalMs,startupHashMs,startupUnpackMs,startupNormalizeMs,startupAssets);
         for(unsigned i=1;i<profileDraws.size();++i) if(profileDraws[i])
@@ -651,10 +654,21 @@ void inputMessage(unsigned message)
 void drawLabels()
 {
     if(!active || !itemName || labelsPainted || !floorPainted || App.game.screen!=GameScreen::InGame) return;
+    const auto previousLabels=groundLabels;
+    const auto previousCount=groundLabelCount;
     labelsPainted=true;groundLabelCount=0;
     if(d2::isEscMenuOpen() || option::Menu::instance().isVisible()) return;
     const auto viewport=view();const auto now=GetTickCount();
     auto* selected=d2::getSelectedUnit();
+    struct DrawLabel {
+        unsigned item=0,rank=0,colour=0,mode=0;
+        glm::ivec2 anchor{};
+        const wchar_t* name=nullptr;
+        bool hovered=false;
+    };
+    std::array<DrawLabel,60> draws{};
+    std::array<mxl::native_loot::LootLabelRequest,60> requests{};
+    unsigned count=0;
     for(unsigned i=0;i<pickCount;++i) {
         const auto& entry=pickItems[i];
         if(!(entry.view==viewport)) continue;
@@ -665,12 +679,39 @@ void drawLabels()
         const auto pos=anchor(unit,viewport.perspective)+glm::ivec2(entry.localX,entry.localY);
         if(!mxl::native_loot::world_input_point(viewport.panels,viewport.width,viewport.height,pos.x,pos.y)) continue;
         const auto& name=nameFor(unit,entry,now);
-        glm::ivec4 bounds{};
+        glm::ivec2 size{};
+        if(!HDText::Instance().measureLootLabel(name.text.data(),look.rank,size)) continue;
+        auto& request=requests[count];
+        const int left=pos.x-size.x/2,top=pos.y-12-size.y;
+        const auto& base=mxl::native_loot::bases[unit->v110.dwClassId];
+        request.wanted={left,top,left+size.x,top+size.y};request.id=entry.id;
+        request.priority=mxl::native_loot::loot_label_priority(look.rank,unsigned(unit->v110.pItemData->dwQuality),base.tier,base.sacred);
+        for(unsigned j=0;j<previousCount;++j) {
+            const auto& old=previousLabels[j];
+            if(!old.valid || uint32_t(now-old.painted)>120 || !mxl::native_loot::same_ground(old.item,entry)) continue;
+            constexpr int padding=mxl::native_loot::loot_label_padding;
+            request.previous={old.relative.left+pos.x+padding,old.relative.top+pos.y+padding,
+                old.relative.right+pos.x-padding,old.relative.bottom+pos.y-padding};
+            request.hasPrevious=true;break;
+        }
+        draws[count++]={i,look.rank,look.colour,unit->v110.dwMode,pos,name.text.data(),selected==unit};
+    }
+    mxl::native_loot::arrange_loot_labels({requests.data(),count},
+        mxl::native_loot::world_input_rect(viewport.panels,viewport.width,viewport.height));
+    for(unsigned i=0;i<count;++i) {
+        const auto& request=requests[i];const auto& draw=draws[i];
+        if(!request.visible) { ++labelSpaceLimited;continue; }
+        const auto& bounds=request.placed;
         constexpr uint32_t colors[]={3,4,2,11,1,0};
-        if(!HDText::Instance().drawLootLabel(name.text.data(),pos.x,pos.y,colors[look.colour],look.rank,selected==unit,bounds)) continue;
-        groundLabels[groundLabelCount++]={entry,{bounds.x-pos.x-3,bounds.y-pos.y-3,bounds.z-pos.x+3,bounds.w-pos.y+3},now,true};
+        if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,colors[draw.colour],draw.rank,draw.hovered)) continue;
+        constexpr int padding=mxl::native_loot::loot_label_padding;
+        groundLabels[groundLabelCount++]={pickItems[draw.item],
+            {bounds.left-draw.anchor.x-padding,bounds.top-draw.anchor.y-padding,
+             bounds.right-draw.anchor.x+padding,bounds.bottom-draw.anchor.y+padding},now,true};
+        ++labelPlacements;
+        if(bounds.left!=request.wanted.left || bounds.top!=request.wanted.top) ++labelMoves;
         ++permanentLabels;
-        if(unit->v110.dwMode==5 && ++fallingLabels==1) report("first loot label during drop animation");
+        if(draw.mode==5 && ++fallingLabels==1) report("first loot label during drop animation");
         if(permanentLabels==1) report("first permanent compact value-scaled loot label drawn");
     }
 }

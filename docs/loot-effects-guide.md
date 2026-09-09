@@ -8,6 +8,8 @@ Readable names stay visible above selected loot. Click its glow or name to
 pick it up, including with your inventory open and nothing held on the cursor.
 The game still handles walking, pickup range and inventory space. More important
 loot gets larger effects and labels; even common supplies keep readable names.
+Nearby names stack without overlapping, with the more valuable items above
+lesser loot. Item quality and equipment tier break ties where applicable.
 
 Keep **HD text** enabled in Ctrl+O. If Alt switches the old labels on, clear
 **Show Items** in the game's key bindings and leave its show-items toggle off.
