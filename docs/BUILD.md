@@ -29,7 +29,9 @@ With Python 3 installed:
 python tools/package.py --build-dir C:/MXL-DX12-Build
 ```
 
-The ZIP contains exactly the six installation files and one consolidated `LICENSES.txt`. Guides, images, source files and build tools stay in the repository. The packaging script checks the complete ZIP inventory, file hashes and disabled recording default. It writes the verification manifest and checksum beside the ZIP, outside the player download.
+The ZIP contains exactly seven installation files and one consolidated `LICENSES.txt`, including `mxl-native-loot.ini` with loot effects enabled. Guides, images, source files and build tools stay in the repository. The packaging script checks the complete ZIP inventory, file hashes, disabled recording and enabled loot defaults. It writes the verification manifest and checksum beside the ZIP, outside the player download.
+
+The native loot catalog and palette headers are included; no game extraction is required to build. `native_loot_test` covers classification, progression, animation cells and pulse timing. Passing a game folder as its first argument additionally verifies sprite decoding through the installed `D2CMP.dll` in an offline helper. An optional second argument exports the generated sprites for `tools/preview_native_loot.py` (requires Pillow).
 
 The notice inventory is maintained in [`licenses/player-notices.json`](../licenses/player-notices.json). Packaging checks the copied compiler license texts against the actual build dependencies. See [licensing and credits](LICENSING.md) for component terms and source references.
 

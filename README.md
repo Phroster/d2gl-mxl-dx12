@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.1.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.11.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download 1.1</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip"><strong>⬇️ Download 1.11</strong></a>
   &nbsp; · &nbsp;
   <a href="#install--copy-paste-play">📦 Installation</a>
   &nbsp; · &nbsp;
@@ -23,6 +23,7 @@
 - **Less stuttering** and fewer sudden FPS drops during combat and exploration.
 - **Smoother movement** in single player and online.
 - **Automatic map reveal** when you enter an act.
+- **Loot that stands out:** beams, sparkles and glowing pulses for valuable drops, with bigger effects for your best finds.
 
 The game runs at its normal speed, and the frame rate follows your monitor by default. Performance depends on your PC and graphics settings.
 
@@ -34,7 +35,7 @@ The game runs at its normal speed, and the frame rate follows your monitor by de
 
    ![Launcher settings](docs/launcher-settings.png)
 
-2. **Close the game and launcher.** [Download 1.1](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
+2. **Close the game and launcher.** [Download 1.11](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
 
 3. **Copy the extracted files** into your Median XL game folder, next to `Game.exe`. Replace files when asked.
 
@@ -42,12 +43,13 @@ The game runs at its normal speed, and the frame rate follows your monitor by de
 
 **Keep the game's existing `d2fps.dll` — it is required.**
 
-**Already installed?** Close the game and launcher, then replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and matching `d2gl.mpq` to preserve your settings.
+**Already installed?** Close the game and launcher, then replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`. Add `mxl-native-loot.ini` for loot effects. Keep your existing `d2gl.ini`, `d2fps.ini` and matching `d2gl.mpq` to preserve your settings.
 
 ## ⚙️ Quick settings
 
 - **Ctrl+O:** change graphics options. Open the **FPS** tab to set a frame-rate limit; save and restart afterward.
 - **Alt+Enter:** switch between fullscreen and windowed mode.
+- **Loot effects:** on by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. [Loot guide](docs/loot-effects-guide.md).
 - **Optional ReShade:** select `Game.exe` and **DirectX 10/11/12** in the [ReShade installer](https://reshade.me).
 
 [Full settings guide](docs/SETTINGS.md) · [Installation and backups](docs/INSTALL.md)
@@ -76,7 +78,7 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 ---
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.1</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.11</strong></a>
 </p>
 
 <details>

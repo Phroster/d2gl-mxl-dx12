@@ -34,6 +34,7 @@
 #include "diagnostics.h"
 #include "auto_reveal.h"
 #include "tile_cache.h"
+#include "modules/native_loot.h"
 
 namespace d2gl {
 namespace {thread_local uint64_t diagnostic_build_start=0;}
@@ -677,6 +678,7 @@ void Context::setBlendState(uint32_t index)
 
 void Context::beginFrame()
 {
+    modules::NativeLoot::beginFrame();
     mxl::reveal::begin_frame(App.hwnd);
     diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
     mxl::tiles::begin_frame(App.game.screen==GameScreen::InGame);

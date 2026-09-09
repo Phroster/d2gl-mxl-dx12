@@ -24,6 +24,7 @@
 #include "modules/motion_prediction.h"
 #include "stubs.h"
 #include "auto_reveal.h"
+#include "modules/native_loot.h"
 
 namespace d2gl::d2 {
 
@@ -254,6 +255,7 @@ void __stdcall drawImageHooked(CellContext* cell, int x, int y, uint32_t gamma, 
 
 	if (modules::HDText::Instance().drawImage(cell, x, y, draw_mode)) {
 		const auto pos = modules::MotionPrediction::Instance().drawImage(x, y, D2DrawFn::Image, gamma, draw_mode);
+		modules::NativeLoot::capture(pos.x, pos.y);
 		drawImage(cell, pos.x, pos.y, gamma, draw_mode, palette);
 	}
 

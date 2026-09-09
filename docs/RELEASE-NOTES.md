@@ -1,78 +1,26 @@
-# 🎮 MXL Smooth Motion DX12 1.1
+# MXL Smooth Motion DX12 1.11
 
-**Smoother movement, steadier battles and sharper visuals for Median XL.**
+**Improved performance, smoother movement and loot that stands out.**
 
-### [⬇️ Download & play](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.1/mxl-smooth-motion-dx12-1.1.zip)
+[Download 1.11](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip)
 
-## 🚀 New in 1.1
+- Improved performance, less stuttering and fewer sudden FPS drops.
+- Smoother movement in single player and online.
+- Beams, sparkles and glowing pulses make valuable loot easier to spot.
+- Bigger effects for high runes, sacred uniques and other top finds.
+- A bright landing pulse followed by a smaller, quicker ground pulse.
+- Automatic map reveal when you enter an act.
 
-- **Fewer sound stutters in combat**, including Act V, with sound kept on.
-- **Less repeated scenery and file-loading work** as monsters, effects and new areas appear.
-- **Map reveal prepared during act loading**, before the first scene appears, with less repeated preparation.
+## Install
 
-Together, these changes help keep FPS steadier and reduce sudden drops in busy areas. Your hardware, picture settings and the scene still determine the FPS you can reach.
+Close the game and launcher, then extract the ZIP into your Median XL game folder, next to `Game.exe`. Follow the [installation guide](https://github.com/Phroster/d2gl-mxl-dx12#install--copy-paste-play) for the launcher settings.
 
-## ✨ Included
+**Updating from 1.1?** Replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`, and add `mxl-native-loot.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and matching `d2gl.mpq` to preserve your settings. **Keep the game's existing `d2fps.dll`; it is required.**
 
-- **Smooth gameplay above 25 FPS** in single player and online.
-- **Improved performance in crowded fights** with lots of enemies and effects.
-- **DirectX 12 graphics** with HD text, HD cursor, upscaling, sharpening and bloom.
-- **Automatic act map reveal** when you enter an act.
-- **ReShade support** for DirectX presets.
+Loot effects are on by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. Your lootfilter, notifications and map markers keep their existing settings.
 
-Your FPS target follows your monitor by default. Game speed stays the same.
+Requires Median XL 2.14.0, Diablo II: Lord of Destruction 1.13c, Windows 10 or newer and a DirectX 12 graphics card. Performance depends on your PC and graphics settings.
 
-## 📦 Copy, paste, play
+Thanks to Bayaraa, Jarcho, Pooquer, GavinK88, the Median XL team and the original projects' contributors. [Full credits](https://github.com/Phroster/d2gl-mxl-dx12#-credits--thanks).
 
-1. **Open the Median XL launcher** and let updates finish. Choose **Glide or DirectDraw**, turn **Windowed** off, and enable both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
-
-   ![Enable Glide3x.dll and Ddraw.dll in the launcher](https://raw.githubusercontent.com/Phroster/d2gl-mxl-dx12/v1.1/docs/launcher-settings.png)
-
-2. **Close the game and launcher.** Download and extract the ZIP above.
-
-3. **Copy these six files** into your Median XL game folder, beside `Game.exe`. Choose **Replace**.
-
-   ```text
-   glide3x.dll
-   ddraw.dll
-   d2gl.mpq
-   d2gl.ini
-   d2fps.ini
-   mxl-diagnostics.ini
-   ```
-
-4. **Start playing.** Movement smoothing and automatic map reveal turn on by themselves.
-
-**Keep the existing `d2fps.dll`.** The game still needs it. Back up your current files before replacing custom settings.
-
-The ZIP contains only the six installation files and a single `LICENSES.txt` notice. All guides, screenshots and developer tools are available in the repository.
-
-### ⬆️ Upgrading an existing installation?
-
-Replace **`glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`**. Keep your graphics/FPS INIs and matching MPQ to preserve your setup.
-
-## ⚙️ Your settings
-
-- **Ctrl+O:** graphics options and smoothing status.
-- **Ctrl+O → FPS:** FPS limit and movement settings. Save and restart after changes.
-- **Alt+Enter:** switch fullscreen and windowed mode.
-- **ReShade:** select `Game.exe` and **DirectX 10/11/12** in its installer. ReShade is downloaded separately.
-
-A new act's map is prepared during loading, which can add a short pause before play begins. Pressing **T** afterward does not repeat the full reveal.
-
-**Requires:** Median XL 2.14.0, Diablo II: Lord of Destruction 1.13c, Windows 10+ and a DirectX 12 graphics card.
-
-## 💛 Credits & thanks
-
-- **[Bayaraa](https://github.com/bayaraa/d2gl)** — D2GL's graphics, shaders, HD text/cursor and in-game menu.
-- **[Jarcho](https://github.com/Jarcho/d2-rs/tree/main/d2fps)** — D2FPS, higher frame rates and movement smoothing.
-- **Pooquer** — early Median XL adaptations of D2GL.
-- **[GavinK88](https://github.com/GavinK88/d2gl-mxl-1.0)** — the D2GL fork for Median XL.
-- **Median XL team** — the mod, its features and its community.
-- **Phroster** — MXL Smooth Motion DX12 and maintenance of this edition.
-
-Special thanks to the original projects' contributors, Blizzard North and the Diablo II modding community.
-
-[📖 Player guide](https://github.com/Phroster/d2gl-mxl-dx12#readme) · [⚙️ Settings](https://github.com/Phroster/d2gl-mxl-dx12/blob/master/docs/SETTINGS.md)
-
-[Source for this release](https://github.com/Phroster/d2gl-mxl-dx12/tree/v1.1) · [Source download](https://github.com/Phroster/d2gl-mxl-dx12/archive/refs/tags/v1.1.zip) · [Licensing & credits](https://github.com/Phroster/d2gl-mxl-dx12/blob/v1.1/docs/LICENSING.md)
+[Source for 1.11](https://github.com/Phroster/d2gl-mxl-dx12/tree/v1.11) · [Source download](https://github.com/Phroster/d2gl-mxl-dx12/archive/refs/tags/v1.11.zip) · [Licensing and credits](https://github.com/Phroster/d2gl-mxl-dx12/blob/v1.11/docs/LICENSING.md)

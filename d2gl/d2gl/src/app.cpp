@@ -20,6 +20,7 @@
 #include "d2/common.h"
 #include "helpers.h"
 #include "mxl_smoothing.h"
+#include "modules/native_loot.h"
 #include "option/ini.h"
 #include "win32.h"
 
@@ -111,6 +112,7 @@ void dllAttach(HMODULE hmodule)
 void dllDetach()
 {
 	if (App.hmodule) {
+		modules::NativeLoot::shutdown();
 		win32::destroyHooks();
 		d2::destroyHooks();
 		timeEndPeriod(1);
