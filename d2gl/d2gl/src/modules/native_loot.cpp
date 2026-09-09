@@ -9,6 +9,7 @@
 #include "native_loot_layer.h"
 #include "native_loot_pickup.h"
 #include "native_loot_labels.h"
+#include "native_loot_render.h"
 #include "option/menu.h"
 #include "hd_text.h"
 #include <detours/detours.h>
@@ -112,6 +113,9 @@ void report(const char* status)
         std::fprintf(f,"  world_calls=%llu captures=%llu queued=%u visible=%u view_rejected=%llu lookup_rejected=%llu identity_rejected=%llu second_table_matches=%llu last_xy=%d,%d\n",
             worldCalls,captures,queue.capturedCount,queue.visibleCount,viewRejected,lookupRejected,identityRejected,secondTableMatches,lastX,lastY);
         std::fprintf(f,"  character_level=%u native_sprite_draws=%llu landing_pulse_draws=%llu\n",playerLevel,spriteDraws,landingDraws);
+        std::fprintf(f,"  effect_draw_modes=%d,%d,%d,%d (native additive light)\n",
+            mxl::native_loot::effect_draw_mode(1),mxl::native_loot::effect_draw_mode(2),
+            mxl::native_loot::effect_draw_mode(3),mxl::native_loot::effect_draw_mode(4));
         std::fprintf(f,"  native_pickup=%d selection_calls=%llu hover_checks=%llu hover_selections=%llu name_draws=%llu user_pick_clicks=%llu gate_mask=%u\n",
             pickupActive,selectionCalls,hoverChecks,hoverSelections,hoverLabels,pickClicks,hoverGate);
         std::fprintf(f,"  panel_hover_selections=%llu panel_pick_clicks=%llu\n",panelHoverSelections,panelPickClicks);
@@ -327,7 +331,7 @@ void emit(d2::UnitAny* unit,int x,int y,const mxl::native_loot::GroundEntry& ent
     }
     // Resampled edges contain premultiplied light. Additive drawing lets the
     // world show through them without dark fringes around the soft edges.
-    drawAnimation(animation.file,look.rank>=2?3:5,frame);
+    drawAnimation(animation.file,mxl::native_loot::effect_draw_mode(look.rank),frame);
     ++effectDraws;
     ++profileDraws[look.profile];
     if(pickCount<pickItems.size()) pickItems[pickCount++]=entry;

@@ -1,65 +1,41 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.13.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.13.svg" alt="MXL Smooth Motion DX12 1.13" width="880">
 </p>
 
 <p align="center">
-  <strong>Improved performance, less stuttering and smoother movement for Median XL.</strong><br>
-  Easy to install and ready to play.
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip"><strong>Download 1.13</strong></a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip"><strong>⬇️ Download 1.13</strong></a>
-  &nbsp; · &nbsp;
-  <a href="#install--copy-paste-play">📦 Installation</a>
-  &nbsp; · &nbsp;
-  <a href="docs/SETTINGS.md">⚙️ Settings</a>
-</p>
-
----
-
-## ✨ What it does
-
-- **Improved performance** in busy areas and large fights.
-- **Less stuttering** and fewer sudden FPS drops during combat and exploration.
-- **Smoother movement** in single player and online.
-- **Automatic map reveal** when you enter an act.
-- **Loot that stands out:** beams, sparkles and glowing pulses for valuable drops, with bigger effects for your best finds.
-- **Easy loot pickup:** readable names stay visible above selected drops. Click the glow or name to pick them up, even with your inventory open.
-- **Readable loot piles:** names stack without overlapping, with the best finds on top.
-
-The game runs at its normal speed, and the frame rate follows your monitor by default. Performance depends on your PC and graphics settings.
+- Improved performance and fewer FPS drops.
+- Smoother movement.
+- Loot effects and easier pickup.
+- Automatic map reveal.
 
 <a id="install--copy-paste-play"></a>
 
-## 📦 How to install
+## Install
 
-1. **Open the Median XL launcher** and let it finish updating. Choose **Glide or DirectDraw**, turn **Windowed** off, and enable both **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
+1. Update through the Median XL launcher. Select **Glide or DirectDraw**, turn **Windowed** off, and enable **Glide3x.dll** and **Ddraw.dll** under **Unofficial Graphic Drivers**.
+2. Close the game and launcher. Extract the ZIP into your game folder, next to `Game.exe`, and replace the files.
+3. Launch and play. **Keep the game's existing `d2fps.dll`.**
 
-   ![Launcher settings](docs/launcher-settings.png)
+<details>
+<summary>Launcher settings</summary>
 
-2. **Close the game and launcher.** [Download 1.13](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
+![Launcher settings](docs/launcher-settings.png)
 
-3. **Copy the extracted files** into your Median XL game folder, next to `Game.exe`. Replace files when asked.
+</details>
 
-4. **Launch the game and play.** The included settings are ready to use.
+**Updating?** Replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`; add `mxl-native-loot.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and `d2gl.mpq` to keep your settings.
 
-**Keep the game's existing `d2fps.dll` — it is required.**
+**Controls:** Ctrl+O for settings · Alt+Enter for fullscreen · Click loot to pick it up.
 
-**Already installed?** Close the game and launcher, then replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`. Add `mxl-native-loot.ini` for loot effects. Keep your existing `d2gl.ini`, `d2fps.ini` and matching `d2gl.mpq` to preserve your settings.
+[Installation guide](docs/INSTALL.md) · [Settings](docs/SETTINGS.md) · [Loot guide](docs/loot-effects-guide.md)
 
-## ⚙️ Quick settings
+**Requires:** Median XL 2.14.0, Diablo II LoD 1.13c, Windows 10+ and a DirectX 12 graphics card.
 
-- **Ctrl+O:** change graphics options. Open the **FPS** tab to set a frame-rate limit; save and restart afterward.
-- **Alt+Enter:** switch between fullscreen and windowed mode.
-- **Loot pickup:** click an effect or its name without holding Alt. If Alt switches the old labels on, clear **Show Items** in the game's key bindings.
-- **Loot effects:** on by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. [Loot guide](docs/loot-effects-guide.md).
-- **Optional ReShade:** select `Game.exe` and **DirectX 10/11/12** in the [ReShade installer](https://reshade.me).
-
-[Full settings guide](docs/SETTINGS.md) · [Installation and backups](docs/INSTALL.md)
-
-## 💻 What you need
-
-Median XL **2.14.0**, Diablo II: Lord of Destruction **1.13c**, **Windows 10 or newer**, and a **DirectX 12** graphics card.
+<details>
+<summary>Credits & licenses</summary>
 
 ## 💛 Credits & thanks
 
@@ -77,15 +53,6 @@ Median XL **2.14.0**, Diablo II: Lord of Destruction **1.13c**, **Windows 10 or 
 Thanks also to **Bolrog**, **Mir Drualga**, the **libretro shader community**, **Omar Cornut**, and the many developers whose contributions are part of D2GL. Their [original acknowledgements](https://github.com/GavinK88/d2gl-mxl-1.0#credits) and [library credits](https://github.com/bayaraa/d2gl/blob/master/THIRD_PARTY_LICENSES.md) are preserved.
 
 And to **Blizzard North** and the **Diablo II modding community**: thank you for the game and the creativity that keep it alive.
-
----
-
-<p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.13/mxl-smooth-motion-dx12-1.13.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.13</strong></a>
-</p>
-
-<details>
-<summary>Source code & licensing</summary>
 
 [Build guide](docs/BUILD.md) · [Architecture](docs/ARCHITECTURE.md) · [Original projects](docs/UPSTREAM.json) · [License](LICENSE) · [Licensing & credits](docs/LICENSING.md)
 
