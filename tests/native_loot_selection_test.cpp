@@ -34,7 +34,7 @@ unsigned GetTickCount() { return 100; }
 short GetKeyState(int) { return 0; }
 bool carryingItem() { ++inventoryQueries; return carried; }
 void originalSelection() { ++nativeCalls; d2::selected=d2::nativeResult; }
-bool inputAllowed(int,int) { ++inputQueries; return !carried && !locked; }
+bool inputAllowed(int,int) { ++inputQueries; return !carryingItem() && !locked; }
 View view() { return {3,1280,720,0,false}; }
 d2::UnitAny* resolve(const GroundEntry&) { ++lookups; return alive?&d2::unit:nullptr; }
 Appearance lookFor(d2::UnitAny*) { return appearance(P_Supply); }
@@ -44,11 +44,7 @@ int worldMouse(int*,int*) { return 0; }
 bool selectable(d2::UnitAny*,int,int,int) { return alive && !carried; }
 void selectNative(d2::UnitAny* unit) { d2::selected=unit; }
 
-#ifdef MXL_LEGACY_SELECTION
-#include MXL_LEGACY_SELECTION
-#else
 #include "modules/native_loot_selection.inl"
-#endif
 
 void require(bool ok,const char* why) { if(!ok) throw std::runtime_error(why); }
 void benchmark() {
@@ -84,23 +80,42 @@ void scenarios() {
     pickCount=0;updateSelection();
     alive=true;pickCount=1;updateSelection();
     require(hoveredValid && d2::selected==&d2::unit,"Pickup did not recover after the last item disappeared.");
-    carried=true; ++inputRevision; updateSelection();
+    // Inventory can change without a window event: a retained custom target
+    // must be released immediately, even with an otherwise identical key.
+    carried=true; updateSelection();
     require(!hoveredValid && !d2::selected,"Cursor-held item did not suppress effect pickup.");
+    carried=false;++frameRevision;updateSelection();
+    require(hoveredValid && d2::selected==&d2::unit,"New draw did not resume pickup after releasing cursor item.");
+    d2::mx=1100;updateSelection();
+    require(!hoveredValid && !d2::selected,"Moving away retained a custom loot target.");
+    d2::mx=100;updateSelection();
+    require(hoveredValid && d2::selected==&d2::unit,"Moving onto loot did not select it immediately.");
     pickCount=0;carried=false;selectionCache={};
     nativeCalls=inventoryQueries=inputQueries=lookups=0;
     benchmark();
     require(nativeCalls==1000000 && !inventoryQueries && !inputQueries && !lookups,
         "Repeated empty input polling performed custom game queries.");
+    // Sixty visible effects, with the mouse away from them. The native loop
+    // still runs on every poll, but unchanged failed hover attempts must not
+    // repeatedly fetch the player inventory between rendered frames.
+    for(auto& item:pickItems) item=pickItems[0];
+    pickCount=60;d2::mx=1100;d2::my=600;
+    nativeCalls=inventoryQueries=inputQueries=lookups=0;
+    for(unsigned i=0;i<1000000;++i) {
+        if(i%1000==0) ++frameRevision;
+        updateSelection();
+    }
+    std::cout << "Visible-loot replay: polls=1000000 native_calls=" << nativeCalls
+        << " inventory_queries=" << inventoryQueries << " input_queries=" << inputQueries
+        << " unit_lookups=" << lookups << " (synthetic callbacks, not live game timing)\n";
+    require(nativeCalls==1000000 && inventoryQueries==1000 && inputQueries==1000 && lookups==60000,
+        "Unchanged missed hovers repeated inventory queries between draw frames.");
 }
 }
 int main() {
     try {
-#ifdef MXL_LEGACY_SELECTION
-        fixture::benchmark();
-#else
         fixture::scenarios();
-        std::cout << "PASS: empty-scene native input, loot appearance/removal, cached hover and held-item gates.\n";
-#endif
+        std::cout << "PASS: empty/visible loot input, appearance/removal, cached hover and held-item gates.\n";
         return 0;
     } catch(const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

@@ -15,16 +15,18 @@ void __stdcall updateSelection()
     const mxl::native_loot::SelectionKey key{frameRevision,inputRevision,*d2::screen_shift,*selectionLocked,
         unsigned(*d2::is_alt_clicked),*cursorAction,
         unsigned(*d2::cursor_state1) | (unsigned(*d2::cursor_state2)<<8) | (unsigned(*d2::cursor_state3)<<16),
-        *d2::mouse_x,*d2::mouse_y,carryingItem()};
+        *d2::mouse_x,*d2::mouse_y};
     if(!selectionCache.changed(key)) {
+        // A missed hover cannot acquire a custom target until new input or a
+        // new draw frame. Avoid querying inventory on every identical poll.
         // Retain only our already validated hover during repeated identical
-        // polls. Re-resolve its identity and native eligibility each time, so
-        // a removed/reused unit cannot remain selected between draw frames.
-        if(hoveredValid && !key.carryingItem && !*selectionLocked && hovered.view==view() && GetTickCount()-pickDrawn<=120) {
+        // polls. A retained target still needs a fresh held-item check and
+        // identity lookup, even if inventory changed without a window event.
+        if(hoveredValid && !*selectionLocked && hovered.view==view() && GetTickCount()-pickDrawn<=120 && !carryingItem()) {
             auto* unit=resolve(hovered);
             if(unit && unit->v110.dwMode==3 && d2::getSelectedUnit()==unit) return;
-            hoveredValid=false;
         }
+        hoveredValid=false;
         originalSelection();
         return;
     }

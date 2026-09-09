@@ -73,7 +73,6 @@ struct PickChoice {
 struct SelectionKey {
     uint32_t frame=0,input=0,panels=0,locked=0,alt=0,cursorAction=0,cursor=0;
     int x=0,y=0;
-    bool carryingItem=false;
     bool operator==(const SelectionKey&) const = default;
 };
 struct SelectionCache {

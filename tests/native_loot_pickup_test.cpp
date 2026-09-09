@@ -89,8 +89,6 @@ int main(int argc,char** argv) {
         state.alt=1;require(cache.changed(state),"native label mode ignored");
         state.cursorAction=1;require(cache.changed(state),"dialog/cursor action ignored");
         state.cursor=0x0606;require(cache.changed(state),"identify cursor ignored");
-        state.carryingItem=true;require(cache.changed(state),"item picked up onto cursor did not invalidate cached hover");
-        state.carryingItem=false;require(cache.changed(state),"dropping cursor item did not resume world hover");
         unsigned healing=0,mana=0;
         constexpr unsigned cutoff[]={0,20,40,70,110};
         for(unsigned i=0;i<std::size(bases);++i) {

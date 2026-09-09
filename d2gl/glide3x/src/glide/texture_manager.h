@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <list>
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -36,6 +37,7 @@ struct SubTextureInfo {
 struct TextureCache {
 	uint32_t last_used_frame = 0;
 	std::unordered_map<uint64_t, uint16_t> items;
+	std::list<uint64_t>::iterator recency;
 };
 
 struct TextureManagerData {
@@ -43,6 +45,7 @@ struct TextureManagerData {
 	std::vector<SubTextureInfo> sub_texure_info;
 	std::unordered_map<uint16_t, bool> available;
 	std::unordered_map<uint64_t, TextureCache> cache;
+	std::list<uint64_t> recency;
 };
 
 typedef std::vector<std::pair<uint16_t, uint16_t>> SubTextureCounts;
@@ -74,6 +77,8 @@ class TextureManager {
 
 public:
 	TextureManager(const SubTextureCounts& size_counts, Upload upload);
+	TextureManager(const TextureManager&) = delete;
+	TextureManager& operator=(const TextureManager&) = delete;
 	~TextureManager() = default;
 
 	inline size_t getUsage(uint16_t size) { return m_data[size].tex_count - m_data[size].available.size(); }

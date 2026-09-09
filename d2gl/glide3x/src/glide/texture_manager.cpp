@@ -117,9 +117,13 @@ const SubTextureInfo* TextureManager::acquire(uint64_t address, uint64_t hash, u
 {
 	auto& data = m_data[size];
 
-	if (data.cache.find(address) == data.cache.end())
-		data.cache.insert({ address, { frame_count } });
-	auto& cache = data.cache[address];
+	auto [entry, inserted] = data.cache.try_emplace(address);
+	auto& cache = entry->second;
+	if (inserted) {
+		data.recency.push_front(address);
+		cache.recency = data.recency.begin();
+		cache.last_used_frame = frame_count;
+	}
 
 	if (cache.last_used_frame != frame_count) {
 		for (auto it = cache.items.begin(); it != cache.items.end();) {
@@ -130,31 +134,41 @@ const SubTextureInfo* TextureManager::acquire(uint64_t address, uint64_t hash, u
 				it++;
 		}
 		cache.last_used_frame = frame_count;
+		data.recency.splice(data.recency.begin(), data.recency, cache.recency);
 	}
+	// Failed decodes and overfull frames must not accumulate empty identities.
+	const auto discardEmpty = [&] {
+		if (cache.items.empty()) {
+			data.recency.erase(cache.recency);
+			data.cache.erase(address);
+		}
+	};
 
 	if (cache.items.find(hash) == cache.items.end()) {
-		if (data.available.empty()) {
-			// Native texture addresses are reused across sizes and scenes. Entries
-			// at addresses no longer visited otherwise keep their slots forever.
-			// Keep everything referenced by this frame: its uploads are processed
-			// together before drawing, so reusing a live slot corrupts older draws.
-			for (auto it = data.cache.begin(); it != data.cache.end();) {
-				if (it->second.last_used_frame == frame_count) { ++it; continue; }
-				for (const auto& item : it->second.items) {
-					data.available[item.second] = true;
-					++m_stats.reclaimed_slots;
-				}
-				it = data.cache.erase(it);
+		while (data.available.empty() && !data.recency.empty()) {
+			// Reclaim only the oldest retired source, not the whole previous
+			// frame. Loot draws before scenery; bulk eviction otherwise forces
+			// hot scenery to upload again on each animation-cell change.
+			const auto oldest = data.cache.find(data.recency.back());
+			// First use moves a source to the front once per frame. If the
+			// oldest is live, every source is pinned by this frame's queued draws.
+			if (oldest->second.last_used_frame == frame_count) break;
+			for (const auto& item : oldest->second.items) {
+				data.available[item.second] = true;
+				++m_stats.reclaimed_slots;
 			}
+			data.recency.pop_back();
+			data.cache.erase(oldest);
 		}
 		if (data.available.empty()) {
 			++m_stats.exhausted;
+			discardEmpty();
 			return nullptr;
 		}
 
 		const auto id = data.available.begin()->first;
 		const SubTextureInfo* texture_info = &data.sub_texure_info[id];
-		if (!upload(*texture_info)) return nullptr;
+		if (!upload(*texture_info)) { discardEmpty(); return nullptr; }
 
 		cache.items.insert({ hash, id });
 		data.available.erase(id);
@@ -177,6 +191,7 @@ void TextureManager::clearCache()
 			}
 		}
 		data.cache.clear();
+		data.recency.clear();
 	}
 }
 

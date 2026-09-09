@@ -118,6 +118,8 @@ int main() {
         require(shapes.stats().immutable_uploads==1 && shapes.stats().immutable_hits==1,"immutable frames were decoded again on a cache hit");
         require(!shapes.getImmutableSubTextureInfo(1,256,128,2,[](uint8_t*) { return false; }),"invalid loot inherited a previous sprite");
         require(shapes.stats().invalid_immutable==1 && shapes.getUsage(256)==2,"failed decode consumed a slot");
+        require(shapes.getImmutableSubTextureInfo(1,256,128,2,decode)!=nullptr,
+            "failed identity could not be retried in the same frame");
         // Retire and reclaim all kinds of sprites repeatedly, as during long
         // play. Newly decoded loot must never inherit the reused atlas bytes.
         for(unsigned frame=3;frame<1003;++frame) {
