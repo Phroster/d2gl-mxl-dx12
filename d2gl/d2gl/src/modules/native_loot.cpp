@@ -269,64 +269,7 @@ bool inputAllowed(int x,int y)
         App.game.screen==GameScreen::InGame,locked,coveredByUi,menu,alt,combat);
 }
 
-void __stdcall updateSelection()
-{
-    ++selectionCalls;
-    const mxl::native_loot::SelectionKey key{frameRevision,inputRevision,*d2::screen_shift,*selectionLocked,
-        unsigned(*d2::is_alt_clicked),*cursorAction,
-        unsigned(*d2::cursor_state1) | (unsigned(*d2::cursor_state2)<<8) | (unsigned(*d2::cursor_state3)<<16),
-        *d2::mouse_x,*d2::mouse_y,carryingItem()};
-    if(!selectionCache.changed(key)) {
-        // Retain only our already validated hover during repeated identical
-        // polls. Re-resolve its identity and native eligibility each time, so
-        // a removed/reused unit cannot remain selected between draw frames.
-        if(hoveredValid && !key.carryingItem && !*selectionLocked && hovered.view==view() && GetTickCount()-pickDrawn<=120) {
-            auto* unit=resolve(hovered);
-            if(unit && unit->v110.dwMode==3 && d2::getSelectedUnit()==unit) return;
-            hoveredValid=false;
-        }
-        originalSelection();
-        return;
-    }
-    originalSelection();
-    hoveredValid=false;
-    if(!inputAllowed(*d2::mouse_x,*d2::mouse_y) || (GetKeyState(VK_LBUTTON)&0x8000)) return;
-    ++hoverChecks;
-    // Run the same world/UI gate as native selection. Its outputs are world
-    // coordinates; the effect hitboxes below use the original screen mouse.
-    int worldX=0,worldY=0;
-    if(worldMouse(&worldX,&worldY)) return;
-    auto* selected=d2::getSelectedUnit();
-    if(selected && selected->dwType!=d2::UnitType::Item) return;
-    const int x=*d2::mouse_x,y=*d2::mouse_y;
-    const auto viewport=view();
-    mxl::native_loot::PickChoice choice;
-    for(unsigned i=0;i<pickCount;++i) {
-        const auto& entry=pickItems[i];
-        if(!(entry.view==viewport)) continue;
-        auto* unit=resolve(entry);
-        if(!unit || unit->v110.dwMode!=3) continue;
-        const auto look=lookFor(unit);
-        if(!look.rank) continue;
-        const auto pos=anchor(unit,viewport.perspective)+glm::ivec2(entry.localX,entry.localY);
-        const auto size=mxl::native_loot::effect_size(look.rank,look.style);
-        const bool onLabel=onItemLabel(entry,pos.x,pos.y,x,y,GetTickCount());
-        if(!onLabel && !mxl::native_loot::effect_hitbox(pos.x,pos.y,size.width,size.height).contains(x,y)) continue;
-        // Native selectability is required; never change its flags or bypass
-        // restrictions. Zero disables only the original tiny sprite hit-test.
-        if(!selectable(unit,0,0,0)) continue;
-        choice.offer(int(i),entry.id,x,y,pos.x,pos.y,onLabel);
-    }
-    if(choice.index<0) return;
-    const auto& entry=pickItems[choice.index];
-    auto* unit=resolve(entry);
-    if(!unit || unit->v110.dwMode!=3 || !selectable(unit,0,0,0)) return;
-    selectNative(unit);
-    if(d2::getSelectedUnit()==unit) {
-        hovered=entry;hoveredValid=true;++hoverSelections;
-        if(viewport.panels) ++panelHoverSelections;
-    }
-}
+#include "native_loot_selection.inl"
 
 void emit(d2::UnitAny* unit,int x,int y,const mxl::native_loot::GroundEntry& entry)
 {
