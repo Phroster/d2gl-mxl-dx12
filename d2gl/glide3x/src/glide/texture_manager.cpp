@@ -17,6 +17,8 @@
 */
 
 #include "texture_manager.h"
+#include <algorithm>
+#include <array>
 
 namespace d2gl {
 
@@ -85,6 +87,34 @@ const SubTextureInfo* TextureManager::getSubTextureInfo(uint32_t address, uint16
 	// the part of the atlas slot the previous rectangle never initialized.
 	const uint64_t hash = uint64_t(g_glide_texture.hash[address])
 		| (uint64_t(width) << 32) | (uint64_t(height) << 48);
+	return acquire(address, hash, size, frame_count, [&](const SubTextureInfo& slot) {
+		m_upload(g_glide_texture.memory + address, slot, width, height);
+		return true;
+	});
+}
+
+const SubTextureInfo* TextureManager::getImmutableSubTextureInfo(uint32_t identity, uint16_t width, uint16_t height,
+	uint32_t frame_count, const std::function<bool(uint8_t*)>& decode)
+{
+	const auto before = m_stats.immutable_uploads;
+	// A separate identity namespace keeps native animation frames independent
+	// of every virtual address/content the game's texture driver reuses.
+	const auto slot = acquire((uint64_t(1) << 32) | identity,
+		(uint64_t(width) << 32) | (uint64_t(height) << 48), std::max(width, height), frame_count,
+		[&](const SubTextureInfo& target) {
+			std::array<uint8_t, 256 * 256> pixels;
+			if (!decode(pixels.data())) { ++m_stats.invalid_immutable; return false; }
+			m_upload(pixels.data(), target, width, height);
+			++m_stats.immutable_uploads;
+			return true;
+		});
+	if (slot && before == m_stats.immutable_uploads) ++m_stats.immutable_hits;
+	return slot;
+}
+
+const SubTextureInfo* TextureManager::acquire(uint64_t address, uint64_t hash, uint16_t size, uint32_t frame_count,
+	const std::function<bool(const SubTextureInfo&)>& upload)
+{
 	auto& data = m_data[size];
 
 	if (data.cache.find(address) == data.cache.end())
@@ -124,7 +154,7 @@ const SubTextureInfo* TextureManager::getSubTextureInfo(uint32_t address, uint16
 
 		const auto id = data.available.begin()->first;
 		const SubTextureInfo* texture_info = &data.sub_texure_info[id];
-		m_upload(g_glide_texture.memory + address, *texture_info, width, height);
+		if (!upload(*texture_info)) return nullptr;
 
 		cache.items.insert({ hash, id });
 		data.available.erase(id);

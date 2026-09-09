@@ -22,6 +22,7 @@
 #include "helpers.h"
 #include "modules/motion_prediction.h"
 #include "win32.h"
+#include "native_loot_texture.h"
 
 namespace d2gl {
 
@@ -54,16 +55,20 @@ bool Wrapper::drawable()
 void Wrapper::reportTextureCache()
 {
 	const auto& stats = m_texture_manager->stats();
-	const auto events = stats.reclaimed_slots + stats.exhausted + stats.missing_source + m_skipped_sprites;
+	const auto events = stats.reclaimed_slots + stats.exhausted + stats.missing_source + stats.invalid_immutable
+		+ uint64_t(stats.immutable_uploads != 0) + m_skipped_sprites + m_loot_source_mismatches;
 	const auto now = GetTickCount64();
 	if (events == m_cache_reported_events || (m_cache_report_time && now - m_cache_report_time < 10000)) return;
 	m_cache_reported_events = events;
 	m_cache_report_time = now;
 	std::ofstream out(std::filesystem::path(helpers::getCurrentDir()) /
 		("mxl-sprite-cache-" + std::to_string(GetCurrentProcessId()) + ".log"), std::ios::app);
-	out << "frame_safe_cache layout=width-height-v2 frame=" << ctx->getFrameCount() << " reclaimed_slots=" << stats.reclaimed_slots
+	out << "frame_safe_cache layout=immutable-loot-v3 frame=" << ctx->getFrameCount() << " reclaimed_slots=" << stats.reclaimed_slots
 		<< " exhausted=" << stats.exhausted << " missing_source=" << stats.missing_source
-		<< " skipped_sprites=" << m_skipped_sprites;
+		<< " skipped_sprites=" << m_skipped_sprites
+		<< " loot_uploads=" << stats.immutable_uploads << " loot_hits=" << stats.immutable_hits
+		<< " invalid_loot=" << stats.invalid_immutable
+		<< " loot_source_checks=" << m_loot_source_checks << " loot_source_mismatches=" << m_loot_source_mismatches;
 	for (const auto size : {256, 128, 64, 32, 16, 8}) out << " used_" << size << '=' << m_texture_manager->getUsage(size);
 	out << '\n';
 }
@@ -231,7 +236,22 @@ void Wrapper::grTexSource(GrChipID_t tmu, FxU32 start_address, GrTexInfo* info)
 	start_address += GLIDE_TEX_MEMORY * tmu;
 
 	const auto frame_count = ctx->getFrameCount();
-	const auto sub_tex_info = m_texture_manager->getSubTextureInfo(start_address, size, width, height, frame_count);
+	const auto* sprite = mxl::native_loot::currentSpritePixels;
+	const auto sub_tex_info = sprite
+		? m_texture_manager->getImmutableSubTextureInfo(uint32_t(sprite->identity), width, height, frame_count,
+			[&](uint8_t* pixels) {
+				if (!sprite->decode(pixels, width, height)) return false;
+				// Check only on an atlas miss, alongside the required decode. Keep
+				// evidence if the native TMU cache offers a different image later.
+				++m_loot_source_checks;
+				constexpr uint32_t capacity = GLIDE_TEX_MEMORY * GLIDE_MAX_NUM_TMU;
+				if (start_address > capacity || width * height > capacity - start_address
+					|| !g_glide_texture.hash.count(start_address)
+					|| std::memcmp(pixels, g_glide_texture.memory + start_address, width * height))
+					++m_loot_source_mismatches;
+				return true;
+			})
+		: m_texture_manager->getSubTextureInfo(start_address, size, width, height, frame_count);
 	// Never draw an unrelated previous sprite when this source cannot be bound.
 	m_texture_available = sub_tex_info != nullptr;
 	if (sub_tex_info) {

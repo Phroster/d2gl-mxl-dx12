@@ -42,7 +42,7 @@ struct TextureManagerData {
 	uint16_t tex_count = 0;
 	std::vector<SubTextureInfo> sub_texure_info;
 	std::unordered_map<uint16_t, bool> available;
-	std::unordered_map<uint32_t, TextureCache> cache;
+	std::unordered_map<uint64_t, TextureCache> cache;
 };
 
 typedef std::vector<std::pair<uint16_t, uint16_t>> SubTextureCounts;
@@ -58,6 +58,9 @@ struct TextureCacheStats {
 	uint64_t reclaimed_slots = 0;
 	uint64_t exhausted = 0;
 	uint64_t missing_source = 0;
+	uint64_t immutable_uploads = 0;
+	uint64_t immutable_hits = 0;
+	uint64_t invalid_immutable = 0;
 };
 
 class TextureManager {
@@ -66,6 +69,8 @@ class TextureManager {
 	SubTextureCounts m_size_counts;
 	Upload m_upload;
 	TextureCacheStats m_stats;
+	const SubTextureInfo* acquire(uint64_t source, uint64_t content, uint16_t size, uint32_t frame_count,
+		const std::function<bool(const SubTextureInfo&)>& upload);
 
 public:
 	TextureManager(const SubTextureCounts& size_counts, Upload upload);
@@ -75,6 +80,8 @@ public:
 	const TextureCacheStats& stats() const { return m_stats; }
 
 	const SubTextureInfo* getSubTextureInfo(uint32_t address, uint16_t size, uint16_t width, uint16_t height, uint32_t frame_count);
+	const SubTextureInfo* getImmutableSubTextureInfo(uint32_t identity, uint16_t width, uint16_t height,
+		uint32_t frame_count, const std::function<bool(uint8_t*)>& decode);
 	void clearCache();
 };
 

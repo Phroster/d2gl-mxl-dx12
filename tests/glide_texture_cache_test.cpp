@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "glide/texture_manager.h"
+#include "native_loot_texture.h"
 #include <array>
 #include <iostream>
 #include <stdexcept>
@@ -11,6 +12,26 @@ static auto id(const SubTextureInfo& slot) { return std::tuple(slot.tex_num, slo
 
 int main() {
     try {
+        using namespace mxl::native_loot;
+        // Include transparent padding and malformed rows; a rejected native
+        // cell must never fall back to the last game texture binding.
+        const uint8_t rle[]={2,0x31,0x32,0x80,0x82,0x80};
+        SpritePixels cell{123,rle,sizeof(rle),2,2};
+        std::array<uint8_t,64> decoded;
+        require(cell.decode(decoded.data(),8,8),"valid native cell did not decode");
+        require(decoded[56]==0x31 && decoded[57]==0x32 && decoded[48]==0 && decoded[0]==0,"native padding or row orientation changed");
+        auto invalid=cell;--invalid.length;
+        require(!invalid.decode(decoded.data(),8,8),"truncated native rows accepted");
+        invalid=cell;invalid.width=1;
+        require(!invalid.decode(decoded.data(),8,8),"native row overflow accepted");
+        require(!cell.decode(decoded.data(),1,8),"undersized native target accepted");
+        require(!currentSpritePixels,"native scope leaked before drawing");
+        {
+            SpriteScope outer(cell);require(currentSpritePixels==&cell,"native scope missing");
+            { SpriteScope inner(invalid);require(currentSpritePixels==&invalid,"nested scope missing"); }
+            require(currentSpritePixels==&cell,"nested native draw changed parent scope");
+        }
+        require(!currentSpritePixels,"normal game draw inherited native loot scope");
         std::vector<uint8_t> bytes(128 * 1024);
         g_glide_texture.memory = bytes.data();
         unsigned uploads = 0;
@@ -84,6 +105,27 @@ int main() {
         for(unsigned y=0;y<256;++y)for(unsigned x=0;x<128;++x)
             require(atlas[(tall.offset.y+y)*512+tall.offset.x+x]==0,"changed sprite shape exposed stale atlas pixels");
         require(id(wide)!=id(tall),"different sprite shapes shared a queued texture slot");
+        shapes.clearCache();
+        auto decode=[](uint8_t* pixels) { std::fill_n(pixels,256*128,0x35);return true; };
+        // A native cell pointer may numerically equal a virtual TMU address.
+        // The two identities must never share storage or cached ownership.
+        const auto loot=*shapes.getImmutableSubTextureInfo(0,256,128,2,decode);
+        g_glide_texture.hash[0]=99;std::fill(bytes.begin(),bytes.end(),0xa7);
+        const auto ordinary=*shapes.getSubTextureInfo(0,256,256,128,2);
+        require(id(loot)!=id(ordinary),"immutable loot shared a virtual texture identity");
+        require(id(*shapes.getImmutableSubTextureInfo(0,256,128,2,decode))==id(loot),"native address reuse changed loot binding");
+        require(atlas[loot.offset.y*512+loot.offset.x]==0x35,"unrelated sprite replaced loot pixels");
+        require(shapes.stats().immutable_uploads==1 && shapes.stats().immutable_hits==1,"immutable frames were decoded again on a cache hit");
+        require(!shapes.getImmutableSubTextureInfo(1,256,128,2,[](uint8_t*) { return false; }),"invalid loot inherited a previous sprite");
+        require(shapes.stats().invalid_immutable==1 && shapes.getUsage(256)==2,"failed decode consumed a slot");
+        // Retire and reclaim all kinds of sprites repeatedly, as during long
+        // play. Newly decoded loot must never inherit the reused atlas bytes.
+        for(unsigned frame=3;frame<1003;++frame) {
+            for(unsigned i=0;i<4;++i) {
+                const auto* slot=shapes.getImmutableSubTextureInfo(frame*4+i,256,128,frame,decode);
+                require(slot && atlas[slot->offset.y*512+slot->offset.x]==0x35,"reclaimed immutable slot has stale pixels");
+            }
+        }
         std::cout << "PASS: production sprite cache pressure, frame pinning, animation versions and reset.\n";
     } catch (const std::exception& e) { std::cerr << "FAIL: " << e.what() << '\n'; return 1; }
 }

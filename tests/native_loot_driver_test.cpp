@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <vector>
 #include "native_loot_cells.h"
+#include "native_loot_texture.h"
 #include "d2/structs.h"
 #include "glide/texture_manager.h"
 #include <memory>
@@ -22,7 +23,8 @@ struct Pool { unsigned bytes,count,used,head,tail,freeHead,freeTail,entries; };
 std::vector<unsigned char> ram(16*1024*1024),output(384*768),expected;
 unsigned address=0,texWidth=0,texHeight=0,draws=0,downloads=0;
 bool additive=false;
-std::vector<unsigned char> atlas(256*512*512,0xa7);
+bool overwriteBinding=false,immutableBindings=false;
+std::vector<unsigned char> atlas(512*512*512,0xa7);
 std::unique_ptr<d2gl::TextureManager> cache;
 d2gl::SubTextureInfo selected{};
 unsigned rendererFrame=1;
@@ -40,8 +42,24 @@ void __stdcall download(unsigned tmu,unsigned start,unsigned,Info* i) {
 }
 void __stdcall source(unsigned tmu,unsigned start,unsigned,Info* i) {
     require(tmu==0,"unexpected source TMU");dimensions(i);address=start;
-    auto slot=cache->getSubTextureInfo(start,std::max(texWidth,texHeight),texWidth,texHeight,rendererFrame);
-    require(slot!=nullptr,"renderer cache exhausted");selected=*slot;
+    if(overwriteBinding) {
+        // Reproduce a stale native binding: this address now contains another
+        // game's sprite. Warm the normal atlas too, so both cache layers hold
+        // unrelated pixels. A loot cell must still identify its own artwork.
+        std::fill_n(ram.data()+start,texWidth*texHeight,0xa7);
+        d2gl::g_glide_texture.hash[start]=0xdeadbeef;
+        require(cache->getSubTextureInfo(start,std::max(texWidth,texHeight),texWidth,texHeight,rendererFrame)!=nullptr,
+            "cannot seed unrelated game texture");
+    }
+    const auto* sprite=currentSpritePixels;
+    auto slot=immutableBindings && sprite
+        ? cache->getImmutableSubTextureInfo(unsigned(sprite->identity),texWidth,texHeight,rendererFrame,
+            [&](uint8_t* pixels) { return sprite->decode(pixels,texWidth,texHeight); })
+        : cache->getSubTextureInfo(start,std::max(texWidth,texHeight),texWidth,texHeight,rendererFrame);
+    if(!slot)printf("Rejected source %ux%u native=%ux%u length=%u invalid=%llu exhausted=%llu\n",
+        texWidth,texHeight,sprite?sprite->width:0,sprite?sprite->height:0,sprite?sprite->length:0,
+        cache->stats().invalid_immutable,cache->stats().exhausted);
+    require(slot!=nullptr,"renderer cache rejected source");selected=*slot;
 }
 void __stdcall quad(unsigned mode,unsigned count,Vertex* v,unsigned stride) {
     require(mode==5&&count==4&&stride==sizeof(Vertex),"unexpected native quad");
@@ -87,7 +105,7 @@ int main(int argc,char** argv) {
     at<unsigned>(driver,0x15a68)=384;at<unsigned>(driver,0x15b04)=768;
     std::vector<unsigned char> scratch(65536),gamma(65536);
     d2gl::g_glide_texture.memory=ram.data();
-    cache=std::make_unique<d2gl::TextureManager>(d2gl::SubTextureCounts{{256,64},{128,32},{64,16},{32,8},{16,2},{8,1}},
+    cache=std::make_unique<d2gl::TextureManager>(d2gl::SubTextureCounts{{256,256},{128,154},{64,64},{32,32},{16,5},{8,1}},
         [](uint8_t* pixels,const d2gl::SubTextureInfo& slot,uint16_t w,uint16_t h) {
             for(unsigned y=0;y<h;++y)memcpy(atlas.data()+(slot.tex_num*512+slot.offset.y+y)*512+slot.offset.x,pixels+y*w,w);
         });
@@ -124,13 +142,20 @@ int main(int argc,char** argv) {
     for(auto& f:fixtures)normalize(f.bytes.data(),&f.file,__FILE__,__LINE__,-1,0);
     puts("Normalized; drawing through native driver");
     expected.resize(output.size());
-    unsigned failures=0,comparisons=0;
-    for(unsigned phase=0;phase<48;++phase)for(auto& f:fixtures) {
+    unsigned comparisons=0;
+    auto exercise=[&](unsigned phases,bool overwrite,bool protect) {
+      overwriteBinding=overwrite;immutableBindings=protect;
+      cache->clearCache();
+      unsigned failures=0;
+      for(unsigned phase=0;phase<phases;++phase)for(auto& f:fixtures) {
         rendererFrame=phase+1;
         std::fill(output.begin(),output.end(),0);std::fill(expected.begin(),expected.end(),0);
         const unsigned parts=f.file->numcells/frame_count;
         for(unsigned part=0;part<parts;++part) {
             unsigned index=(phase%24)*parts+part;CellContext c{};c.v113.nCellNo=index;c.v113.pCellFile=f.file;c.v113.pCurGfxCell=f.file->cells[index];
+            const auto* image=c.v113.pCurGfxCell;
+            const SpritePixels pixels={uintptr_t(image),&image->cols,image->length,image->width,image->height};
+            const SpriteScope scope(pixels);
             hardware(&c,192,650,0xffffffff,3,nullptr);
             // Hardware quads use an exclusive bottom edge; the software DC6
             // drawer addresses its inclusive final row.
@@ -138,14 +163,21 @@ int main(int argc,char** argv) {
         }
         if(output!=expected) {
             ++failures;
-            if(failures<=8) {unsigned different=0,first=unsigned(output.size());for(unsigned i=0;i<output.size();++i)if(output[i]!=expected[i]){++different;first=std::min(first,i);}
+            if(failures<=1) {unsigned different=0,first=unsigned(output.size());for(unsigned i=0;i<output.size();++i)if(output[i]!=expected[i]){++different;first=std::min(first,i);}
                 printf("MISMATCH %s phase=%u different=%u first=%u,%u actual=%u expected=%u\n",f.name,phase,different,first%384,first/384,output[first],expected[first]);}
         }
         ++comparisons;
-    }
+      }
+      printf("Native driver: phases=%u overwrite=%u protected=%u failures=%u\n",phases,overwrite,protect,failures);
+      return failures;
+    };
+    require(!exercise(48,false,false),"native hardware pixels differ from software cells");
+    require(exercise(2,true,false)>0,"stale texture regression did not reproduce with legacy binding");
+    require(!exercise(240,true,true),"immutable loot pixels changed under texture address reuse");
+    require(cache->stats().invalid_immutable==0,"a valid catalogue cell failed direct decoding");
     for(auto& f:fixtures)require(release(f.file)!=0,"native cache release failed");
-    printf("Native driver: comparisons=%u draws=%u downloads=%u failures=%u\n",comparisons,draws,downloads,failures);
-    require(!failures,"native hardware pixels differ from software cells");
+    printf("PASS native driver: comparisons=%u draws=%u downloads=%u immutable_uploads=%llu immutable_hits=%llu\n",
+        comparisons,draws,downloads,cache->stats().immutable_uploads,cache->stats().immutable_hits);
     return 0;
  }catch(const std::exception& e){fprintf(stderr,"FAIL: %s\n",e.what());return 1;}
 }

@@ -10,6 +10,7 @@
 #include "native_loot_pickup.h"
 #include "native_loot_labels.h"
 #include "native_loot_render.h"
+#include "native_loot_texture.h"
 #include "option/menu.h"
 #include "hd_text.h"
 #include <detours/detours.h>
@@ -335,6 +336,11 @@ void emit(d2::UnitAny* unit,int x,int y,const mxl::native_loot::GroundEntry& ent
             cell.v113.nCellNo=index;
             cell.v113.pCellFile=file;
             cell.v113.pCurGfxCell=file->cells[index];
+
+            const auto* image=cell.v113.pCurGfxCell;
+            const mxl::native_loot::SpritePixels pixels={reinterpret_cast<uintptr_t>(image),
+                &image->cols,image->length,image->width,image->height};
+            const mxl::native_loot::SpriteScope spriteScope(pixels);
             // Each cell carries its own world offset. Tall beams join exactly
             // at a row boundary and retain the same native world draw order.
             d2::drawImage(&cell,x,y,0xffffffff,mode,nullptr);
