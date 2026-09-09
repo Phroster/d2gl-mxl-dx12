@@ -193,17 +193,22 @@ def motion_summary(frames, producers, frequency):
         values = sorted(values)
         return {"median": statistics.median(values), "p99": values[int((len(values)-1)*.99)], "max": values[-1]} if values else None
 
+    def signed_ticks(row, name):
+        value = int(row[name])
+        return value - (1 << 64) if value >= (1 << 63) else value
+
     return {"available": bool(valid or player_valid), "valid_clamp_frames": valid, "observed_player_frames": player_valid,
             "adjacent_counter_pairs": len(pairs), "fresh_clamp_rows": len(fresh),
             "unchanged_clamp_counter_pairs": sum(samples == 0 for samples, _ in pairs),
             "client_update_steps": dict(Counter(updates for _, updates in pairs)),
-            "fresh_clamp_elapsed_ms": distribution(int(p["motion_elapsed_ticks"]) * 1000 / frequency for p in fresh) if frequency else None,
-            "fresh_clamp_output_ms": distribution(int(p["motion_clamped_ticks"]) * 1000 / frequency for p in fresh) if frequency else None,
-            "fresh_rows_limited": sum(int(p["motion_elapsed_ticks"]) > int(p["motion_clamped_ticks"]) for p in fresh),
+            "fresh_clamp_elapsed_ms": distribution(signed_ticks(p, "motion_elapsed_ticks") * 1000 / frequency for p in fresh) if frequency else None,
+            "fresh_clamp_output_ms": distribution(signed_ticks(p, "motion_clamped_ticks") * 1000 / frequency for p in fresh) if frequency else None,
+            "fresh_rows_limited": sum(p["motion_elapsed_ticks"] != p["motion_clamped_ticks"] for p in fresh),
+            "negative_phase_rows": sum(signed_ticks(p, "motion_elapsed_ticks") < 0 for p in fresh),
             "adjacent_player_pairs": len(steps), "unchanged_player_pairs": sum(s["path_distance"] == 0 for s in steps),
             "player_step_tiles": distribution(s["path_distance"] for s in steps),
             "camera_step_pixels": distribution(s["camera_distance"] for s in steps),
-            "limits": "Only adjacent recorded gameplay frames are paired. Counter resets and game-type changes are excluded; unchanged clamp counters contain stale values. Negative-time paths do not reach the clamp. Player pairs require the same player and panel state; area transitions can still jump. Stationary coordinates do not establish stutter without a known continuous-movement segment. These are draw-time observations, not displayed-frame measurements."}
+            "limits": "Only adjacent recorded gameplay frames are paired. Counter resets and game-type changes are excluded; unchanged clamp counters contain stale values. Schema 1 did not observe negative-time paths; schema 2 observes both signs. Player pairs require the same player and panel state; area transitions can still jump. Stationary coordinates do not establish stutter without a known continuous-movement segment. These are draw-time observations, not displayed-frame measurements."}
 
 
 def analyze(folder):

@@ -1,5 +1,5 @@
 /* Median XL 1.13c multiplayer smoothing, integrated into D2GL.
- * Five clock operands plus a bounded, realm-only interpolation extension.
+ * Five clock operands plus a bounded, realm-only interpolation interval.
  * Does not access other processes, hook Windows globally, alter tick rates,
  * attach a debugger, bypass integrity checks, or modify original DLL files.
  */
@@ -24,8 +24,8 @@ typedef struct {
 } ClockSite;
 typedef struct {
     BYTE *instruction;
-    BYTE expected[16];
-    BYTE replacement[16];
+    BYTE expected[32];
+    BYTE replacement[32];
     SIZE_T length;
     const char *label;
 } BytePatch;
@@ -44,10 +44,13 @@ static volatile DWORD motion_elapsed[2], motion_interval[2], motion_clamped[2];
 static DWORD (WINAPI *motion_clock)(void);
 #endif
 
-/* At the original clamp: EAX:ECX = one simulation interval;
- * EDI:EDX = nonnegative elapsed time. The original negative-time path remains
- * outside this patch. Preserve frame interval and all other live registers.
- * Realm type 3 permits at most half a tick of extra visual prediction.
+/* At the original sign test/clamp: EAX:ECX = one simulation interval;
+ * EDI:EDX = signed elapsed time. Preserve interval and other live registers.
+ * D2FPS renders on a fixed presentation timeline that can precede the newest
+ * client update by part of a render frame. Clipping that small negative phase
+ * to zero causes a large step followed by a small step on steady movement.
+ * Realm type 3 permits [-half a tick, one and a half ticks] of visual phase.
+ * Other game types retain the original [0, one tick] interval.
  */
 __declspec(naked) static void bounded_mp_interval(void) {
     __asm {
@@ -68,6 +71,8 @@ __declspec(naked) static void bounded_mp_interval(void) {
     }
 #endif
     __asm {
+        test edi, edi
+        js negative_interval
         mov eax, game_type
         test eax, eax
         jz compare_limit
@@ -85,6 +90,29 @@ __declspec(naked) static void bounded_mp_interval(void) {
         sbb eax, esi
         cmovae edx, ebx
         cmovae edi, esi
+        jmp interval_done
+    negative_interval:
+        mov eax, game_type
+        test eax, eax
+        jz zero_interval
+        cmp dword ptr [eax], 3
+        jne zero_interval
+        // Form signed -floor(interval/2), including low-word carry.
+        shrd ebx, esi, 1
+        shr esi, 1
+        neg ebx
+        adc esi, 0
+        neg esi
+        cmp edx, ebx
+        mov eax, edi
+        sbb eax, esi
+        cmovl edx, ebx
+        cmovl edi, esi
+        jmp interval_done
+    zero_interval:
+        xor edx, edx
+        xor edi, edi
+    interval_done:
     }
 #if MXL_ENABLE_DIAGNOSTICS
     __asm {
@@ -106,6 +134,18 @@ static BytePatch clock_patch(const ClockSite *site) {
     patch.instruction=site->instruction; patch.length=6; patch.label=site->label;
     memcpy(patch.expected,site->opcode,2); memcpy(patch.replacement,site->opcode,2);
     memcpy(patch.expected+2,&site->old_iat,4); memcpy(patch.replacement+2,&site->new_iat,4);
+    return patch;
+}
+
+static BytePatch phase_patch(BYTE *instruction) {
+    static const BYTE signature[18]={0x0f,0x88,0x46,0x02,0x00,0x00,0x39,0xca,0x89,0xfb,0x19,0xc3,0x0f,0x43,0xf8,0x0f,0x43,0xd1};
+    BytePatch patch;memset(&patch,0,sizeof(patch));
+    patch.instruction=instruction;patch.length=sizeof(signature);
+    patch.label="D2FPS+EDB9 realm-only signed interpolation phase";
+    memcpy(patch.expected,signature,sizeof(signature));
+    memset(patch.replacement,0x90,sizeof(signature));patch.replacement[0]=0xe8;
+    DWORD relative=(DWORD)((uintptr_t)bounded_mp_interval-(uintptr_t)(instruction+5));
+    memcpy(patch.replacement+1,&relative,4);
     return patch;
 }
 
@@ -145,7 +185,7 @@ static BOOL apply_patches(BytePatch *sites, size_t count) {
     memset(pages, 0, sizeof(pages));
     for (i=0; i<count; ++i) {
         MEMORY_BASIC_INFORMATION region;
-        if (!sites[i].length || sites[i].length>16) return FALSE;
+        if (!sites[i].length || sites[i].length>sizeof(sites[i].expected)) return FALSE;
         BYTE *page=(BYTE *)((uintptr_t)sites[i].instruction & ~((uintptr_t)system.dwPageSize-1));
         if (sites[i].instruction+sites[i].length > page+system.dwPageSize) return FALSE;
         if (!VirtualQuery(sites[i].instruction, &region, sizeof(region)) ||
@@ -267,14 +307,7 @@ void __stdcall MxlSmoothing_Initialize(void) {
     };
     BytePatch patches[6];
     for (size_t i=0;i<5;++i) patches[i]=clock_patch(&sites[i]);
-    const BYTE clamp_signature[12]={0x39,0xca,0x89,0xfb,0x19,0xc3,0x0f,0x43,0xf8,0x0f,0x43,0xd1};
-    memset(&patches[5],0,sizeof(patches[5]));
-    patches[5].instruction=fb+0xedbf; patches[5].length=12;
-    patches[5].label="D2FPS+EDBF realm-only bounded interpolation";
-    memcpy(patches[5].expected,clamp_signature,12);
-    memset(patches[5].replacement,0x90,12); patches[5].replacement[0]=0xe8;
-    DWORD relative=(DWORD)((uintptr_t)bounded_mp_interval-(uintptr_t)(fb+0xedbf+5));
-    memcpy(patches[5].replacement+1,&relative,4);
+    patches[5]=phase_patch(fb+0xedb9);
     game_type=(const volatile DWORD *)(cb+0x11c394);
     if (apply_patches(patches,6)) {
 #if MXL_ENABLE_DIAGNOSTICS
@@ -283,7 +316,7 @@ void __stdcall MxlSmoothing_Initialize(void) {
         smoothing_active=1;
         log_line("SUCCESS: 6 regions changed and verified; simulation interval remains 40 ms.");
         log_line("Source and consumer both resolve to winmm!timeGetTime at %08lX.",precise);
-        log_line("Realm type 3: maximum extra visual prediction is 20 ms. SP/LAN: original clamp.");
+        log_line("Realm type 3: signed visual phase -20..60 ms. SP/LAN: original 0..40 ms clamp.");
     } else log_line("FAILED: patch attempt did not pass all checks; see preceding reason.");
 done:
 #if MXL_ENABLE_DIAGNOSTICS
@@ -317,6 +350,7 @@ int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
 #endif
 
 #ifdef MXL_SMOOTHING_TEST
+static void *test_phase_target;
 static DWORD __stdcall old_clock(void) { return 17; }
 static DWORD __stdcall new_clock(void) { return 91; }
 static int test_case(int mode) {
@@ -362,7 +396,7 @@ static uint64_t test_clamp(uint64_t since, uint64_t interval, DWORD type, BOOL *
         mov edi, hi
         mov ebx, 12345678h
         mov esi, 23456789h
-        call bounded_mp_interval
+        call test_phase_target
         mov result_lo, edx
         mov result_hi, edi
         mov actual_il, ecx
@@ -384,6 +418,18 @@ int main(void) {
         printf("case %d (%s): %s [%d]\n",i,i==0?"five executable sites + protection restore":i==1?"bad last signature leaves all unchanged":"second-page failure restores first page",result?"FAIL":"PASS",result);
         if (result) return result;
     }
+    BYTE *phase_code=(BYTE *)VirtualAlloc(NULL,4096,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
+    if(!phase_code)return 16;
+    BytePatch phase=phase_patch(phase_code);
+    memcpy(phase_code,phase.expected,phase.length);phase_code[phase.length]=0xc3;
+    DWORD old_protection;VirtualProtect(phase_code,4096,PAGE_EXECUTE_READ,&old_protection);
+    protect_calls=0;fail_protect_call=0;
+    BytePatch rejected=phase;rejected.expected[17]^=1;
+    if(apply_patches(&rejected,1) || memcmp(phase_code,phase.expected,phase.length))return 17;
+    if(!apply_patches(&phase,1))return 18;
+    MEMORY_BASIC_INFORMATION region;VirtualQuery(phase_code,&region,sizeof(region));
+    if(region.Protect!=PAGE_EXECUTE_READ)return 19;
+    test_phase_target=phase_code;
     const uint64_t intervals[]={400000,400001,0x100000001ULL};
     const DWORD types[]={0,1,3,6,7,8,9}; unsigned cases=0;
     for (size_t a=0;a<sizeof(intervals)/sizeof(intervals[0]);++a) {
@@ -398,6 +444,29 @@ int main(void) {
         }
     }
     printf("PASS: %u native clamp cases, 64-bit carry, SP/LAN preservation, and live registers.\n",cases);
+    unsigned negative_cases=0;
+    for (size_t a=0;a<sizeof(intervals)/sizeof(intervals[0]);++a) {
+        int64_t interval=(int64_t)intervals[a];
+        const int64_t elapsed[]={-1,-interval/4,-interval/2,-interval/2-1,-interval,-interval*2,INT64_MIN};
+        for (size_t b=0;b<sizeof(types)/sizeof(types[0]);++b) for (size_t c=0;c<sizeof(elapsed)/sizeof(elapsed[0]);++c) {
+            BOOL preserved=FALSE; int64_t minimum=types[b]==3 ? -interval/2 : 0;
+            int64_t expected=elapsed[c]>minimum ? elapsed[c] : minimum;
+            int64_t actual=(int64_t)test_clamp((uint64_t)elapsed[c],interval,types[b],&preserved);
+            if(actual!=expected || !preserved) { printf("FAIL negative phase case %u\n",negative_cases);return 14; }
+            ++negative_cases;
+        }
+    }
+    printf("PASS: %u signed phase cases, negative limit, carry, SP/LAN and registers.\n",negative_cases);
+    // Replay constant-velocity frames crossing an update boundary. The original
+    // zero clamp jumps by 10 ms then 3.888 ms; signed phase gives 6.944 ms twice.
+    for(unsigned realm=0;realm<2;++realm) {
+        BOOL preserved;DWORD type=realm?3:0;
+        int64_t a=(int64_t)test_clamp(300000,400000,type,&preserved)-400000;
+        int64_t b=400000+(int64_t)test_clamp((uint64_t)(int64_t)-30556,400000,type,&preserved)-400000;
+        int64_t c=400000+(int64_t)test_clamp(38889,400000,type,&preserved)-400000;
+        if(realm ? (b-a!=69444 || c-b!=69445) : (b-a!=100000 || c-b!=38889))return 15;
+    }
+    puts("PASS: native phase replay removes the large/small step pair; SP behavior unchanged.");
 #if MXL_ENABLE_DIAGNOSTICS
     {
         MxlMotionSnapshot sample;
@@ -408,14 +477,15 @@ int main(void) {
         *(DWORD *)(client+0x1197e0+24)=123;
         *(DWORD *)(client+0x1197e0+16)=70;
         motion_clock=new_clock;smoothing_active=1;
-        if(!MxlSmoothing_ReadMotion(&sample) || sample.samples!=cases || sample.game_type!=3
+        if(!MxlSmoothing_ReadMotion(&sample) || sample.samples!=cases+negative_cases+6 || sample.game_type!=3
             || sample.client_updates!=123 || sample.client_update_ms!=70 || sample.clock_ms!=91
-            || sample.interval_ticks!=intervals[2] || sample.elapsed_ticks!=intervals[2]*2
-            || sample.clamped_ticks!=intervals[2])return 13;
+            || sample.interval_ticks!=400000 || sample.elapsed_ticks!=38889
+            || sample.clamped_ticks!=38889)return 13;
         smoothing_active=0;game_type=NULL;motion_clock=NULL;VirtualFree(client,0,MEM_RELEASE);
         puts("PASS: private motion snapshot reads loop state and exact clamp values without altering interpolation.");
     }
 #endif
-    puts("All native x86 timing-patch tests passed."); return 0;
+    VirtualFree(phase_code,0,MEM_RELEASE);
+    puts("All native x86 timing-patch tests passed through the guarded 18-byte entry."); return 0;
 }
 #endif

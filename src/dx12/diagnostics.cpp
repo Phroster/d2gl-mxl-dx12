@@ -226,9 +226,9 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"MXL Smooth Motion DX12 1.15 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fputs("build_kind=MXL_PRIVATE_LOOT_DIAGNOSTICS_V1\nSaved filter/settings snapshots are launch-time state only; later menu changes are not observed directly.\n",file);
-        fputs("motion_schema=1\nMotion fields are private observations, not timing changes. motion_valid=0 means unavailable.\n"
+        fputs("motion_schema=2\nMotion fields observe the signed visual phase. motion_valid=0 means unavailable.\n"
               "motion_samples is a cumulative clamp-call counter; unchanged means the recorded clamp values are stale for that producer row.\n"
-              "Elapsed/interval/clamped ticks are exact values at our existing D2FPS clamp, converted using qpc_frequency. Negative elapsed paths do not enter this clamp.\n"
+              "Elapsed/clamped ticks are signed int64 values encoded as uint64; interval ticks are positive. Convert using qpc_frequency. Both elapsed signs enter this clamp.\n"
               "Client updates/time are read from the verified D2Client loop once per draw; clock_ms uses the matching timeGetTime clock.\n"
               "Player coordinates are unsigned 16.16 path coordinates when the local player reaches the existing world-draw hook; motion_player_valid=0 means not observed.\n"
               "Camera coordinates are signed 32-bit pixels encoded as uint32. Compare movement only across adjacent frame IDs with unchanged player ID and panels. Stationary frames alone do not prove a motion stall.\n",file);

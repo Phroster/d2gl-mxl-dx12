@@ -74,6 +74,17 @@ class LootAnalysis(unittest.TestCase):
         self.assertFalse(old["available"])
         self.assertIsNone(old["fresh_clamp_elapsed_ms"])
 
+    def test_signed_phase_is_decoded_and_both_limits_counted(self):
+        def row(samples, elapsed, clamped):
+            return {"motion_valid": "1", "motion_game_type": "3", "motion_samples": str(samples),
+                    "motion_client_updates": "2", "motion_elapsed_ticks": str(elapsed & ((1 << 64)-1)),
+                    "motion_clamped_ticks": str(clamped & ((1 << 64)-1))}
+        producers = {"1": row(1, 0, 0), "2": row(2, -30000, -30000), "3": row(3, -900000, -200000), "4": row(4, 900000, 600000)}
+        result = diagnostics.motion_summary([{"frame_id": key} for key in producers], producers, 10000000)
+        self.assertEqual(result["negative_phase_rows"], 2)
+        self.assertEqual(result["fresh_rows_limited"], 2)
+        self.assertEqual(result["fresh_clamp_elapsed_ms"]["median"], -3)
+
 
 if __name__ == "__main__":
     unittest.main()
