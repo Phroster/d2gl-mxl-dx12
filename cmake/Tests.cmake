@@ -8,6 +8,7 @@ add_executable(native_loot_pickup_test tests/native_loot_pickup_test.cpp)
 add_executable(native_loot_selection_test tests/native_loot_selection_test.cpp)
 target_include_directories(native_loot_selection_test PRIVATE src/dx12 d2gl/d2gl/src d2gl/d2gl/vendor/include)
 target_compile_definitions(native_loot_selection_test PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_link_libraries(native_loot_selection_test PRIVATE mxl_diagnostics)
 add_test(NAME native_loot_selection_test COMMAND $<TARGET_FILE:native_loot_selection_test>)
 set_tests_properties(native_loot_selection_test PROPERTIES TIMEOUT 30)
 target_include_directories(native_loot_pickup_test PRIVATE src/dx12)
@@ -113,6 +114,14 @@ add_test(NAME reveal_preselection_without_logging COMMAND $<TARGET_FILE:dx12_rev
   "${CMAKE_BINARY_DIR}/test-output/preselection-only" --preselection-only)
 set_tests_properties(reveal_preselection_without_logging PROPERTIES TIMEOUT 30)
 if(MXL_ENABLE_DIAGNOSTICS)
+add_executable(loot_diagnostics_test tests/loot_diagnostics_test.cpp)
+target_link_libraries(loot_diagnostics_test PRIVATE mxl_diagnostics)
+target_compile_definitions(loot_diagnostics_test PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+add_test(NAME loot_diagnostics_auto_start COMMAND ${CMAKE_COMMAND}
+  "-DTEST_EXECUTABLE=$<TARGET_FILE:loot_diagnostics_test>"
+  "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/loot-auto"
+  -DMODE=loot-auto -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
+set_tests_properties(loot_diagnostics_auto_start PROPERTIES TIMEOUT 30)
 add_test(NAME reveal_before_scene_unsupported COMMAND ${CMAKE_COMMAND}
   "-DTEST_EXECUTABLE=$<TARGET_FILE:dx12_auto_reveal_test>"
   "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/before-scene-unsupported"

@@ -14,8 +14,12 @@
 namespace mxl::diag {
 namespace {
 constexpr size_t Metrics=size_t(Metric::Count), Counts=size_t(Count::Count), AudioOps=size_t(Audio::Count), NativeOps=size_t(NativeSound::Count), Capacity=8192;
-const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms","producer_build_ms"};
-const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures"};
+const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms","producer_build_ms",
+    "loot_effects_ms","loot_labels_ms","loot_names_ms","loot_pickup_sampled_ms","loot_capture_sampled_ms"};
+const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures",
+    "loot_enabled","loot_pickup_enabled","loot_targets","loot_labels","loot_sprites","loot_name_formats",
+    "loot_selection_calls","loot_selection_samples","loot_capture_calls","loot_capture_samples",
+    "loot_inventory_queries","loot_unit_lookups","loot_cache_reclaims","loot_cache_uploads","loot_cache_hits","loot_cache_skipped"};
 const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d","get_status","get_current_position","release","query_interface"};
 const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep","async_ready"};
 static_assert(std::size(native_names)==NativeOps);
@@ -28,7 +32,7 @@ struct Record {
 };
 struct AudioTotals { std::atomic<uint64_t> calls{0},elapsed{0},maximum{0},errors{0}; };
 struct State {
-    std::atomic<bool> active{false},quitting{false}; bool audio=true,assets=false,testing=false;
+    std::atomic<bool> active{false},quitting{false}; bool audio=true,assets=false,details=false,testing=false;
     std::atomic<uint64_t> dropped{0}; HWND window=nullptr; HANDLE worker=nullptr,owner=nullptr;
     LARGE_INTEGER frequency{}; uint64_t started=0; double threshold=10.0,audio_threshold=.5;
     std::wstring directory; SRWLOCK lock=SRWLOCK_INIT;
@@ -38,6 +42,7 @@ struct State {
 };
 State& state() { static State* s=new State;return *s; }
 thread_local Record frame;
+thread_local Record producer_work;
 thread_local bool frame_active=false;
 thread_local uint64_t previous_end=0;
 thread_local bool previous_focused=false;
@@ -175,6 +180,7 @@ uint64_t ticks() noexcept {LARGE_INTEGER t;QueryPerformanceCounter(&t);return ui
 double milliseconds(uint64_t elapsed) noexcept {return state().frequency.QuadPart?double(elapsed)*1000.0/state().frequency.QuadPart:0;}
 bool enabled() noexcept {return state().active.load(std::memory_order_relaxed);}
 bool audio_enabled() noexcept {return enabled()&&state().audio;}
+bool detail_logs_enabled() noexcept {return enabled()&&state().details;}
 bool assets_enabled() noexcept {return enabled()&&state().assets;}
 bool start(HWND window,const std::wstring& test_directory) {
     auto& s=state();if(s.worker)return enabled();
@@ -189,21 +195,44 @@ bool start(HWND window,const std::wstring& test_directory) {
     if(GetLastError()==ERROR_ALREADY_EXISTS){CloseHandle(s.owner);s.owner=nullptr;return false;}
     s.audio=GetPrivateProfileIntW(L"Diagnostics",L"audio",1,ini.c_str())!=0;
     s.assets=GetPrivateProfileIntW(L"Diagnostics",L"assets",0,ini.c_str())!=0;
+    s.details=GetPrivateProfileIntW(L"Diagnostics",L"detail_logs",0,ini.c_str())!=0;
     s.threshold=std::clamp(GetPrivateProfileIntW(L"Diagnostics",L"slow_frame_ms",10,ini.c_str()),5u,1000u);
     QueryPerformanceFrequency(&s.frequency);s.started=ticks();s.window=window;s.testing=!test_directory.empty();
     SYSTEMTIME utc{},local{};GetSystemTime(&utc);GetLocalTime(&local);wchar_t session[80];
     swprintf_s(session,L"%04u%02u%02u-%02u%02u%02u-pid%lu",local.wYear,local.wMonth,local.wDay,local.wHour,local.wMinute,local.wSecond,GetCurrentProcessId());
     s.directory=test_directory.empty()?(root/L"mxl-diagnostics"/session).wstring():test_directory;
     std::error_code error;std::filesystem::create_directories(s.directory,error);if(error)return false;
+    // Snapshot only small, named settings files once at launch. This records
+    // the native filter's saved configuration without polling disk in play.
+    auto snapshot=[&](const std::filesystem::path& source,const wchar_t* name) {
+        std::error_code ec;
+        const auto size=std::filesystem::file_size(source,ec);
+        if(!ec && size<=8*1024*1024)
+            std::filesystem::copy_file(source,std::filesystem::path(s.directory)/name,
+                std::filesystem::copy_options::overwrite_existing,ec);
+    };
+    for(const auto* name:{L"mxl-native-loot.ini",L"d2gl.ini",L"d2fps.ini"})snapshot(root/name,name);
+    if(test_directory.empty()) {
+        wchar_t appdata[32768]{};
+        const auto length=GetEnvironmentVariableW(L"APPDATA",appdata,DWORD(std::size(appdata)));
+        if(length && length<std::size(appdata))
+            snapshot(std::filesystem::path(appdata)/L"MedianXL"/L"save"/L"lootfilterconf.json",L"lootfilterconf.json");
+    }
     FILE* file=nullptr;
     if(!_wfopen_s(&file,(s.directory+L"\\session.txt").c_str(),L"wb") && file) {
         fprintf(file,"MXL Smooth Motion DX12 1.15 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
+        fputs("build_kind=MXL_PRIVATE_LOOT_DIAGNOSTICS_V1\nSaved filter/settings snapshots are launch-time state only; later menu changes are not observed directly.\n",file);
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,
             local.wYear,local.wMonth,local.wDay,local.wHour,local.wMinute,local.wSecond,local.wMilliseconds);
-        fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nassets=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
-            s.threshold,unsigned(s.audio),unsigned(s.assets));
+        fprintf(file,"slow_frame_ms=%.2f\naudio=%u\nassets=%u\ndetail_logs=%u\nGPU timestamps cover our DX12 command lists, not ReShade's separate submissions.\n",
+            s.threshold,unsigned(s.audio),unsigned(s.assets),unsigned(s.details));
+        fputs("Producer loot columns cover work since the previous producer submission, on that thread only. Match frame_id with frame/GPU rows.\n"
+              "loot_enabled=0 is effects disabled; loot_enabled=1 with loot_targets=0 is enabled but no effects drawn. Native filter activation is a separate game setting.\n"
+              "loot_effects_ms covers native effect submission and lookups; loot_labels_ms includes names/layout/font drawing; loot_names_ms is nested formatting only. Do not sum nested timings.\n"
+              "Pickup and capture timing samples the first and then every 64th call per producer interval. *_calls counts every call; *_samples counts timed calls; *_sampled_ms is sampled wall time only, not total cost.\n"
+              "Loot cache counts are per-frame deltas; uploads/hits refer to immutable loot cells, reclaims/skips include ordinary sprites.\n",file);
         fputs("Audio summaries: duration_ms=sum of completed call wall times; interval_ms=largest call; draws=calls; indices=failed calls.\n"
               "native-sound.csv: verified Client/Fog async load/ready/get/free and file I/O; D2Sound lock acquire/outer hold, waits, sleeps and Storm music.\n"
               "Native details: calls at least 0.5 ms plus every async load/free and client open/close; at most 131072 rows. Paths bounded to 95 bytes.\n"
@@ -255,8 +284,17 @@ void end_frame() noexcept {
 void add(Metric metric,uint64_t elapsed) noexcept {if(frame_active)frame.ms[size_t(metric)]+=milliseconds(elapsed);}
 void count(Count metric,uint64_t amount) noexcept {if(frame_active)frame.counts[size_t(metric)]+=amount;}
 void producer(uint64_t id,uint64_t ready,uint64_t returned,double interval,uint32_t vertices,double build_ms) noexcept {
-    if(!enabled())return;Record r;r.kind="producer";r.id=id;r.at=ready;r.tid=GetCurrentThreadId();
+    if(!enabled())return;Record r=producer_work;producer_work={};r.kind="producer";r.id=id;r.at=ready;r.tid=GetCurrentThreadId();
     r.duration=milliseconds(returned-ready);r.interval=interval;r.counts[0]=vertices;r.ms[size_t(Metric::ProducerBuild)]=build_ms;put(r);
+}
+void producer_add(Metric metric,uint64_t elapsed) noexcept {if(enabled())producer_work.ms[size_t(metric)]+=milliseconds(elapsed);}
+void producer_count(Count metric,uint64_t amount) noexcept {if(enabled())producer_work.counts[size_t(metric)]+=amount;}
+void producer_set(Count metric,uint64_t amount) noexcept {if(enabled())producer_work.counts[size_t(metric)]=amount;}
+bool producer_sample(Count calls,Count samples) noexcept {
+    if(!enabled())return false;
+    const auto count=++producer_work.counts[size_t(calls)];
+    if((count-1)%64)return false;
+    ++producer_work.counts[size_t(samples)];return true;
 }
 void gpu_batch(uint64_t id,double duration) noexcept {if(!enabled())return;Record r;r.kind="gpu";r.id=id;r.at=ticks();r.duration=duration;r.tid=GetCurrentThreadId();put(r);}
 void audio_call(Audio operation,uint64_t start,uint64_t end,HRESULT result) noexcept {

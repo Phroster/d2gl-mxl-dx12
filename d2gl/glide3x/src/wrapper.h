@@ -45,6 +45,8 @@ class Wrapper {
 	uint64_t m_loot_source_mismatches = 0;
 	uint64_t m_cache_reported_events = UINT64_MAX;
 	uint64_t m_cache_report_time = 0;
+	TextureCacheStats m_previous_cache_stats{};
+	uint64_t m_previous_skipped_sprites = 0;
 	void reportTextureCache();
 #endif
 

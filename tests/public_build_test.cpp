@@ -24,6 +24,7 @@ int wmain(int argc, wchar_t** argv) {
         require(!start(nullptr), "An old INI enabled public recording.");
         require(!start(nullptr,(root/L"forced-session").wstring()), "Test-directory bypass enabled public recording.");
         require(!enabled() && !audio_enabled() && !assets_enabled(), "Public recording flag active.");
+        require(!detail_logs_enabled(), "Public detail logging active.");
         require(!start_audio() && !start_sound_probe() && audio_hook_count()==0, "Audio instrumentation activated.");
         const auto began=ticks();
         require(began!=0 && milliseconds(began)>0, "Shared clock helpers stopped working.");
@@ -31,6 +32,11 @@ int wmain(int argc, wchar_t** argv) {
             Scope scope(Metric::Render);
             begin_frame(i,2,1024,768,false); count(Count::Draws); add(Metric::Upload,1);
             producer(i,began,began+1,1,4); gpu_batch(i,1);
+            producer_count(Count::LootTargets,60); producer_set(Count::LootEnabled,1);
+            producer_add(Metric::LootEffects,1);
+            require(!producer_sample(Count::LootSelectionCalls,Count::LootSelectionSamples),"Public sampling active.");
+            ProducerScope loot(Metric::LootLabels);
+            ProducerSampleScope input(Metric::LootPickupSampled,Count::LootSelectionCalls,Count::LootSelectionSamples);
             audio_call(Audio::Play,began,began+1,S_OK);
             native_sound_call(NativeSound::AsyncLoad,began,began+1,0,0,0,0,"sample.wav",0);
             asset_call(AssetOperation::Open,0,1,began,began+1,"item.dc6",0,0,0,false,1);

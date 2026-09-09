@@ -23,6 +23,7 @@
 #include "modules/motion_prediction.h"
 #include "win32.h"
 #include "native_loot_texture.h"
+#include "diagnostics.h"
 
 namespace d2gl {
 
@@ -58,6 +59,13 @@ bool Wrapper::drawable()
 void Wrapper::reportTextureCache()
 {
 	const auto& stats = m_texture_manager->stats();
+	using mxl::diag::Count;
+	mxl::diag::producer_count(Count::LootCacheReclaims,stats.reclaimed_slots-m_previous_cache_stats.reclaimed_slots);
+	mxl::diag::producer_count(Count::LootCacheUploads,stats.immutable_uploads-m_previous_cache_stats.immutable_uploads);
+	mxl::diag::producer_count(Count::LootCacheHits,stats.immutable_hits-m_previous_cache_stats.immutable_hits);
+	mxl::diag::producer_count(Count::LootCacheSkipped,m_skipped_sprites-m_previous_skipped_sprites);
+	m_previous_cache_stats=stats;m_previous_skipped_sprites=m_skipped_sprites;
+	if(!mxl::diag::detail_logs_enabled()) return;
 	const auto events = stats.reclaimed_slots + stats.exhausted + stats.missing_source + stats.invalid_immutable
 		+ uint64_t(stats.immutable_uploads != 0) + m_skipped_sprites + m_loot_source_mismatches;
 	const auto now = GetTickCount64();
@@ -250,12 +258,14 @@ void Wrapper::grTexSource(GrChipID_t tmu, FxU32 start_address, GrTexInfo* info)
 #if MXL_ENABLE_DIAGNOSTICS
 				// Check only on an atlas miss, alongside the required decode. Keep
 				// evidence if the native TMU cache offers a different image later.
+				if(mxl::diag::detail_logs_enabled()) {
 				++m_loot_source_checks;
 				constexpr uint32_t capacity = GLIDE_TEX_MEMORY * GLIDE_MAX_NUM_TMU;
 				if (start_address > capacity || width * height > capacity - start_address
 					|| !g_glide_texture.hash.count(start_address)
 					|| std::memcmp(pixels, g_glide_texture.memory + start_address, width * height))
 					++m_loot_source_mismatches;
+				}
 #endif
 				return true;
 			})

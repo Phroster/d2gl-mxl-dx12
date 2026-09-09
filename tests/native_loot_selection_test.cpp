@@ -5,6 +5,7 @@
 #include <glm/vec2.hpp>
 #include "native_loot_cells.h"
 #include "native_loot_pickup.h"
+#include "diagnostics.h"
 #include <iostream>
 #include <stdexcept>
 #include <chrono>

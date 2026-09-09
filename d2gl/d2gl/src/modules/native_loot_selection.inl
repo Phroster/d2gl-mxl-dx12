@@ -2,6 +2,8 @@
 // Shared by the live hook and its isolated native-selection regression test.
 void __stdcall updateSelection()
 {
+    mxl::diag::ProducerSampleScope timing(mxl::diag::Metric::LootPickupSampled,
+        mxl::diag::Count::LootSelectionCalls,mxl::diag::Count::LootSelectionSamples);
     ++selectionCalls;
     // The native input loop can poll thousands of times between draw frames.
     // Without an eligible target, do not query inventory, keys or unit state.

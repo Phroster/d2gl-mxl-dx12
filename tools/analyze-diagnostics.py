@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import hashlib
 import statistics
 from collections import Counter, defaultdict
 from decimal import Decimal
@@ -115,6 +116,52 @@ def asset_scopes(folder):
     return events
 
 
+def loot_work_summary(folder, frames, producers):
+    groups = defaultdict(list)
+    missing = 0
+    for frame in frames:
+        producer = producers.get(frame["frame_id"])
+        if not producer or "loot_enabled" not in producer:
+            missing += 1
+            continue
+        state = "effects_off" if producer["loot_enabled"] == "0" else (
+            "effects_on_loot_visible" if int(producer["loot_targets"]) else "effects_on_no_loot")
+        groups[state].append((frame, producer))
+
+    def distribution(values):
+        values = sorted(values)
+        if not values:
+            return None
+        return {"median": statistics.median(values), "p95": values[int((len(values)-1)*.95)],
+                "p99": values[int((len(values)-1)*.99)], "max": values[-1]}
+
+    states = {}
+    for state, items in groups.items():
+        timings = ("producer_build_ms", "loot_effects_ms", "loot_labels_ms", "loot_names_ms")
+        counts = ("loot_targets", "loot_labels", "loot_sprites", "loot_name_formats", "loot_selection_calls",
+                  "loot_selection_samples", "loot_inventory_queries", "loot_unit_lookups", "loot_cache_reclaims",
+                  "loot_cache_uploads", "loot_cache_hits", "loot_cache_skipped")
+        entry = {"frames": len(items), "slow_frames": sum(f["slow"] == "1" for f, _ in items),
+                 "frame_interval_ms": distribution(float(f["interval_ms"]) for f, _ in items if float(f["interval_ms"]) > 0),
+                 "timings_ms": {name: distribution(float(p[name]) for _, p in items if name in p) for name in timings},
+                 "counts_total": {name: sum(int(p.get(name, 0)) for _, p in items) for name in counts}}
+        samples = sum(int(p.get("loot_selection_samples", 0)) for _, p in items)
+        entry["mean_timed_pickup_sample_ms"] = sum(float(p.get("loot_pickup_sampled_ms", 0)) for _, p in items) / samples if samples else None
+        states[state] = entry
+    snapshot = None
+    path = Path(folder) / "lootfilterconf.json"
+    if path.exists():
+        try:
+            contents = path.read_bytes()
+            profiles = json.loads(contents.decode("utf-8-sig"))
+            snapshot = {"sha256": hashlib.sha256(contents).hexdigest(),
+                        "active_profiles": [{"name": p["name"], "rules": len(p["rules"])} for p in profiles if p.get("active")]}
+        except (ValueError, KeyError, TypeError, OSError) as error:
+            snapshot = {"error": str(error)}
+    return {"states": states, "frames_without_loot_metrics": missing, "saved_filter_at_launch": snapshot,
+            "limits": "Groups describe the effects, not native filter activation. The saved filter snapshot does not observe later in-game menu changes. Pickup times cover sampled calls only, not total input cost. Name time is nested in label time; do not add them. Producer build includes game-thread drawing but is not an isolated measurement of Sigma filter evaluation. Same-frame correlation does not establish cause. These frame intervals are renderer completion cadence, not displayed-frame timestamps."}
+
+
 def analyze(folder):
     rows = []
     for path in sorted(Path(folder).glob("events-*.csv")):
@@ -150,6 +197,7 @@ def analyze(folder):
         p = producer.get(r["frame_id"])
         item["producer_wait_ms"] = float(p["duration_ms"]) if p else None
         item["producer_build_ms"] = float(p["producer_build_ms"]) if p and "producer_build_ms" in p else None
+        item["loot"] = {k: float(v) if k.endswith("_ms") else int(v) for k, v in p.items() if k.startswith("loot_")} if p else None
         item["overlapping_sound_calls"] = [{"operation": a["detail"], "ms": float(a["duration_ms"]), "thread": int(a["thread_id"])} for a in overlap[:20]]
         item["overlapping_asset_calls"] = sorted((a for a in assets if a["session_ms"] < end and a["end_ms"] > start),
                                                 key=lambda a: a["duration_ms"], reverse=True)[:20]
@@ -231,6 +279,7 @@ def analyze(folder):
             "dropped_records": max((int(r["value"]) for r in rows if r["type"] == "logger"), default=0),
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
             "asset_io": asset_summary,
+            "loot_work": loot_work_summary(folder, frames, producer),
             "fps_75_to_85": band_summary,
             "T_profiles": input_profiles,
             "reveal_traces": reveal_traces,

@@ -680,9 +680,9 @@ void Context::setBlendState(uint32_t index)
 
 void Context::beginFrame()
 {
+    diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
     modules::NativeLoot::beginFrame();
     mxl::reveal::begin_frame(App.hwnd);
-    diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
     mxl::tiles::begin_frame(App.game.screen==GameScreen::InGame);
 	if (!App.wndproc && App.game.screen == GameScreen::Menu)
 		App.wndproc = (WNDPROC)SetWindowLongA(App.hwnd, GWL_WNDPROC, (LONG)win32::WndProc);

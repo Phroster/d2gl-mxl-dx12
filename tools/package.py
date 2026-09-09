@@ -74,7 +74,7 @@ def main():
     files = {name: path.read_bytes() for name, path in inputs.items()}
     # Also reject stale DLLs left by a recording-enabled build.
     for name in ("ddraw.dll", "glide3x.dll"):
-        for marker in ("mxl-diagnostics", "mxl-native-loot-", "mxl-sprite-cache-", "mxl-smoothing.log", "native-sound.csv"):
+        for marker in ("mxl-diagnostics", "mxl-native-loot-", "mxl-sprite-cache-", "mxl-smoothing.log", "native-sound.csv", "MXL_PRIVATE_LOOT_DIAGNOSTICS_V1"):
             if any(marker.encode(enc) in files[name] for enc in ("utf-8", "utf-16le")):
                 raise ValueError(f"Recording code remains in {name}: {marker}")
     loot = configparser.ConfigParser()

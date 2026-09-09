@@ -11,6 +11,7 @@
 #include "native_loot_labels.h"
 #include "native_loot_render.h"
 #include "native_loot_texture.h"
+#include "diagnostics.h"
 #include "option/menu.h"
 #include "hd_text.h"
 #include <detours/detours.h>
@@ -116,7 +117,7 @@ __declspec(naked) int __fastcall worldMouse(int*,int*) {
 #if MXL_ENABLE_DIAGNOSTICS
 void report(const char* status)
 {
-    if (directory.empty()) return;
+    if (directory.empty() || !mxl::diag::detail_logs_enabled()) return;
     const auto path = directory / ("mxl-native-loot-" + std::to_string(GetCurrentProcessId()) + ".log");
     if (FILE* f = _wfopen(path.c_str(), L"a")) {
         std::fprintf(f,"%s ground_calls=%llu effect_draws=%llu limited=%llu floor_passes=%llu bloom_draws=%llu\n",status,groundCalls,effectDraws,limited,floorPasses,bloomDraws);
@@ -171,6 +172,7 @@ glm::ivec2 anchor(d2::UnitAny* unit, bool perspective)
 
 d2::UnitAny* resolve(const mxl::native_loot::GroundEntry& entry)
 {
+    mxl::diag::producer_count(mxl::diag::Count::LootUnitLookups);
     return mxl::native_loot::resolve_ground([&](bool second) {
         return (second?d2::findUnitServer:d2::findUnitClient)(entry.id,4);
     },[&](d2::UnitAny* candidate) {
@@ -211,11 +213,15 @@ NameEntry& nameFor(d2::UnitAny* unit,const mxl::native_loot::GroundEntry& entry,
         *slot={};slot->used=true;slot->item=entry;slot->flags=data.dwFlags;slot->quality=unsigned(data.dwQuality);
         // Use the formatter called by Sigma's inventory tooltip. The stock
         // D2Client formatter indexes rare affixes one record earlier.
-        if(!itemName(unit,slot->text.data(),0)) slot->text[0]=0;
+        {
+            mxl::diag::ProducerScope timing(mxl::diag::Metric::LootNames);
+            mxl::diag::producer_count(mxl::diag::Count::LootNameFormats);
+            if(!itemName(unit,slot->text.data(),0)) slot->text[0]=0;
+        }
         slot->text.back()=0;slot->updated=now;++nameFormats;
 #if MXL_ENABLE_DIAGNOSTICS
         // Bounded evidence for later name/quality reports; no per-frame I/O.
-        if(slot->text[0] && unsigned(data.dwQuality)>=6 && unsigned(data.dwQuality)<=9
+        if(mxl::diag::detail_logs_enabled() && slot->text[0] && unsigned(data.dwQuality)>=6 && unsigned(data.dwQuality)<=9
             && nameDiagnostics<nameDiagnosticItems.size()
             && std::none_of(nameDiagnosticItems.begin(),nameDiagnosticItems.begin()+nameDiagnostics,
                 [&](const auto& old) { return mxl::native_loot::same_identity(old,entry); })) {
@@ -245,6 +251,7 @@ bool onItemLabel(const mxl::native_loot::GroundEntry& entry,int ax,int ay,int x,
 
 bool carryingItem()
 {
+    mxl::diag::producer_count(mxl::diag::Count::LootInventoryQueries);
     auto* player=d2::getPlayerUnit();
     if(!player || !cursorItem) return true;
     static_assert(offsetof(d2::UnitAny,v110._1)+12*sizeof(DWORD)==0x60);
@@ -295,6 +302,7 @@ void emit(d2::UnitAny* unit,int x,int y,const mxl::native_loot::GroundEntry& ent
             // Each cell carries its own world offset. Tall beams join exactly
             // at a row boundary and retain the same native world draw order.
             d2::drawImage(&cell,x,y,0xffffffff,mode,nullptr);
+            mxl::diag::producer_count(mxl::diag::Count::LootSprites);
             ++spriteDraws;
         }
     };
@@ -321,6 +329,7 @@ void __stdcall floorEffects()
 {
     if (!active || floorPainted || App.game.screen!=GameScreen::InGame
         || App.game.draw_stage!=DrawStage::World) return;
+    mxl::diag::ProducerScope timing(mxl::diag::Metric::LootEffects);
     floorPainted=true; ++floorPasses;
     pickCount=0;pickDrawn=GetTickCount();
     const auto viewport=view();
@@ -345,6 +354,7 @@ void __stdcall floorEffects()
         const auto pos=anchor(unit,viewport.perspective);
         emit(unit,pos.x+entry.localX,pos.y+entry.localY,entry);
     }
+    mxl::diag::producer_set(mxl::diag::Count::LootTargets,pickCount);
 }
 
 bool hashMatches(const std::filesystem::path& path, const char* expected)
@@ -545,6 +555,8 @@ void beginFrame()
         tried = true;
         try { initialize(); } catch (...) { report("disabled: sprite initialization failed"); }
     }
+    mxl::diag::producer_set(mxl::diag::Count::LootEnabled,active);
+    mxl::diag::producer_set(mxl::diag::Count::LootPickupEnabled,pickupActive);
     if (!active) return;
     auto* player=inGame?d2::getPlayerUnit():nullptr;
     playerLevel=player?d2::getUnitStat(player,12):0;
@@ -564,6 +576,8 @@ void beginFrame()
 
 void capture(int x, int y)
 {
+    mxl::diag::ProducerSampleScope timing(mxl::diag::Metric::LootCaptureSampled,
+        mxl::diag::Count::LootCaptureCalls,mxl::diag::Count::LootCaptureSamples);
     if (!active || !current || painted || App.game.screen != GameScreen::InGame
         || App.game.draw_stage != DrawStage::World) return;
     painted = true;
@@ -645,6 +659,7 @@ void inputMessage(unsigned message)
 void drawLabels()
 {
     if(!active || !itemName || labelsPainted || !floorPainted || App.game.screen!=GameScreen::InGame) return;
+    mxl::diag::ProducerScope timing(mxl::diag::Metric::LootLabels);
     const auto previousLabels=groundLabels;
     const auto previousCount=groundLabelCount;
     labelsPainted=true;groundLabelCount=0;
@@ -695,6 +710,7 @@ void drawLabels()
         if(!request.visible) { ++labelSpaceLimited;continue; }
         const auto& bounds=request.placed;
         if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,draw.colour,draw.rank,draw.hovered)) continue;
+        mxl::diag::producer_count(mxl::diag::Count::LootLabels);
         constexpr int padding=mxl::native_loot::loot_label_padding;
         groundLabels[groundLabelCount++]={pickItems[draw.item],
             {bounds.left-draw.anchor.x-padding,bounds.top-draw.anchor.y-padding,
