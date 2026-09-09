@@ -400,9 +400,17 @@ void __fastcall drawNormalTextExHooked(const wchar_t* str, int x, int y, uint32_
 
 void __fastcall drawFramedTextHooked(const wchar_t* str, int x, int y, uint32_t color, uint32_t centered)
 {
+	if(modules::NativeLoot::suppressHoverLabel()) return;
 	const auto pos = modules::MotionPrediction::Instance().drawText(str, x, y, D2DrawFn::FramedText);
-	if (!modules::HDText::Instance().drawFramedText(str, pos.x, pos.y, color, centered))
+	if (!modules::HDText::Instance().drawFramedText(str, pos.x, pos.y, color, centered)) {
+		if (str) {
+			uint32_t width=0,height=0;
+			getFramedTextSize(str,&width,&height);
+			const int left=pos.x-(centered?int(width)/2:0);
+			modules::NativeLoot::hoverLabel(left-4,pos.y-int(height)-4,left+int(width)+4,pos.y+4);
+		}
 		drawFramedText(str, pos.x, pos.y, color, centered);
+	}
 }
 
 void __fastcall drawRectangledTextHooked(const wchar_t* str, int x, int y, uint32_t rect_color, uint32_t rect_transparency, uint32_t color)

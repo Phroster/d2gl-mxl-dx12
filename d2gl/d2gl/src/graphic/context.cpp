@@ -622,6 +622,7 @@ void Context::onStageChange()
 				flushVertices();
 				m_command_buffer[m_frame_index].pushCommand(CommandType::PreFx, m_current_blend_index);
 			}
+			modules::NativeLoot::drawLabels();
 			break;
 		case DrawStage::Map:
 			if (modules::MiniMap::Instance().isActive()) {
@@ -650,6 +651,7 @@ void Context::onStageChange()
 				*d2::automap_on = d2::automapenabled;
 			}
 			modules::HDText::Instance().drawEntryText();
+			modules::NativeLoot::drawLabels();
 			modules::HDText::drawFpsCounter();
 			break;
 		case DrawStage::CursorItem:

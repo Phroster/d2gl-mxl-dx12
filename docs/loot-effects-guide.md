@@ -2,7 +2,17 @@
 
 Native animated loot effects, with bloom and smoother edges. Based on all 2,468
 item bases in the installed Median XL catalog. Effects follow real ground items
-and work without holding Alt. Pickup and inventory items do not keep an effect.
+and work without holding Alt. Picked-up items do not keep an effect.
+
+Readable names stay visible above selected loot. Click its glow or name to
+pick it up, including with your inventory open and nothing held on the cursor.
+The game still handles walking, pickup range and inventory space. More important
+loot gets larger effects and labels; even common supplies keep readable names.
+
+Keep **HD text** enabled in Ctrl+O. If Alt switches the old labels on, clear
+**Show Items** in the game's key bindings and leave its show-items toggle off.
+Set `ClickEffects=0` in `mxl-native-loot.ini` and restart to keep the effects
+and labels with the original pickup controls.
 
 Effects combine starbursts, spark trails and crystal flecks. Uniques have tall beams; sacred uniques,
 high runes and top rewards get the biggest pillars and showers of sparks.
@@ -33,19 +43,23 @@ for remembered items. This applies only to items selected for effects.
 | Caches and treasure | A chest-shaped marker with a burst of light |
 | Named endgame rewards | Explicit coverage for mirrors, brands, winds, tenets, marks, crafting scrolls and other untyped rewards |
 
-There are 62 item profiles sharing 59 distinct combinations of shape, size and
-colour across 13 visual families. Related materials can share artwork. These
+There are 64 item profiles across 13 visual families. Related materials can share artwork. These
 priorities describe item category and progression, not trade prices or affix rolls.
 
 The effects follow the existing cleanup preferences: imperfect gems stop
-glimmering at level 50; rare Tier 1/2/3/4 equipment stops at levels 31/51/77/90.
+glimmering at level 50; rare Tier 1/2/3/4 equipment stops at character or item
+levels 31/51/77/90. Health and mana potion grades 1/2/3/4 stop at character
+levels 20/40/70/110; the strongest potions remain eligible.
 Uniques, sets, crafted and honorific equipment remain eligible. Ordinary blue
 equipment stays quiet, while crafting jewels retain a small glimmer.
 
-The existing native filter, notifications and map markers are unchanged. Effects
+These effect categories use the included item catalog and progression rules,
+not a live reading of your filter configuration. Your native filter still
+controls its own labels, notifications and map markers. Effects
 are capped at 12 small, 24 medium and 24 large items per frame; large loot has a
 separate allowance so common items cannot consume it. A crowded pile may exceed
-those visual limits. Animation artwork is built and cached once at game startup.
+those visual limits. Animation artwork is included in the renderer and loaded
+once, keeping game entry quick.
 
 The native diagnostics retain draw counts by item profile, including
 `ArcaneShard`, `ArcaneCrystal`, `ScytheBase`, `RuneGreat` and the other categories.

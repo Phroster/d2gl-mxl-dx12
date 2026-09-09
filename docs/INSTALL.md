@@ -12,6 +12,8 @@ The supplied `mxl-diagnostics.ini` turns performance recording off without disab
 
 Already using MXL Smooth Motion DX12? Replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`, and add `mxl-native-loot.ini` if it is missing. Your matching MPQ and graphics/FPS settings can stay as they are.
 
+Names stay visible on loot with effects. Click the glow or name to pick it up without holding Alt, including with your inventory open. If Alt brings back the old labels, clear **Show Items** in the game's key bindings and leave its show-items toggle off. Keep **HD text** enabled in Ctrl+O for the new labels. Set `ClickEffects=0` in `mxl-native-loot.ini` and restart to use the original pickup controls.
+
 Loot effects are enabled by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. Your native lootfilter, notifications and map markers keep their existing settings.
 
 ## ReShade

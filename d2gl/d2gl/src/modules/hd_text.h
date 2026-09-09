@@ -41,6 +41,7 @@ struct HoveredUnit {
 class HDText {
 	std::map<uint8_t, std::unique_ptr<Font>> m_fonts;
 	std::unique_ptr<Object> m_object_bg;
+	std::unique_ptr<Font> m_loot_fonts[4];
 	uint32_t m_lang_id = 0;
 	uint32_t m_text_size = 1;
 	uint32_t m_last_text_height = 0;
@@ -87,6 +88,7 @@ public:
 
 	bool drawText(const wchar_t* str, int x, int y, uint32_t color, uint32_t centered, uint32_t trans_lvl = 5);
 	bool drawFramedText(const wchar_t* str, int x, int y, uint32_t color, uint32_t centered);
+	bool drawLootLabel(const wchar_t* str,int x,int y,uint32_t color,unsigned rank,bool hovered,glm::ivec4& bounds);
 	bool drawRectangledText(const wchar_t* str, int x, int y, uint32_t rect_transparency, uint32_t color);
 	bool drawSolidRect(int left, int top, int right, int bottom, uint32_t color, int draw_mode);
 

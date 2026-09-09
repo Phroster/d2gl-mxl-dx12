@@ -20,7 +20,7 @@ int main() {
         if(!ImGui_ImplDX12_Init(device.native(),3,DXGI_FORMAT_R8G8B8A8_UNORM,heap.Get(),heap->GetCPUDescriptorHandleForHeapStart(),heap->GetGPUDescriptorHandleForHeapStart()))throw std::runtime_error("UI backend failed");
         ImGui_ImplDX12_NewFrame();ImGui::NewFrame();
         ImGui::SetNextWindowPos({60,30});ImGui::SetNextWindowSize({680,540});
-        ImGui::Begin("MXL Smooth Motion DX12 1.11",nullptr,ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse);
+        ImGui::Begin("MXL Smooth Motion DX12 1.12",nullptr,ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse);
         ImGui::TextColored({0.9f,0.65f,0.3f,1},"Native DirectX 12 / NVIDIA hardware");
         ImGui::Separator();mxl::dx12::draw_fps_settings();ImGui::End();ImGui::Render();
         auto& output=device.back_buffer();device.transition(output,D3D12_RESOURCE_STATE_RENDER_TARGET);

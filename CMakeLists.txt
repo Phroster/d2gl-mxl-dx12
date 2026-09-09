@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(MXLSmoothMotionDX12 VERSION 1.11.0 LANGUAGES C CXX)
+project(MXLSmoothMotionDX12 VERSION 1.12.0 LANGUAGES C CXX)
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR "Build with Visual Studio 2022 and -A Win32.")
 endif()
@@ -44,11 +44,13 @@ set(MXL_IMGUI_SOURCES
   "${MXL_IMGUI_DIR}/imgui.cpp" "${MXL_IMGUI_DIR}/imgui_draw.cpp"
   "${MXL_IMGUI_DIR}/imgui_widgets.cpp" "${MXL_IMGUI_DIR}/imgui_tables.cpp"
   "${MXL_IMGUI_DIR}/imgui_impl_win32.cpp" "${MXL_IMGUI_DIR}/imgui_impl_dx12.cpp")
+include(cmake/NativeLootAssets.cmake)
 foreach(renderer glide3x ddraw)
   file(GLOB_RECURSE WRAPPER_SOURCES CONFIGURE_DEPENDS "d2gl/${renderer}/src/*.cpp")
   add_library(${renderer} SHARED ${MXL_CORE_SOURCES} ${WRAPPER_SOURCES} ${MXL_IMGUI_SOURCES}
     d2gl/d2gl/src/mxl_smoothing.c src/dx12/glslang_compat.cpp src/dx12/fps_menu.cpp
-    "d2gl/${renderer}/${renderer}.rc")
+    "d2gl/${renderer}/${renderer}.rc" "${MXL_LOOT_ASSET_RC}")
+  add_dependencies(${renderer} native_loot_assets)
   target_include_directories(${renderer} PRIVATE src/dx12 d2gl/d2gl/src
     d2gl/d2gl/vendor/include "d2gl/${renderer}/src")
   target_compile_definitions(${renderer} PRIVATE WIN32 UNICODE _UNICODE _WINDOWS _USRDLL GLEW_STATIC NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)

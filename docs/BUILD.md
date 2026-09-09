@@ -9,7 +9,9 @@ cmake -S . -B C:/MXL-DX12-Build -G "Visual Studio 17 2022" -A Win32
 cmake --build C:/MXL-DX12-Build --config Release --target glide3x ddraw --parallel 6
 ```
 
-CMake downloads the pinned shader compiler sources automatically. The two DLLs are written to `C:/MXL-DX12-Build/Release`. The build does not install anything into a game.
+CMake downloads the pinned shader compiler sources automatically. It also bakes
+the native loot artwork and embeds the compressed assets in both DLLs, so the
+game does not generate them while loading. The two DLLs are written to `C:/MXL-DX12-Build/Release`. The build does not install anything into a game.
 
 ## Run the checks
 
@@ -31,7 +33,10 @@ python tools/package.py --build-dir C:/MXL-DX12-Build
 
 The ZIP contains exactly seven installation files and one consolidated `LICENSES.txt`, including `mxl-native-loot.ini` with loot effects enabled. Guides, images, source files and build tools stay in the repository. The packaging script checks the complete ZIP inventory, file hashes, disabled recording and enabled loot defaults. It writes the verification manifest and checksum beside the ZIP, outside the player download.
 
-The native loot catalog and palette headers are included; no game extraction is required to build. `native_loot_test` covers classification, progression, animation cells and pulse timing. Passing a game folder as its first argument additionally verifies sprite decoding through the installed `D2CMP.dll` in an offline helper. An optional second argument exports the generated sprites for `tools/preview_native_loot.py` (requires Pillow).
+The native loot catalog and palette headers are included; no game extraction is required to build. `native_loot_test` covers classification, progression, animation cells and pulse timing. Passing a game folder as its first argument additionally verifies sprite decoding through the installed `D2CMP.dll` in an offline helper. An optional second argument exports the generated sprites for `tools/preview_native_loot.py` (requires Pillow). Pass `-` as the second argument to skip exports and a built
+renderer DLL as the third argument to compare all embedded artwork with the
+generated frames. `native_loot_pickup_test` checks selection, label sizing,
+input caching and inventory-panel boundaries.
 
 The notice inventory is maintained in [`licenses/player-notices.json`](../licenses/player-notices.json). Packaging checks the copied compiler license texts against the actual build dependencies. See [licensing and credits](LICENSING.md) for component terms and source references.
 

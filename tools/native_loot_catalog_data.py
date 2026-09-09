@@ -18,7 +18,8 @@ PROFILES=[('None',0,0,'Beam'),
  ('Quest',2,5,'Quest'),('Trophy',3,1,'Quest'),('Fragment',2,1,'Quest'),
  ('Cycle',2,3,'Shrine'),('LargeCycle',3,3,'Shrine'),('GoldenCycle',4,1,'Shrine'),
  ('Essence',2,0,'Arcane'),('Special',3,3,'Quest'),('Scroll',2,3,'Quest'),
- ('Cache',2,1,'Treasure'),('Treasure',3,1,'Treasure'),('CraftScroll',3,3,'Shrine'),('Dye',2,3,'Orb')]
+ ('Cache',2,1,'Treasure'),('Treasure',3,1,'Treasure'),('CraftScroll',3,3,'Shrine'),('Dye',2,3,'Orb'),
+ ('HealingPotion',1,4,'Orb'),('ManaPotion',1,0,'Orb')]
 PROFILE_ID={p[0]:i for i,p in enumerate(PROFILES)}
 CRAFT={'Ancient Armor','Light Plate','Leather Gloves','Gauntlets','Boots','Greaves','Light Belt','Plated Belt','Circlet','Diadem','Warp Blade','Naginata','Reflex Bow','Recurve Bow','Stinger Crossbow','War Scepter','Flamen Staff','Bonesplitter','Blackguard Helm','Hundsgugel','Setzschild','Gilded Shield','Aerin Shield','Ceremonial Armor','Scythe','Raptor Scythe'}
 SUPERIOR={'Warp Blade','Naginata','Reflex Bow','Recurve Bow','Stinger Crossbow','War Scepter','Crystal Sword','Kriegsmesser','Ancient Armor','Light Plate','Diadem','Plated Belt','Greaves','Gauntlets','Scythe','Raptor Scythe'}
@@ -29,6 +30,8 @@ GREAT_RUNES={'r51','r52','r53','r54','r55','r56'}
 def base_profile(x):
  cs=set(x['classes']);name=re.sub('ÿc.','',x['name']).strip();low=name.lower();code=x['code_text']
  if code in {'vic','mec'}:return 'Supply'
+ if re.fullmatch(r'hp[1-5]',code):return 'HealingPotion'
+ if re.fullmatch(r'mp[1-5]',code):return 'ManaPotion'
  if low in {'unused','invisible'} or code in ROUTINE:return 'None'
  if x['tier']=='Angelic':return 'Angelic'
  if x['tier']=='Mastercrafted':return 'Mastercrafted'
@@ -94,13 +97,14 @@ def build(catalog,audit=None):
  'enum class Style : unsigned char { '+','.join(STYLES)+' };','enum Profile : unsigned short { '+','.join('P_'+p[0] for p in PROFILES)+', ProfileCount };',
  'struct EffectProfile { unsigned char rank, colour; Style style; const char* name; };','inline constexpr EffectProfile profiles[] = {']
  for name,rank,colour,style in PROFILES:lines.append(f'    {{{rank},{colour},Style::{style},"{name}"}},')
- lines+=['};','struct Base { unsigned short profile; unsigned char sacred,craft,superior,scythe,tier,gear,jewel,disabled; };','inline constexpr Base bases[] = {']
+ lines+=['};','struct Base { unsigned short profile; unsigned char sacred,craft,superior,scythe,tier,gear,jewel,disabled,potionGrade; };','inline constexpr Base bases[] = {']
  counts=dict(weapons=0,armor=0,misc=0);last=0;rows=[]
  for index,x in enumerate(c['items']):
   t=['weapons','armor','misc'].index(x['table']);assert t>=last and x['index']==counts[x['table']]
   last=t;counts[x['table']]+=1;name=x['name'].removesuffix(' (Sacred)');sacred=x['tier']=='Sacred';cs=set(x['classes'])
   profile=base_profile(x);disabled=x['name'].lower() in {'unused','invisible'}
   values=[f'P_{profile}',int(sacred),int(sacred and name in CRAFT),int(sacred and name in SUPERIOR),int('scythe' in name.lower()),x['tier'] if isinstance(x['tier'],int) else 0,int(bool(cs&{2,5,6})),int(27 in cs),int(disabled)]
+  values.append(int(x['code_text'][2]) if re.fullmatch(r'[hm]p[1-5]',x['code_text']) else 0)
   lines.append('    {'+','.join(map(str,values))+'}, // '+json.dumps(x['code_text'])+' '+json.dumps(x['name']))
   rows.append(dict(base=index,code=x['code_text'],name=x['name'],tier=x['tier'],profile=profile,rank=PROFILES[PROFILE_ID[profile]][1],classes=' '.join(map(str,x['classes'])),gear=values[6],scythe=values[4]))
  assert counts==dict(weapons=688,armor=476,misc=1304)

@@ -16,7 +16,24 @@ constexpr int bloom_padding = 12;
 constexpr int ground_anchor_offset = 5;
 constexpr int native_tile_extent = 256;
 struct EffectSize { int width,height; };
-inline EffectSize effect_size(unsigned rank,Style style) {
+// The catalog's four ranks preserve the accepted value hierarchy.
+constexpr unsigned spectacle_percent(unsigned rank) {
+    constexpr unsigned values[]={100,175,160,145,138};
+    return values[std::min(rank,4u)];
+}
+// Modest extra presence beside the accepted labels: low-value marks get the
+// most help, while the largest pillars gain width without more height.
+constexpr unsigned ground_balance_percent(unsigned rank,bool horizontal) {
+    constexpr unsigned widths[]={100,114,110,108,105},heights[]={100,108,104,102,100};
+    return (horizontal?widths:heights)[std::min(rank,4u)];
+}
+constexpr float spectacle_scale(unsigned rank,bool horizontal=false) {
+    return spectacle_percent(rank)*ground_balance_percent(rank,horizontal)*.0001f;
+}
+constexpr int spectacle_pixels(int value,unsigned rank,bool horizontal=false) {
+    return (value*int(spectacle_percent(rank))*int(ground_balance_percent(rank,horizontal))+5000)/10000;
+}
+inline EffectSize base_effect_size(unsigned rank,Style style) {
     // Regular effects grow by one third. Beams have extra headroom beyond that
     // increase; their category symbols keep the same proportional enlargement.
     constexpr int widths[]={0,48,96,128,176},heights[]={0,38,118,214,352};
@@ -26,8 +43,13 @@ inline EffectSize effect_size(unsigned rank,Style style) {
     if(rank==3 && (style==Style::Beam || style==Style::Rune || style==Style::Scythe || style==Style::Relic)) size={144,288};
     return size;
 }
+inline EffectSize effect_size(unsigned rank,Style style) {
+    const auto base=base_effect_size(rank,style);
+    return {spectacle_pixels(base.width,rank,true),spectacle_pixels(base.height,rank)};
+}
 inline unsigned cell_parts(unsigned rank,Style style,bool bloom) {
-    return unsigned(effect_size(rank,style).height+(bloom?2*bloom_padding:0)+native_tile_extent-1)/native_tile_extent;
+    const auto size=effect_size(rank,style);const int pad=bloom?2*bloom_padding:0;
+    return unsigned((size.width+pad+255)/256)*unsigned((size.height+pad+255)/256);
 }
 inline uint8_t faded_light(uint8_t colour,float strength) {
     int best=0x7fffffff;uint8_t match=0;
@@ -42,23 +64,23 @@ inline uint8_t faded_light(uint8_t colour,float strength) {
     return match;
 }
 inline void append_cell(std::vector<uint8_t>& file,unsigned index,const std::vector<uint8_t>& pixels,
-    int w,int fullHeight,int bottom,int tileHeight,int offsetY)
+    int fullWidth,int fullHeight,int left,int bottom,int w,int tileHeight,int offsetX,int offsetY)
 {
     std::vector<uint8_t> rle;
     for(int y=fullHeight-1-bottom;y>=fullHeight-bottom-tileHeight;--y) {
         for(int x=0;x<w;) {
-            const bool transparent=pixels[y*w+x]==0;
+            const bool transparent=pixels[y*fullWidth+left+x]==0;
             const int start=x++;
-            while(x<w&&x-start<127&&(pixels[y*w+x]==0)==transparent) ++x;
+            while(x<w&&x-start<127&&(pixels[y*fullWidth+left+x]==0)==transparent) ++x;
             rle.push_back(uint8_t(x-start)|(transparent?0x80:0));
-            if(!transparent) rle.insert(rle.end(),pixels.begin()+y*w+start,pixels.begin()+y*w+x);
+            if(!transparent) rle.insert(rle.end(),pixels.begin()+y*fullWidth+left+start,pixels.begin()+y*fullWidth+left+x);
         }
         rle.push_back(0x80);
     }
     const size_t pos=file.size();file.resize(pos+32+rle.size()+3);
     auto word=[&](size_t p,uint32_t v) { std::memcpy(file.data()+p,&v,4); };
     word(24+index*4,uint32_t(pos));word(pos,0);word(pos+4,w);word(pos+8,tileHeight);
-    word(pos+12,uint32_t(-w/2));word(pos+16,uint32_t(offsetY));
+    word(pos+12,uint32_t(offsetX));word(pos+16,uint32_t(offsetY));
     word(pos+20,0);word(pos+24,0);word(pos+28,uint32_t(rle.size()));
     std::copy(rle.begin(),rle.end(),file.begin()+pos+32);
     std::fill(file.end()-3,file.end(),0xee);
@@ -69,18 +91,18 @@ inline void append_cell(std::vector<uint8_t>& file,unsigned index,const std::vec
 // The final image is sliced into native cells, each at most 256 pixels tall.
 struct EffectCanvas {
     static constexpr int extent=1024, scale=4;
-    int width,height,canvasHeight,originX,originY;
+    int width,height,canvasWidth,canvasHeight,originX,originY;
     std::vector<uint8_t> pixels;
-    EffectCanvas(int w,int h):width(w),height(h),canvasHeight(std::max(extent,h*scale)),originX((extent-w*scale)/2),
-        originY((canvasHeight-h*scale)/2),pixels(extent*canvasHeight) {}
-    void dot(float x,float y,uint8_t colour) {
+    EffectCanvas(int w,int h):width(w),height(h),canvasWidth(std::max(extent,w*scale)),canvasHeight(std::max(extent,h*scale)),originX((canvasWidth-w*scale)/2),
+        originY((canvasHeight-h*scale)/2),pixels(canvasWidth*canvasHeight) {}
+    void dot(float x,float y,uint8_t colour,float radiusScale=1.f) {
         const float cx=originX+(x+.5f)*scale,cy=originY+(y+.5f)*scale;
-        const float radius=.58f*scale;
-        const int left=std::max(0,int(std::floor(cx-radius))),right=std::min(extent-1,int(std::ceil(cx+radius)));
+        const float radius=.58f*scale*radiusScale;
+        const int left=std::max(0,int(std::floor(cx-radius))),right=std::min(canvasWidth-1,int(std::ceil(cx+radius)));
         const int top=std::max(0,int(std::floor(cy-radius))),bottom=std::min(canvasHeight-1,int(std::ceil(cy+radius)));
         for(int py=top;py<=bottom;++py) for(int px=left;px<=right;++px) {
             const float dx=px+.5f-cx,dy=py+.5f-cy;
-            if(dx*dx+dy*dy<=radius*radius) pixels[py*extent+px]=colour;
+            if(dx*dx+dy*dy<=radius*radius) pixels[py*canvasWidth+px]=colour;
         }
     }
     std::vector<uint8_t> reduce() const {
@@ -102,7 +124,7 @@ struct EffectCanvas {
         for(int y=0;y<height;++y) for(int x=0;x<width;++x) {
             unsigned r=0,g=0,b=0;
             for(int sy=0;sy<scale;++sy) for(int sx=0;sx<scale;++sx) {
-                const auto& rgb=unit_palette[pixels[(originY+y*scale+sy)*extent+originX+x*scale+sx]];
+                const auto& rgb=unit_palette[pixels[(originY+y*scale+sy)*canvasWidth+originX+x*scale+sx]];
                 r+=rgb[0];g+=rgb[1];b+=rgb[2];
             }
             constexpr unsigned samples=scale*scale;
@@ -167,7 +189,7 @@ inline std::vector<uint8_t> bloom_pixels(const std::vector<uint8_t>& pixels,
 inline std::vector<uint8_t> make_cells(unsigned rank, unsigned colour = 0, bool bloom = false, Style style=Style::Beam)
 {
     rank = std::clamp(rank, 1u, 4u);
-    const auto size=effect_size(rank,style);
+    const auto size=base_effect_size(rank,style),outputSize=effect_size(rank,style);
     const int w=size.width,h=size.height;
     const unsigned parts=cell_parts(rank,style,bloom),cells=frame_count*parts;
     constexpr uint8_t lights[]={158,111,133,155,98,255},dims[]={154,88,129,143,80,25};
@@ -177,11 +199,14 @@ inline std::vector<uint8_t> make_cells(unsigned rank, unsigned colour = 0, bool 
     word(0, 6); word(4, 1); word(8, 0); word(12, 0xeeeeeeee);
     word(16, 1); word(20, cells);
     for (unsigned frame = 0; frame < frame_count; ++frame) {
-        std::vector<uint8_t> pixels(w * h);
-        EffectCanvas artwork(w,h);
+        std::vector<uint8_t> pixels;
+        EffectCanvas artwork(outputSize.width,outputSize.height);
         auto dot = [&](float x, float y, uint8_t c) {
-            if(rank>=2) artwork.dot(x,y,c);
-            else if (x >= 0 && x < w && y >= 0 && y < h) pixels[int(y)*w+int(x)] = c;
+            // Scale around the floor anchor, so opening a panel or enlarging
+            // the art never moves the item or its ground ring.
+            const auto scaleX=spectacle_scale(rank,true),scaleY=spectacle_scale(rank);
+            artwork.dot(outputSize.width*.5f+(x-w*.5f)*scaleX,
+                outputSize.height-18+(y-(h-18))*scaleY,c,std::max(scaleX,scaleY));
         };
         const float t = float(frame) / frame_count;
         const float tau = 6.28318530718f;
@@ -357,7 +382,7 @@ inline std::vector<uint8_t> make_cells(unsigned rank, unsigned colour = 0, bool 
         }
         // Twinkling eight-point stars, comet tails and tumbling diamond flecks
         // are baked into the cells. Spawn/expiry shrink to zero to avoid pops.
-        const int counts[]={0,5,18,30,46};
+        const int counts[]={0,10,30,50,76};
         const int count=counts[rank];
         for (int s = 0; s < count; ++s) {
             const float phase = std::fmod(t + s * .618033989f, 1.f);
@@ -370,40 +395,55 @@ inline std::vector<uint8_t> make_cells(unsigned rank, unsigned colour = 0, bool 
             const float x = cx + std::sin(angle)*(rank==1?13.f:radius*1.22f);
             const int sparkSize=int(life*(rank==1?1.f+twinkle*2:2.f+rank+twinkle*(rank+1)));
             if(sparkSize<1) continue;
-            if(rank>=2 && s%4==0) diamond(x,y,sparkSize*.65f,sparkSize*1.15f);
+            if(s%3==0) {
+                // Tumbling foil and short curling streamers between the stars.
+                const uint8_t foil[]={light,255,111,158,133,155};
+                const auto c=foil[(s/3)%6];
+                const float spin=angle*2+t*tau,half=sparkSize*.7f;
+                for(int strip=-1;strip<=1;++strip)
+                    line(x-std::cos(spin)*half,y-std::sin(spin)*half+strip*.45f,
+                        x+std::cos(spin)*half,y+std::sin(spin)*half+strip*.45f,c);
+                if(rank>=2) for(int j=0;j<7;++j)
+                    dot(x+std::sin(spin+j*.65f)*2,y+half+j*.8f,light);
+            }
+            else if(rank>=2 && s%4==0) diamond(x,y,sparkSize*.65f,sparkSize*1.15f);
             else star(x,y,sparkSize);
             if (rank>=2 && s%2==0) {
                 line(x,y+sparkSize+1,x+std::sin(angle+.2f)*3,y+sparkSize+3+rank*2,dim);
             }
         }
         const int padding=bloom?bloom_padding:0;
-        const int outW=w+2*padding, outH=h+2*padding;
-        if(rank>=2) pixels=artwork.reduce();
-        if(bloom) pixels=bloom_pixels(pixels,w,h,rank,colour);
+        const int outW=outputSize.width+2*padding, outH=outputSize.height+2*padding;
+        pixels=artwork.reduce();
+        if(bloom) pixels=bloom_pixels(pixels,outputSize.width,outputSize.height,rank,colour);
         // Split from the bottom. Per-cell native offsets place every row at
         // its original world Y; no overlapping seam and no oversized texture.
         // Bloom is blurred BEFORE splitting so its halo remains continuous.
         for(unsigned part=0;part<parts;++part) {
-        const int bottom=int(part)*native_tile_extent;
+        const int columns=(outW+255)/256;
+        const int left=int(part%columns)*native_tile_extent,bottom=int(part/columns)*native_tile_extent;
+        const int tileW=std::min(native_tile_extent,outW-left);
         const int tileH=std::min(native_tile_extent,outH-bottom);
-        append_cell(file,frame*parts+part,pixels,outW,outH,bottom,tileH,padding+ground_anchor_offset-bottom);
+        append_cell(file,frame*parts+part,pixels,outW,outH,left,bottom,tileW,tileH,left-outW/2,padding+ground_anchor_offset-bottom);
         }
     }
     return file;
 }
 inline EffectSize landing_size(unsigned rank) {
     constexpr int widths[]={0,80,144,192,240},heights[]={0,40,60,80,96};
-    return {widths[rank],heights[rank]};
+    return {spectacle_pixels(widths[rank],rank,true),spectacle_pixels(heights[rank],rank)};
 }
+inline unsigned landing_parts(unsigned rank) { return unsigned((landing_size(rank).width+255)/256); }
 // One short, expanding floor burst on landing. Shared by rank/colour, with
 // additive soft bands and star tips baked into one native draw per item.
 inline std::vector<uint8_t> make_landing_cells(unsigned rank,unsigned colour) {
     const auto size=landing_size(rank);const int w=size.width,h=size.height;
     constexpr uint8_t lights[]={158,111,133,155,98,255};
     const uint8_t light=lights[std::min(colour,5u)];
-    std::vector<uint8_t> file(24+frame_count*4);
+    const unsigned parts=landing_parts(rank);
+    std::vector<uint8_t> file(24+frame_count*parts*4);
     auto word=[&](size_t p,uint32_t v) { std::memcpy(file.data()+p,&v,4); };
-    word(0,6);word(4,1);word(8,0);word(12,0xeeeeeeee);word(16,1);word(20,frame_count);
+    word(0,6);word(4,1);word(8,0);word(12,0xeeeeeeee);word(16,1);word(20,frame_count*parts);
     constexpr float tau=6.28318530718f;
     for(unsigned frame=0;frame<frame_count;++frame) {
         EffectCanvas art(w,h);
@@ -421,7 +461,7 @@ inline std::vector<uint8_t> make_landing_cells(unsigned rank,unsigned colour) {
                     band==0?bright:soft);
                 if(band==0) art.dot(cx+std::cos(angle)*r*.76f,cy+std::sin(angle)*r*.21f,soft);
             }
-            const int count=6+rank*2;
+            const int count=10+rank*4;
             for(int s=0;s<count;++s) {
                 const float angle=s*tau/count+t*.5f;
                 const float x=cx+std::cos(angle)*r,y=cy+std::sin(angle)*r*.28f;
@@ -433,7 +473,10 @@ inline std::vector<uint8_t> make_landing_cells(unsigned rank,unsigned colour) {
             }
         }
         const auto pixels=art.reduce();
-        append_cell(file,frame,pixels,w,h,0,h,h/2-13);
+        for(unsigned part=0;part<parts;++part) {
+            const int left=int(part)*256;
+            append_cell(file,frame*parts+part,pixels,w,h,left,0,std::min(256,w-left),h,left-w/2,h/2-13);
+        }
     }
     return file;
 }

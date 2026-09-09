@@ -30,6 +30,13 @@ Font::Font(GlyphSet* glyph_set, const FontCreateInfo& font_ci)
 	m_object = std::make_unique<Object>();
 }
 
+std::unique_ptr<Font> Font::scaledCopy(float factor) const
+{
+	FontCreateInfo info{m_name,m_size*factor,m_weight,m_letter_spacing,m_line_height,
+		m_shadow_intensity,m_offset,m_symbol_offset,m_color,m_bordered};
+	return std::make_unique<Font>(m_glyph_set,info);
+}
+
 glm::vec2 Font::getTextSize(const wchar_t* str, const int max_chars)
 {
 	m_text_size = { 0.0f, 0.0f };

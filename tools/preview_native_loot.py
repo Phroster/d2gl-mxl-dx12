@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PALETTE = [tuple(map(int, m)) for m in re.findall(r'\{(\d+),(\d+),(\d+)\}',
     (ROOT/'src/dx12/native_loot_palette.h').read_text())]
 assert len(PALETTE) == 256
-WIDTH, HEIGHT, ANCHOR = 256, 440, (128, 384)
+WIDTH, HEIGHT, ANCHOR = 384, 640, (192, 560)
 
 def layer(path, frame):
     b = path.read_bytes()

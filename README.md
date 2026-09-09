@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.11.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
+  <img src="docs/banner-dx12-v1.12.svg" alt="MXL Smooth Motion DX12 — improved performance and smoother movement for Median XL" width="880">
 </p>
 
 <p align="center">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip"><strong>⬇️ Download 1.11</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.12/mxl-smooth-motion-dx12-1.12.zip"><strong>⬇️ Download 1.12</strong></a>
   &nbsp; · &nbsp;
   <a href="#install--copy-paste-play">📦 Installation</a>
   &nbsp; · &nbsp;
@@ -24,6 +24,8 @@
 - **Smoother movement** in single player and online.
 - **Automatic map reveal** when you enter an act.
 - **Loot that stands out:** beams, sparkles and glowing pulses for valuable drops, with bigger effects for your best finds.
+- **Easy loot pickup:** readable names stay visible above selected drops. Click the glow or name to pick them up, even with your inventory open.
+- **Faster game entry** with loot effects ready when you start playing.
 
 The game runs at its normal speed, and the frame rate follows your monitor by default. Performance depends on your PC and graphics settings.
 
@@ -35,7 +37,7 @@ The game runs at its normal speed, and the frame rate follows your monitor by de
 
    ![Launcher settings](docs/launcher-settings.png)
 
-2. **Close the game and launcher.** [Download 1.11](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
+2. **Close the game and launcher.** [Download 1.12](https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.12/mxl-smooth-motion-dx12-1.12.zip) and extract the ZIP. Back up your current files if you want to keep your settings.
 
 3. **Copy the extracted files** into your Median XL game folder, next to `Game.exe`. Replace files when asked.
 
@@ -49,6 +51,7 @@ The game runs at its normal speed, and the frame rate follows your monitor by de
 
 - **Ctrl+O:** change graphics options. Open the **FPS** tab to set a frame-rate limit; save and restart afterward.
 - **Alt+Enter:** switch between fullscreen and windowed mode.
+- **Loot pickup:** click an effect or its name without holding Alt. If Alt switches the old labels on, clear **Show Items** in the game's key bindings.
 - **Loot effects:** on by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. [Loot guide](docs/loot-effects-guide.md).
 - **Optional ReShade:** select `Game.exe` and **DirectX 10/11/12** in the [ReShade installer](https://reshade.me).
 
@@ -78,7 +81,7 @@ And to **Blizzard North** and the **Diablo II modding community**: thank you for
 ---
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.11/mxl-smooth-motion-dx12-1.11.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.11</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.12/mxl-smooth-motion-dx12-1.12.zip"><strong>⬇️ Download MXL Smooth Motion DX12 1.12</strong></a>
 </p>
 
 <details>

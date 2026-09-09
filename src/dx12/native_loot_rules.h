@@ -8,11 +8,18 @@ struct Appearance { unsigned rank=0,colour=0; Style style=Style::Beam; unsigned 
 inline Appearance appearance(unsigned profile) {
     const auto& p=profiles[profile];return {p.rank,p.colour,p.style,profile};
 }
-inline Appearance classify(uint32_t type, uint32_t mode, uint32_t base, uint32_t quality, uint32_t flags, unsigned playerLevel=0)
+inline bool useful_potion(unsigned grade,unsigned playerLevel) {
+    // Same progression as SimpleFilterSoftNotify+ Progression. Better grades
+    // remain useful at lower levels; never infer value from a potion's name.
+    constexpr unsigned cutoff[]={0,20,40,70,110,UINT32_MAX};
+    return grade>=1 && grade<=5 && playerLevel<cutoff[grade];
+}
+inline Appearance classify(uint32_t type, uint32_t mode, uint32_t base, uint32_t quality, uint32_t flags, unsigned playerLevel=0,unsigned itemLevel=0)
 {
     if (type != 4 || (mode != 3 && mode != 5) || base >= std::size(bases)) return {};
     const auto& b = bases[base];
     if(b.disabled) return {};
+    if(b.potionGrade && !useful_potion(b.potionGrade,playerLevel)) return {};
     if(b.profile==P_GemLesser && playerLevel>=50) return {};
     if(b.profile==P_Angelic || b.profile==P_Mastercrafted) return appearance(b.profile);
     if (quality == 7) {
@@ -24,7 +31,7 @@ inline Appearance classify(uint32_t type, uint32_t mode, uint32_t base, uint32_t
     if(quality==6 || quality==8 || quality==9) {
         if(b.sacred) return appearance(b.scythe?P_ScytheBase:P_SacredRare);
         constexpr unsigned cutoffs[]={0,31,51,77,90};
-        if(quality==6 && b.tier && playerLevel>=cutoffs[b.tier]) return {};
+        if(quality==6 && b.tier && (playerLevel>=cutoffs[b.tier] || itemLevel>=cutoffs[b.tier])) return {};
         if(b.gear) return appearance(P_Rare);
     }
     if(b.sacred && (quality==2 || quality==3)) {

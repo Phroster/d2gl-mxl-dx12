@@ -92,6 +92,7 @@ public:
 
 	glm::vec2 getTextSize(const wchar_t* str, const int max_chars = 0);
 	void drawText(const wchar_t* str, glm::vec2 pos, uint32_t color, bool framed = false);
+	std::unique_ptr<Font> scaledCopy(float factor) const;
 
 private:
 	float drawChar(wchar_t c, glm::vec2 pos, uint32_t color);

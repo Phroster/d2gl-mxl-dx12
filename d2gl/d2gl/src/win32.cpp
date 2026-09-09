@@ -17,6 +17,7 @@
 */
 
 #include "pch.h"
+#include "modules/native_loot.h"
 #include "win32.h"
 #include "d2/common.h"
 #include "helpers.h"
@@ -124,6 +125,7 @@ COLORREF WINAPI GetPixel(HDC hdc, int x, int y)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    modules::NativeLoot::inputMessage(uMsg);
     if(mxl::reveal::window_message(hWnd,uMsg,wParam,App.game.screen==GameScreen::InGame))return 0;
     struct TMarker {
         uint64_t began=0;const char* finished="key_T_down_handler_us";
@@ -341,6 +343,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			lParam = MAKELPARAM(x, y);
 
+			if (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONDBLCLK)
+				modules::NativeLoot::beforeLeftClick(x,y);
 			modules::HDCursor::Instance().mouseProc(uMsg);
 			break;
 		}

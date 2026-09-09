@@ -6,10 +6,15 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include <chrono>
 #include "native_loot_cells.h"
+#include "native_loot_assets.h"
 #include "native_loot_rules.h"
 #include "native_loot_layer.h"
 #include "d2/structs.h"
+#define STBI_ONLY_PNG
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 using namespace mxl::native_loot;
 using namespace d2gl::d2;
 void require(bool v,const char* why) { if(!v) throw std::runtime_error(why); }
@@ -21,6 +26,7 @@ int main(int argc,char** argv) {
     static_assert(offsetof(UnitAny,v110.dwMode)==0x10);
     static_assert(offsetof(UnitAny,v110.pItemData)==0x14);
     static_assert(offsetof(ItemData110,dwFlags)==0x18);
+    static_assert(offsetof(ItemData110,dwItemLevel)==0x2c);
     static_assert(offsetof(CellContext,v113.pCellFile)==0x34);
     static_assert(offsetof(CellContext,v113.pCurGfxCell)==0x3c);
     require(classify(4,3,1242,2,0).rank==2,"perfect gem missing");
@@ -53,6 +59,7 @@ int main(int argc,char** argv) {
         if(b.tier && !b.profile) {
             require(classify(4,3,base,6,0,cutoff[b.tier]-1).profile==P_Rare,"leveling rare omitted");
             require(!classify(4,3,base,6,0,cutoff[b.tier]).rank,"obsolete tier rare remains lit");
+            require(!classify(4,3,base,6,0,1,cutoff[b.tier]).rank,"high item-level obsolete rare remains lit");
             require(classify(4,3,base,7,0,150).rank>=2,"unique hidden by rare progression");
             require(classify(4,3,base,8,0,150).rank>0,"crafted gear incorrectly treated as obsolete rare");
         }
@@ -60,7 +67,7 @@ int main(int argc,char** argv) {
             require(classify(4,3,base,2,0,49).rank==1,"leveling gem glimmer missing");
             require(!classify(4,3,base,2,0,50).rank,"obsolete imperfect gem still glimmers");
         }
-        else if(b.profile) require(classify(4,3,base,2,0,150).rank>0,"catalog special drop lost effect");
+        else if(b.profile && !b.potionGrade) require(classify(4,3,base,2,0,150).rank>0,"catalog special drop lost effect");
     }
     Budget budget;
     for(unsigned i=0;i<12;++i) require(budget.take(1),"minor budget");
@@ -142,30 +149,90 @@ int main(int argc,char** argv) {
     require(effect_size(2,Style::Beam).height>=176,"unique pillar is not substantially taller");
     require(effect_size(3,Style::Rune).height>=280,"high rune beam too short");
     require(effect_size(4,Style::Rune).height>=336,"great rune beam too short");
-    constexpr unsigned bufferWidth=256,bufferHeight=640,drawX=128,drawY=560;
+    for(unsigned rank=1;rank<=4;++rank) for(auto style:{Style::Beam,Style::Rune,Style::Base,Style::Gem}) {
+        const auto old=base_effect_size(rank,style),now=effect_size(rank,style);
+        require(std::abs(float(now.width)/old.width-spectacle_scale(rank,true))<.015f
+            && std::abs(float(now.height)/old.height-spectacle_scale(rank))<.015f,"effect does not follow its value-tier size");
+        require(now.width>(old.width*133+50)/100 && now.height>(old.height*133+50)/100,"value tier was not enlarged");
+        if(rank>1) {
+            const auto lower=effect_size(rank-1,style);
+            require(now.width>lower.width && now.height>lower.height,"higher value loot has a smaller effect");
+        }
+    }
+    for(unsigned p=1;p<ProfileCount;++p) {
+        const auto& profile=profiles[p];const auto base=base_effect_size(profile.rank,profile.style);
+        const int priorWidth=(base.width*int(spectacle_percent(profile.rank))+50)/100;
+        const int priorHeight=(base.height*int(spectacle_percent(profile.rank))+50)/100;
+        for(bool bloom:{false,true}) {
+            if(bloom && profile.rank<2) continue;
+            const int padding=bloom?2*bloom_padding:0;
+            require(cell_parts(profile.rank,profile.style,bloom)==unsigned(((priorWidth+padding+255)/256)*((priorHeight+padding+255)/256)),
+                "minor effect rebalance added native draw calls");
+        }
+    }
+    constexpr unsigned bufferWidth=384,bufferHeight=768,drawX=192,drawY=650;
     size_t total=0;unsigned testedFrames=0;
-    struct Fixture { std::string name;unsigned rank,colour;Style style;bool bloom,landing; };
+    HMODULE assetModule=nullptr;
+    if(argc>=4) {
+        assetModule=LoadLibraryExW(std::filesystem::absolute(argv[3]).c_str(),nullptr,LOAD_LIBRARY_AS_DATAFILE|LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+        require(assetModule!=nullptr,"cannot read renderer resources without executing its DLL entry");
+    }
+    double unpackMs=0,normalizeMs=0;unsigned packedTested=0;
+    struct Fixture { std::string name;unsigned rank,colour;Style style;bool bloom,landing;unsigned resource; };
     std::vector<Fixture> fixtures;
     for(unsigned profile=1;profile<ProfileCount;++profile) for(bool bloom:{false,true}) {
         const auto& p=profiles[profile];if(bloom&&p.rank<2) continue;
-        fixtures.push_back({(bloom?std::string("bloom-"):std::string())+p.name,p.rank,p.colour,p.style,bloom,false});
+        unsigned canonical=profile;
+        for(unsigned j=1;j<profile;++j) if(p.rank==profiles[j].rank && p.colour==profiles[j].colour && p.style==profiles[j].style) { canonical=j;break; }
+        fixtures.push_back({(bloom?std::string("bloom-"):std::string())+p.name,p.rank,p.colour,p.style,bloom,false,effect_resource(canonical,bloom)});
     }
     for(unsigned rank=1;rank<=4;++rank) for(unsigned colour=0;colour<6;++colour)
-        fixtures.push_back({"landing-"+std::to_string(rank)+"-"+std::to_string(colour),rank,colour,Style::Base,false,true});
+        fixtures.push_back({"landing-"+std::to_string(rank)+"-"+std::to_string(colour),rank,colour,Style::Base,false,true,landing_resource(rank,colour)});
     for(const auto& pfx:fixtures) {
         const auto rank=pfx.rank,colour=pfx.colour;const bool bloom=pfx.bloom,landing=pfx.landing;
-        const unsigned parts=landing?1:cell_parts(rank,pfx.style,bloom),cellCount=frame_count*parts;
-        require(parts>=1&&parts<=2,"unbounded native draws");
+        const unsigned parts=landing?landing_parts(rank):cell_parts(rank,pfx.style,bloom),cellCount=frame_count*parts;
+        require(parts>=1&&parts<=4,"unbounded native draws");
         auto bytes=landing?make_landing_cells(rank,colour):make_cells(rank,colour,bloom,pfx.style);
+        if(assetModule) {
+            const auto info=FindResourceW(assetModule,MAKEINTRESOURCEW(pfx.resource),MAKEINTRESOURCEW(10));
+            const auto handle=info?LoadResource(assetModule,info):nullptr;
+            const auto* data=handle?static_cast<const uint8_t*>(LockResource(handle)):nullptr;
+            const auto size=info?SizeofResource(assetModule,info):0;
+            require(data&&size,"missing embedded artwork");
+            std::vector<uint8_t> decoded;
+            const auto start=std::chrono::steady_clock::now();
+            require(unpack_asset({data,size},cellCount,decoded,stbi_zlib_decode_buffer),"embedded artwork decode failed");
+            unpackMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count();
+            if(decoded!=bytes) {
+                size_t differences=0,first=std::min(decoded.size(),bytes.size());
+                for(size_t j=0;j<std::min(decoded.size(),bytes.size());++j) if(decoded[j]!=bytes[j]) { ++differences;first=std::min(first,j); }
+                std::fprintf(stderr,"Artwork mismatch: %s, decoded=%zu generated=%zu differences=%zu first=%zu\n",
+                    pfx.name.c_str(),decoded.size(),bytes.size(),differences,first);
+                throw std::runtime_error("baked artwork differs from the original runtime generator");
+            }
+            if(!packedTested) {
+                auto corrupt=std::vector<uint8_t>(data,data+size);
+                corrupt[0]^=1;require(!unpack_asset(corrupt,cellCount,decoded,stbi_zlib_decode_buffer),"invalid resource header accepted");
+                corrupt.assign(data,data+size);corrupt[8]^=1;
+                require(!unpack_asset(corrupt,cellCount,decoded,stbi_zlib_decode_buffer),"payload checksum mismatch accepted");
+                corrupt.assign(data,data+size);const uint32_t huge=UINT32_MAX;std::memcpy(corrupt.data()+4,&huge,4);
+                require(!unpack_asset(corrupt,cellCount,decoded,stbi_zlib_decode_buffer),"oversized allocation accepted");
+                require(!unpack_asset({data,size/2},cellCount,decoded,stbi_zlib_decode_buffer),"truncated resource accepted");
+                require(!unpack_asset({data,size},cellCount+1,decoded,stbi_zlib_decode_buffer),"wrong native cell count accepted");
+                require(unpack_asset({data,size},cellCount,decoded,stbi_zlib_decode_buffer),"valid resource rejected after failed decode");
+            }
+            bytes=std::move(decoded);++packedTested;
+        }
         total+=bytes.size();testedFrames+=cellCount;
         require(word(bytes,0)==6&&word(bytes,4)==1&&word(bytes,20)==cellCount,"invalid DC6 header");
         std::array<std::vector<uint8_t>,24> expected;
         const int padding=bloom?bloom_padding:0;
         const auto dimensions=landing?landing_size(rank):effect_size(rank,pfx.style);
-        const unsigned fullHeight=dimensions.height+2*padding;
+        const unsigned fullWidth=dimensions.width+2*padding,fullHeight=dimensions.height+2*padding;
+        const unsigned columns=(fullWidth+255)/256;
         for(unsigned frame=0;frame<24;++frame) {
             auto& result=expected[frame];result.resize(bufferWidth*bufferHeight);
-            unsigned rows=0;
+            unsigned area=0,framePixels=0;
             std::array<bool,256> colours{};
             for(unsigned part=0;part<parts;++part) {
             auto p=word(bytes,24+(frame*parts+part)*4),w=word(bytes,p+4),h=word(bytes,p+8),len=word(bytes,p+28);
@@ -173,8 +240,10 @@ int main(int argc,char** argv) {
             require(w>0&&h>0&&w<=256&&h<=256,"sprite exceeds native texture extent");
             const int offsetX=int32_t(word(bytes,p+12)),offsetY=int32_t(word(bytes,p+16));
             const int groundOffset=landing?dimensions.height/2-13:padding+ground_anchor_offset;
-            require(offsetX==-int(w)/2&&offsetY==groundOffset-int(rows),"tile seam or world anchor shifted");
-            rows+=h;
+            const unsigned left=(part%columns)*256,bottom=(part/columns)*256;
+            require(offsetX==int(left)-int(fullWidth)/2&&offsetY==groundOffset-int(bottom),"tile seam or world anchor shifted");
+            require(w==std::min(256u,fullWidth-left)&&h==std::min(256u,fullHeight-bottom),"partial tile dimensions incorrect");
+            area+=w*h;
             require(int(drawX)+offsetX>=0&&int(drawX)+offsetX+int(w)<=bufferWidth
                 &&int(drawY)+offsetY-int(h)+1>=0&&int(drawY)+offsetY<bufferHeight,"test sprite outside framebuffer");
             size_t at=p+32; unsigned x=0,row=0,nonzero=0;
@@ -195,20 +264,23 @@ int main(int argc,char** argv) {
                 }
                 x+=count;
             }
-            const bool empty=landing&&(frame==0||frame==frame_count-1);
-            require(row==h&&x==0&&(empty?nonzero==0:nonzero>30),"incomplete frame or nonzero landing endpoint");
+            require(row==h&&x==0,"incomplete native tile");framePixels+=nonzero;
             }
-            require(rows==fullHeight,"tall beam has missing rows");
+            const bool empty=landing&&(frame==0||frame==frame_count-1);
+            require(empty?framePixels==0:framePixels>30,"empty frame or nonzero landing endpoint");
+            require(area==fullWidth*fullHeight,"beam or pulse has missing tiles");
             if(!bloom&&!landing&&rank>=2) require(std::count(colours.begin(),colours.end(),true)>8,"missing filtered edge shades");
         }
-        if(argc>=3) {
+        if(argc>=3 && std::string(argv[2])!="-") {
             std::filesystem::create_directories(argv[2]);
             std::ofstream f(std::filesystem::path(argv[2])/(pfx.name+".dc6"),std::ios::binary);
             f.write(reinterpret_cast<char*>(bytes.data()),bytes.size());
         }
         if(normalize) {
             CellFile* file=nullptr;
+            const auto nativeStart=std::chrono::steady_clock::now();
             normalize(bytes.data(),&file,__FILE__,__LINE__,-1,0);
+            normalizeMs+=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-nativeStart).count();
             require(file==reinterpret_cast<CellFile*>(bytes.data()),"normalizer replaced ownership");
             require((file->dwFlags&3)==3&&file->numcells==cellCount,"native normalize failed");
             for(unsigned frame=0;frame<24;++frame) {
@@ -230,6 +302,10 @@ int main(int argc,char** argv) {
             require(release(file),"native cache cleanup failed");
             require(file->cells[0]->lpParent==0,"cache not freed");
         }
+    }
+    if(assetModule) {
+        std::printf("Embedded artwork: %u profiles/layers verified byte-for-byte; unpack %.3f ms, native normalize %.3f ms\n",packedTested,unpackMs,normalizeMs);
+        FreeLibrary(assetModule);
     }
     printf("PASS: 2468 item identities, progression, priorities, budgets, two-table lookup, %u profiles, %u DC6 frames%s; %zu sprite bytes\n",unsigned(ProfileCount)-1,testedFrames,normalize?", installed D2CMP normalization/drawing/cleanup":"",total);
     return 0;

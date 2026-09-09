@@ -17,6 +17,8 @@
 */
 
 #include "pch.h"
+#include "native_loot.h"
+#include "native_loot_pickup.h"
 #include "hd_text.h"
 #include "d2/common.h"
 #include "d2/stubs.h"
@@ -295,6 +297,36 @@ bool HDText::drawText(const wchar_t* str, int x, int y, uint32_t color, uint32_t
 	return true;
 }
 
+bool HDText::drawLootLabel(const wchar_t* str,int x,int y,uint32_t color,unsigned rank,bool hovered,glm::ivec4& bounds)
+{
+	if(!str || !*str || !getFont(16)) return false;
+	rank=glm::clamp(rank,1u,4u);
+	const float scale=mxl::native_loot::ground_label_scale(rank);
+	auto& font=m_loot_fonts[rank-1];
+	if(!font) font=getFont(16)->scaledCopy(scale);
+	font->setSize();
+	const auto text=font->getTextSize(str);
+	const float fontSize=font->getFontSize();
+	const glm::vec2 padding=glm::vec2(3.4f,glm::max(1.4f,(18.f-getFont(16)->getFontSize())/2.f))*scale;
+	const glm::vec2 size=text+padding*2.f;
+	const auto area=mxl::native_loot::world_input_rect(*d2::screen_shift,*d2::screen_width,*d2::screen_height);
+	if(area.right<=area.left || area.bottom<=area.top || size.x>area.right-area.left-4) return false;
+	glm::vec2 pos{float(x)-size.x*.5f,float(y)-12.f-size.y};
+	pos.x=glm::clamp(pos.x,float(area.left+2),float(area.right-2)-size.x);
+	pos.y=glm::clamp(pos.y,float(area.top+2),float(area.bottom-2)-size.y);
+	// Four cached fonts share the existing atlas and follow effect importance.
+	// Inventory tooltips and other text keep their own font sizes.
+	m_object_bg->setFlags(2);
+	m_object_bg->setPosition(pos);m_object_bg->setSize(size);
+	m_object_bg->setColor(hovered?0x213F98DD:0x00000099,1);
+	m_object_bg->setExtra(size);App.context->pushObject(m_object_bg);
+	font->setAlign(TextAlign::Center);font->setShadow(0);
+	font->setMasking(false);font->setOpacity(1.f);
+	font->drawText(str,pos+padding+glm::vec2(0,fontSize),g_text_colors.at(getColor(color)),true);
+	bounds={int(std::floor(pos.x)),int(std::floor(pos.y)),int(std::ceil(pos.x+size.x)),int(std::ceil(pos.y+size.y))};
+	return true;
+}
+
 bool HDText::drawFramedText(const wchar_t* str, int x, int y, uint32_t color, uint32_t centered)
 {
 	if (!str || !isActive())
@@ -392,6 +424,8 @@ bool HDText::drawFramedText(const wchar_t* str, int x, int y, uint32_t color, ui
 	else if (pos.y < margin)
 		pos.y = margin;
 
+	if (unit && unit->dwType == d2::UnitType::Item)
+		NativeLoot::hoverLabel((int)pos.x,(int)pos.y,(int)(pos.x+box_size.x),(int)(pos.y+box_size.y));
 	App.context->toggleDelayPush(true);
 	m_object_bg->setPosition(pos);
 	m_object_bg->setSize(box_size);
