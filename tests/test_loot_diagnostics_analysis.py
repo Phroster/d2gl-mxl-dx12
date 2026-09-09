@@ -43,6 +43,37 @@ class LootAnalysis(unittest.TestCase):
         self.assertEqual(result["states"], {})
         self.assertIsNone(result["saved_filter_at_launch"])
 
+    def test_motion_counters_wrap_stale_reset_and_missing_frames(self):
+        def row(samples, updates, **extra):
+            return {"motion_valid": "1", "motion_game_type": "3", "motion_samples": str(samples),
+                    "motion_client_updates": str(updates), "motion_elapsed_ticks": "700", "motion_clamped_ticks": "600", **extra}
+        producers = {"1": row(0xffffffff, 0xffffffff), "2": row(0, 0), "3": row(0, 0),
+                     "4": row(1, 1), "6": row(2, 2), "7": row(0, 0),
+                     "8": row(1, 1, motion_game_type="0")}
+        result = diagnostics.motion_summary([{"frame_id": key} for key in producers], producers, 10000)
+        self.assertEqual(result["valid_clamp_frames"], 7)
+        self.assertEqual(result["adjacent_counter_pairs"], 3)
+        self.assertEqual(result["fresh_clamp_rows"], 2)
+        self.assertEqual(result["unchanged_clamp_counter_pairs"], 1)
+        self.assertEqual(result["fresh_clamp_elapsed_ms"]["max"], 70)
+        self.assertEqual(result["fresh_rows_limited"], 2)
+        self.assertEqual(result["client_update_steps"], {0: 1, 1: 2})
+
+    def test_motion_player_identity_panels_signed_camera_and_older_logs(self):
+        def row(x, camera, identity="1", panels="0"):
+            return {"motion_player_valid": "1", "motion_player_id": identity, "motion_panels": panels,
+                    "motion_player_x": str(x), "motion_player_y": "0", "motion_camera_x": str(camera & 0xffffffff), "motion_camera_y": "0"}
+        producers = {"1": row(65536, -1), "2": row(131072, 1), "3": row(131072, 1),
+                     "4": row(131072, 9, panels="1"), "5": row(131072, 9, identity="2", panels="1")}
+        result = diagnostics.motion_summary([{"frame_id": key} for key in producers], producers, 0)
+        self.assertEqual(result["adjacent_player_pairs"], 2)
+        self.assertEqual(result["unchanged_player_pairs"], 1)
+        self.assertEqual(result["player_step_tiles"]["max"], 1)
+        self.assertEqual(result["camera_step_pixels"]["max"], 2)
+        old = diagnostics.motion_summary([{"frame_id": "1"}], {"1": {}}, 0)
+        self.assertFalse(old["available"])
+        self.assertIsNone(old["fresh_clamp_elapsed_ms"])
+
 
 if __name__ == "__main__":
     unittest.main()

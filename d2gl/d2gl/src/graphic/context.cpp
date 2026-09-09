@@ -35,6 +35,7 @@
 #include "auto_reveal.h"
 #include "tile_cache.h"
 #include "modules/native_loot.h"
+#include "mxl_smoothing.h"
 
 namespace d2gl {
 namespace {thread_local uint64_t diagnostic_build_start=0;}
@@ -682,6 +683,24 @@ void Context::beginFrame()
 {
     diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
     modules::NativeLoot::beginFrame();
+#if MXL_ENABLE_DIAGNOSTICS
+    if(mxl::diag::enabled() && App.game.screen==GameScreen::InGame) {
+        static_assert(sizeof(MxlMotionSnapshot)==48);
+        MxlMotionSnapshot motion{};
+        if(MxlSmoothing_ReadMotion(&motion)) {
+            using mxl::diag::Count;
+            mxl::diag::producer_set(Count::MotionValid,1);
+            mxl::diag::producer_set(Count::MotionSamples,motion.samples);
+            mxl::diag::producer_set(Count::MotionElapsedTicks,motion.elapsed_ticks);
+            mxl::diag::producer_set(Count::MotionIntervalTicks,motion.interval_ticks);
+            mxl::diag::producer_set(Count::MotionClampedTicks,motion.clamped_ticks);
+            mxl::diag::producer_set(Count::MotionClientUpdates,motion.client_updates);
+            mxl::diag::producer_set(Count::MotionUpdateMs,motion.client_update_ms);
+            mxl::diag::producer_set(Count::MotionClockMs,motion.clock_ms);
+            mxl::diag::producer_set(Count::MotionGameType,motion.game_type);
+        }
+    }
+#endif
     mxl::reveal::begin_frame(App.hwnd);
     mxl::tiles::begin_frame(App.game.screen==GameScreen::InGame);
 	if (!App.wndproc && App.game.screen == GameScreen::Menu)

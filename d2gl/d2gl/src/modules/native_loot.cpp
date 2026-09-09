@@ -398,6 +398,19 @@ bool loadAnimation(unsigned resource,unsigned cells,std::vector<uint8_t>& bytes,
 
 uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 {
+#if MXL_ENABLE_DIAGNOSTICS
+    if(mxl::diag::enabled() && unit && unit->dwType==d2::UnitType::Player
+        && unit==d2::getPlayerUnit() && unit->v110.pPath) {
+        using mxl::diag::Count;
+        mxl::diag::producer_set(Count::MotionPlayerValid,1);
+        mxl::diag::producer_set(Count::MotionPlayerId,unit->v110.dwUnitId);
+        mxl::diag::producer_set(Count::MotionPlayerX,unit->v110.pPath->x);
+        mxl::diag::producer_set(Count::MotionPlayerY,unit->v110.pPath->y);
+        mxl::diag::producer_set(Count::MotionCameraX,uint32_t(*cameraX));
+        mxl::diag::producer_set(Count::MotionCameraY,uint32_t(*cameraY));
+        mxl::diag::producer_set(Count::MotionPanels,*d2::screen_shift);
+    }
+#endif
     ++worldCalls;
     // Enter through actual native world-unit drawing, which Sigma demonstrably
     // uses. Do not depend on the stock caller's optional 0x9F270 render phase.

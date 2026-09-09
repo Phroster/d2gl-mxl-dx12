@@ -162,6 +162,50 @@ def loot_work_summary(folder, frames, producers):
             "limits": "Groups describe the effects, not native filter activation. The saved filter snapshot does not observe later in-game menu changes. Pickup times cover sampled calls only, not total input cost. Name time is nested in label time; do not add them. Producer build includes game-thread drawing but is not an isolated measurement of Sigma filter evaluation. Same-frame correlation does not establish cause. These frame intervals are renderer completion cadence, not displayed-frame timestamps."}
 
 
+def motion_summary(frames, producers, frequency):
+    """Describe observations without calling a stationary character a stall."""
+    pairs, fresh, steps = [], [], []
+    valid = player_valid = 0
+    previous = None
+    for frame in sorted(frames, key=lambda f: int(f["frame_id"])):
+        current = producers.get(frame["frame_id"], {})
+        valid += current.get("motion_valid") == "1"
+        player_valid += current.get("motion_player_valid") == "1"
+        if previous and int(frame["frame_id"]) == int(previous[0]["frame_id"]) + 1:
+            old = previous[1]
+            if current.get("motion_valid") == old.get("motion_valid") == "1" and current["motion_game_type"] == old["motion_game_type"]:
+                # DWORD counters wrap. Backwards/reset jumps are not observations.
+                samples = (int(current["motion_samples"]) - int(old["motion_samples"])) & 0xffffffff
+                updates = (int(current["motion_client_updates"]) - int(old["motion_client_updates"])) & 0xffffffff
+                if samples < 10000 and updates < 10000:
+                    pairs.append((samples, updates))
+                    if samples:
+                        fresh.append(current)
+            if current.get("motion_player_valid") == old.get("motion_player_valid") == "1" and all(
+                    current[name] == old[name] for name in ("motion_player_id", "motion_panels")):
+                def delta(name):
+                    return ((int(current[name]) - int(old[name]) + 0x80000000) & 0xffffffff) - 0x80000000
+                steps.append({"path_distance": (delta("motion_player_x") ** 2 + delta("motion_player_y") ** 2) ** .5 / 65536,
+                              "camera_distance": (delta("motion_camera_x") ** 2 + delta("motion_camera_y") ** 2) ** .5})
+        previous = frame, current
+
+    def distribution(values):
+        values = sorted(values)
+        return {"median": statistics.median(values), "p99": values[int((len(values)-1)*.99)], "max": values[-1]} if values else None
+
+    return {"available": bool(valid or player_valid), "valid_clamp_frames": valid, "observed_player_frames": player_valid,
+            "adjacent_counter_pairs": len(pairs), "fresh_clamp_rows": len(fresh),
+            "unchanged_clamp_counter_pairs": sum(samples == 0 for samples, _ in pairs),
+            "client_update_steps": dict(Counter(updates for _, updates in pairs)),
+            "fresh_clamp_elapsed_ms": distribution(int(p["motion_elapsed_ticks"]) * 1000 / frequency for p in fresh) if frequency else None,
+            "fresh_clamp_output_ms": distribution(int(p["motion_clamped_ticks"]) * 1000 / frequency for p in fresh) if frequency else None,
+            "fresh_rows_limited": sum(int(p["motion_elapsed_ticks"]) > int(p["motion_clamped_ticks"]) for p in fresh),
+            "adjacent_player_pairs": len(steps), "unchanged_player_pairs": sum(s["path_distance"] == 0 for s in steps),
+            "player_step_tiles": distribution(s["path_distance"] for s in steps),
+            "camera_step_pixels": distribution(s["camera_distance"] for s in steps),
+            "limits": "Only adjacent recorded gameplay frames are paired. Counter resets and game-type changes are excluded; unchanged clamp counters contain stale values. Negative-time paths do not reach the clamp. Player pairs require the same player and panel state; area transitions can still jump. Stationary coordinates do not establish stutter without a known continuous-movement segment. These are draw-time observations, not displayed-frame measurements."}
+
+
 def analyze(folder):
     rows = []
     for path in sorted(Path(folder).glob("events-*.csv")):
@@ -198,6 +242,7 @@ def analyze(folder):
         item["producer_wait_ms"] = float(p["duration_ms"]) if p else None
         item["producer_build_ms"] = float(p["producer_build_ms"]) if p and "producer_build_ms" in p else None
         item["loot"] = {k: float(v) if k.endswith("_ms") else int(v) for k, v in p.items() if k.startswith("loot_")} if p else None
+        item["motion"] = {k: int(v) for k, v in p.items() if k.startswith("motion_")} if p else None
         item["overlapping_sound_calls"] = [{"operation": a["detail"], "ms": float(a["duration_ms"]), "thread": int(a["thread_id"])} for a in overlap[:20]]
         item["overlapping_asset_calls"] = sorted((a for a in assets if a["session_ms"] < end and a["end_ms"] > start),
                                                 key=lambda a: a["duration_ms"], reverse=True)[:20]
@@ -280,6 +325,7 @@ def analyze(folder):
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
             "asset_io": asset_summary,
             "loot_work": loot_work_summary(folder, frames, producer),
+            "motion": motion_summary(frames, producer, int(metadata.get("session.txt", {}).get("qpc_frequency", 0))),
             "fps_75_to_85": band_summary,
             "T_profiles": input_profiles,
             "reveal_traces": reveal_traces,

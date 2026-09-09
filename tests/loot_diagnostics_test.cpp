@@ -32,6 +32,10 @@ int wmain(int argc,wchar_t** argv) {
         producer_set(Count::LootEnabled,0);submit(1);
         producer_set(Count::LootEnabled,1);producer_set(Count::LootTargets,60);
         producer_count(Count::LootLabels,60);producer_count(Count::LootCacheUploads,124);
+        producer_set(Count::MotionValid,1);producer_set(Count::MotionSamples,27);
+        producer_set(Count::MotionElapsedTicks,600001);producer_set(Count::MotionClampedTicks,600000);
+        producer_set(Count::MotionIntervalTicks,400000);producer_set(Count::MotionPlayerValid,1);
+        producer_set(Count::MotionPlayerX,123456789);producer_set(Count::MotionCameraX,uint32_t(-200));
         for(unsigned i=0;i<128;++i) {
             ProducerSampleScope sampled(Metric::LootPickupSampled,Count::LootSelectionCalls,Count::LootSelectionSamples);
         }
@@ -57,8 +61,12 @@ int wmain(int argc,wchar_t** argv) {
         require(number(2,"loot_enabled")==1 && number(2,"loot_targets")==60 && number(2,"loot_labels")==60,"Visible totals missing.");
         require(number(2,"loot_selection_calls")==128 && number(2,"loot_selection_samples")==2,"Sampling did not count all calls and time one in 64.");
         require(number(2,"loot_labels_ms")>0 && number(2,"loot_cache_uploads")==124,"Timing/cache totals missing.");
+        require(number(2,"motion_valid")==1 && number(2,"motion_samples")==27 && number(2,"motion_elapsed_ticks")==600001
+            && number(2,"motion_clamped_ticks")==600000 && number(2,"motion_interval_ticks")==400000
+            && number(2,"motion_player_x")==123456789 && number(2,"motion_camera_x")==uint32_t(-200),"Motion values changed during logging.");
         require(number(3,"loot_enabled")==1 && number(3,"loot_targets")==0 && number(3,"loot_selection_calls")==0 && number(3,"loot_labels_ms")==0,"Counters leaked across producer frames.");
         require(number(20,"loot_targets")==7 && number(20,"loot_labels")==0,"Totals crossed thread boundaries.");
+        require(number(3,"motion_valid")==0 && number(3,"motion_player_valid")==0,"Missing motion sample was treated as valid.");
         require(dropped_records()==0,"Automatic recording fixture dropped records.");
         std::cout << "PASS: automatic Game.exe recording, frame-only configuration, launch snapshot, empty/visible loot, sampled calls, thread isolation and flush.\n";
     }catch(const std::exception& error){stop(true);std::cerr<<error.what()<<'\n';return 1;}

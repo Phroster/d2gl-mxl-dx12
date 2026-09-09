@@ -36,6 +36,13 @@ static HANDLE log_file = INVALID_HANDLE_VALUE;
 static LONG initialized;
 static volatile LONG smoothing_active;
 static const volatile DWORD *game_type;
+#if MXL_ENABLE_DIAGNOSTICS
+// Private observations of our existing clamp; no additional native patch.
+// Written/read on the game thread, without clock calls or locks in the clamp.
+static volatile DWORD motion_samples;
+static volatile DWORD motion_elapsed[2], motion_interval[2], motion_clamped[2];
+static DWORD (WINAPI *motion_clock)(void);
+#endif
 
 /* At the original clamp: EAX:ECX = one simulation interval;
  * EDI:EDX = nonnegative elapsed time. The original negative-time path remains
@@ -50,6 +57,17 @@ __declspec(naked) static void bounded_mp_interval(void) {
         push esi
         mov ebx, ecx
         mov esi, eax
+    }
+#if MXL_ENABLE_DIAGNOSTICS
+    __asm {
+        inc dword ptr [motion_samples]
+        mov dword ptr [motion_elapsed], edx
+        mov dword ptr [motion_elapsed+4], edi
+        mov dword ptr [motion_interval], ecx
+        mov dword ptr [motion_interval+4], eax
+    }
+#endif
+    __asm {
         mov eax, game_type
         test eax, eax
         jz compare_limit
@@ -67,6 +85,14 @@ __declspec(naked) static void bounded_mp_interval(void) {
         sbb eax, esi
         cmovae edx, ebx
         cmovae edi, esi
+    }
+#if MXL_ENABLE_DIAGNOSTICS
+    __asm {
+        mov dword ptr [motion_clamped], edx
+        mov dword ptr [motion_clamped+4], edi
+    }
+#endif
+    __asm {
         pop esi
         pop ebx
         pop ecx
@@ -251,6 +277,9 @@ void __stdcall MxlSmoothing_Initialize(void) {
     memcpy(patches[5].replacement+1,&relative,4);
     game_type=(const volatile DWORD *)(cb+0x11c394);
     if (apply_patches(patches,6)) {
+#if MXL_ENABLE_DIAGNOSTICS
+        motion_clock=(DWORD(WINAPI *)(void))(uintptr_t)precise;
+#endif
         smoothing_active=1;
         log_line("SUCCESS: 6 regions changed and verified; simulation interval remains 40 ms.");
         log_line("Source and consumer both resolve to winmm!timeGetTime at %08lX.",precise);
@@ -266,6 +295,26 @@ done:
 }
 
 int __stdcall MxlSmoothing_IsActive(void) { return smoothing_active == 1; }
+
+#if MXL_ENABLE_DIAGNOSTICS
+int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
+    if (!output || !smoothing_active || !game_type || !motion_clock) return 0;
+    __try {
+        // Initialization already verified this exact Client and D2FPS build.
+        // Read existing loop globals only; never change update times or count.
+        const BYTE *client=(const BYTE *)game_type-0x11c394;
+        MxlMotionSnapshot sample;
+        sample.samples=motion_samples;sample.game_type=*game_type;
+        sample.client_updates=*(const volatile DWORD *)(client+0x1197e0+24);
+        sample.client_update_ms=*(const volatile DWORD *)(client+0x1197e0+16);
+        sample.clock_ms=motion_clock();
+        sample.elapsed_ticks=((ULONGLONG)motion_elapsed[1]<<32)|motion_elapsed[0];
+        sample.interval_ticks=((ULONGLONG)motion_interval[1]<<32)|motion_interval[0];
+        sample.clamped_ticks=((ULONGLONG)motion_clamped[1]<<32)|motion_clamped[0];
+        *output=sample;return 1;
+    } __except(EXCEPTION_EXECUTE_HANDLER) { return 0; }
+}
+#endif
 
 #ifdef MXL_SMOOTHING_TEST
 static DWORD __stdcall old_clock(void) { return 17; }
@@ -322,6 +371,11 @@ static uint64_t test_clamp(uint64_t since, uint64_t interval, DWORD type, BOOL *
         mov actual_si, esi
     }
     *preserved=actual_il==il && actual_ih==ih && actual_bx==0x12345678 && actual_si==0x23456789;
+#if MXL_ENABLE_DIAGNOSTICS
+    *preserved=*preserved && motion_elapsed[0]==lo && motion_elapsed[1]==hi
+        && motion_interval[0]==il && motion_interval[1]==ih
+        && motion_clamped[0]==result_lo && motion_clamped[1]==result_hi;
+#endif
     return ((uint64_t)result_hi<<32)|result_lo;
 }
 int main(void) {
@@ -344,6 +398,24 @@ int main(void) {
         }
     }
     printf("PASS: %u native clamp cases, 64-bit carry, SP/LAN preservation, and live registers.\n",cases);
+#if MXL_ENABLE_DIAGNOSTICS
+    {
+        MxlMotionSnapshot sample;
+        if(MxlSmoothing_ReadMotion(&sample)) return 11;
+        BYTE *client=(BYTE *)VirtualAlloc(NULL,0x135000,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
+        if(!client)return 12;
+        game_type=(DWORD *)(client+0x11c394);*(DWORD *)game_type=3;
+        *(DWORD *)(client+0x1197e0+24)=123;
+        *(DWORD *)(client+0x1197e0+16)=70;
+        motion_clock=new_clock;smoothing_active=1;
+        if(!MxlSmoothing_ReadMotion(&sample) || sample.samples!=cases || sample.game_type!=3
+            || sample.client_updates!=123 || sample.client_update_ms!=70 || sample.clock_ms!=91
+            || sample.interval_ticks!=intervals[2] || sample.elapsed_ticks!=intervals[2]*2
+            || sample.clamped_ticks!=intervals[2])return 13;
+        smoothing_active=0;game_type=NULL;motion_clock=NULL;VirtualFree(client,0,MEM_RELEASE);
+        puts("PASS: private motion snapshot reads loop state and exact clamp values without altering interpolation.");
+    }
+#endif
     puts("All native x86 timing-patch tests passed."); return 0;
 }
 #endif

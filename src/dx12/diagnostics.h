@@ -12,7 +12,10 @@ enum class Count : uint32_t { Draws, Indices, TextureBytes, BufferBytes, SpillBy
     LootEnabled, LootPickupEnabled, LootTargets, LootLabels, LootSprites, LootNameFormats,
     LootSelectionCalls, LootSelectionSamples, LootCaptureCalls, LootCaptureSamples,
     LootInventoryQueries, LootUnitLookups, LootCacheReclaims, LootCacheUploads,
-    LootCacheHits, LootCacheSkipped, Count };
+    LootCacheHits, LootCacheSkipped,
+    MotionValid, MotionSamples, MotionElapsedTicks, MotionIntervalTicks, MotionClampedTicks,
+    MotionClientUpdates, MotionUpdateMs, MotionClockMs, MotionGameType,
+    MotionPlayerValid, MotionPlayerId, MotionPlayerX, MotionPlayerY, MotionCameraX, MotionCameraY, MotionPanels, Count };
 enum class Audio : uint32_t { Factory, CreateBuffer, DuplicateBuffer, Play, Stop, Lock, Unlock,
     Volume, Pan, Frequency, Cursor, Restore, Parameters3D, Position3D, Commit3D, Status, GetCursor, Release, Query, Count };
 uint64_t ticks() noexcept;

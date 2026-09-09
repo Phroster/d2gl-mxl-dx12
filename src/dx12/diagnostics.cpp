@@ -19,7 +19,10 @@ const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","pre
 const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures",
     "loot_enabled","loot_pickup_enabled","loot_targets","loot_labels","loot_sprites","loot_name_formats",
     "loot_selection_calls","loot_selection_samples","loot_capture_calls","loot_capture_samples",
-    "loot_inventory_queries","loot_unit_lookups","loot_cache_reclaims","loot_cache_uploads","loot_cache_hits","loot_cache_skipped"};
+    "loot_inventory_queries","loot_unit_lookups","loot_cache_reclaims","loot_cache_uploads","loot_cache_hits","loot_cache_skipped",
+    "motion_valid","motion_samples","motion_elapsed_ticks","motion_interval_ticks","motion_clamped_ticks",
+    "motion_client_updates","motion_update_ms","motion_clock_ms","motion_game_type",
+    "motion_player_valid","motion_player_id","motion_player_x","motion_player_y","motion_camera_x","motion_camera_y","motion_panels"};
 const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d","get_status","get_current_position","release","query_interface"};
 const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep","async_ready"};
 static_assert(std::size(native_names)==NativeOps);
@@ -223,6 +226,12 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"MXL Smooth Motion DX12 1.15 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fputs("build_kind=MXL_PRIVATE_LOOT_DIAGNOSTICS_V1\nSaved filter/settings snapshots are launch-time state only; later menu changes are not observed directly.\n",file);
+        fputs("motion_schema=1\nMotion fields are private observations, not timing changes. motion_valid=0 means unavailable.\n"
+              "motion_samples is a cumulative clamp-call counter; unchanged means the recorded clamp values are stale for that producer row.\n"
+              "Elapsed/interval/clamped ticks are exact values at our existing D2FPS clamp, converted using qpc_frequency. Negative elapsed paths do not enter this clamp.\n"
+              "Client updates/time are read from the verified D2Client loop once per draw; clock_ms uses the matching timeGetTime clock.\n"
+              "Player coordinates are unsigned 16.16 path coordinates when the local player reaches the existing world-draw hook; motion_player_valid=0 means not observed.\n"
+              "Camera coordinates are signed 32-bit pixels encoded as uint32. Compare movement only across adjacent frame IDs with unchanged player ID and panels. Stationary frames alone do not prove a motion stall.\n",file);
         fprintf(file,"utc_start=%04u-%02u-%02uT%02u:%02u:%02u.%03uZ\nlocal_start=%04u-%02u-%02u %02u:%02u:%02u.%03u\n",
             utc.wYear,utc.wMonth,utc.wDay,utc.wHour,utc.wMinute,utc.wSecond,utc.wMilliseconds,
             local.wYear,local.wMonth,local.wDay,local.wHour,local.wMinute,local.wSecond,local.wMilliseconds);
