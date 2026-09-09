@@ -37,6 +37,13 @@ class Wrapper {
 	uint32_t m_gamma_hash = 0;
 	GrLfbInfo_t m_movie_buffer = { 0 };
 	std::unique_ptr<TextureManager> m_texture_manager;
+	bool m_texture_available = false;
+	bool m_solid_colour = false;
+	uint64_t m_skipped_sprites = 0;
+	uint64_t m_cache_reported_events = UINT64_MAX;
+	uint64_t m_cache_report_time = 0;
+	bool drawable();
+	void reportTextureCache();
 
 public:
 	Wrapper();

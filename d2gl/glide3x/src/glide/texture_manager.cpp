@@ -16,15 +16,14 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "pch.h"
 #include "texture_manager.h"
 
 namespace d2gl {
 
 GlideTexture g_glide_texture;
 
-TextureManager::TextureManager(const SubTextureCounts& size_counts)
-	: m_size_counts(size_counts)
+TextureManager::TextureManager(const SubTextureCounts& size_counts, Upload upload)
+	: m_size_counts(size_counts), m_upload(std::move(upload))
 {
 	uint16_t tex_start = 0;
 
@@ -75,8 +74,10 @@ TextureManager::TextureManager(const SubTextureCounts& size_counts)
 
 const SubTextureInfo* TextureManager::getSubTextureInfo(uint32_t address, uint16_t size, uint16_t width, uint16_t height, uint32_t frame_count)
 {
-	if (g_glide_texture.hash.find(address) == g_glide_texture.hash.end())
+	if (g_glide_texture.hash.find(address) == g_glide_texture.hash.end()) {
+		++m_stats.missing_source;
 		return nullptr;
+	}
 
 	auto hash = g_glide_texture.hash[address];
 	auto& data = m_data[size];
@@ -97,14 +98,28 @@ const SubTextureInfo* TextureManager::getSubTextureInfo(uint32_t address, uint16
 	}
 
 	if (cache.items.find(hash) == cache.items.end()) {
-		if (data.available.begin() == data.available.end())
+		if (data.available.empty()) {
+			// Native texture addresses are reused across sizes and scenes. Entries
+			// at addresses no longer visited otherwise keep their slots forever.
+			// Keep everything referenced by this frame: its uploads are processed
+			// together before drawing, so reusing a live slot corrupts older draws.
+			for (auto it = data.cache.begin(); it != data.cache.end();) {
+				if (it->second.last_used_frame == frame_count) { ++it; continue; }
+				for (const auto& item : it->second.items) {
+					data.available[item.second] = true;
+					++m_stats.reclaimed_slots;
+				}
+				it = data.cache.erase(it);
+			}
+		}
+		if (data.available.empty()) {
+			++m_stats.exhausted;
 			return nullptr;
+		}
 
 		const auto id = data.available.begin()->first;
 		const SubTextureInfo* texture_info = &data.sub_texure_info[id];
-		const auto command_buffer = App.context->getCommandBuffer();
-
-		command_buffer->textureUpdate(g_glide_texture.memory + address, texture_info->tex_num, { width, height }, texture_info->offset);
+		m_upload(g_glide_texture.memory + address, *texture_info, width, height);
 
 		cache.items.insert({ hash, id });
 		data.available.erase(id);

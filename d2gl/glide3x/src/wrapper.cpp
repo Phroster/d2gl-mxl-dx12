@@ -33,12 +33,39 @@ Wrapper::Wrapper()
 	g_glide_texture.memory = new uint8_t[GLIDE_TEX_MEMORY * GLIDE_MAX_NUM_TMU];
 
 	SubTextureCounts sub_texture_counts = { { 256, 256 }, { 128, 154 }, { 64, 64 }, { 32, 32 }, { 16, 5 }, { 8, 1 } };
-	m_texture_manager = std::make_unique<TextureManager>(sub_texture_counts);
+	m_texture_manager = std::make_unique<TextureManager>(sub_texture_counts,
+		[this](uint8_t* pixels, const SubTextureInfo& slot, uint16_t width, uint16_t height) {
+			ctx->getCommandBuffer()->textureUpdate(pixels, slot.tex_num, { width, height }, slot.offset);
+		});
 }
 
 Wrapper::~Wrapper()
 {
 	delete[] g_glide_texture.memory;
+}
+
+bool Wrapper::drawable()
+{
+	if (m_solid_colour || m_texture_available) return true;
+	++m_skipped_sprites;
+	return false;
+}
+
+void Wrapper::reportTextureCache()
+{
+	const auto& stats = m_texture_manager->stats();
+	const auto events = stats.reclaimed_slots + stats.exhausted + stats.missing_source + m_skipped_sprites;
+	const auto now = GetTickCount64();
+	if (events == m_cache_reported_events || (m_cache_report_time && now - m_cache_report_time < 10000)) return;
+	m_cache_reported_events = events;
+	m_cache_report_time = now;
+	std::ofstream out(std::filesystem::path(helpers::getCurrentDir()) /
+		("mxl-sprite-cache-" + std::to_string(GetCurrentProcessId()) + ".log"), std::ios::app);
+	out << "frame_safe_cache frame=" << ctx->getFrameCount() << " reclaimed_slots=" << stats.reclaimed_slots
+		<< " exhausted=" << stats.exhausted << " missing_source=" << stats.missing_source
+		<< " skipped_sprites=" << m_skipped_sprites;
+	for (const auto size : {256, 128, 64, 32, 16, 8}) out << " used_" << size << '=' << m_texture_manager->getUsage(size);
+	out << '\n';
 }
 
 void Wrapper::onBufferClear()
@@ -55,6 +82,7 @@ void Wrapper::onBufferSwap()
 	if (m_swapped)
 		return;
 	m_swapped = true;
+	reportTextureCache();
 
 #ifdef _DEBUG
 	App.var[0] = m_texture_manager->getUsage(256);
@@ -70,6 +98,7 @@ void Wrapper::onBufferSwap()
 
 void Wrapper::grDrawPoint(const void* pt)
 {
+	if (!drawable()) return;
 	GlideVertex* vertex = (GlideVertex*)pt;
 
 	ctx->pushVertex(vertex);
@@ -83,6 +112,7 @@ void Wrapper::grDrawPoint(const void* pt)
 
 void Wrapper::grDrawLine(const void* v1, const void* v2)
 {
+	if (!drawable()) return;
 	GlideVertex* vertex1 = (GlideVertex*)v1;
 	GlideVertex* vertex2 = (GlideVertex*)v2;
 
@@ -108,6 +138,7 @@ void Wrapper::grDrawLine(const void* v1, const void* v2)
 
 void Wrapper::grDrawVertexArray(FxU32 mode, FxU32 count, void** pointers)
 {
+	if (!drawable()) return;
 	if (mode == GR_TRIANGLE_STRIP) {
 		const auto offset = modules::MotionPrediction::Instance().getGlobalOffset();
 		for (FxU32 i = 0; i < count - 2; i += 2) {
@@ -124,6 +155,7 @@ void Wrapper::grDrawVertexArray(FxU32 mode, FxU32 count, void** pointers)
 
 void Wrapper::grDrawVertexArrayContiguous(FxU32 mode, FxU32 count, void* pointers)
 {
+	if (!drawable()) return;
 	const auto offset = modules::MotionPrediction::Instance().getGlobalOffsetPerspective();
 	for (FxU32 i = 0; i < count; i++)
 		ctx->pushVertex(&((const GlideVertex*)pointers)[i], { 0.0f, 0.0f }, offset);
@@ -146,7 +178,8 @@ void Wrapper::grChromakeyMode(GrChromakeyMode_t mode)
 
 void Wrapper::grColorCombine(GrCombineFunction_t function)
 {
-	ctx->setVertexFlagY(function == GR_COMBINE_FUNCTION_LOCAL);
+	m_solid_colour = function == GR_COMBINE_FUNCTION_LOCAL;
+	ctx->setVertexFlagY(m_solid_colour);
 }
 
 void Wrapper::grConstantColorValue(GrColor_t value)
@@ -197,9 +230,10 @@ void Wrapper::grTexSource(GrChipID_t tmu, FxU32 start_address, GrTexInfo* info)
 	uint32_t size = Wrapper::getTexSize(info, width, height);
 	start_address += GLIDE_TEX_MEMORY * tmu;
 
-	const auto frame_index = ctx->getFrameIndex();
 	const auto frame_count = ctx->getFrameCount();
 	const auto sub_tex_info = m_texture_manager->getSubTextureInfo(start_address, size, width, height, frame_count);
+	// Never draw an unrelated previous sprite when this source cannot be bound.
+	m_texture_available = sub_tex_info != nullptr;
 	if (sub_tex_info) {
 		ctx->setVertexTexNum({ sub_tex_info->tex_num, 0 });
 		ctx->setVertexOffset(sub_tex_info->offset);
@@ -279,6 +313,7 @@ GrContext_t Wrapper::grSstWinOpen(FxU32 hwnd, GrScreenResolution_t screen_resolu
 		App.game.screen = GameScreen::Loading;
 
 		GlideWrapper->m_texture_manager->clearCache();
+		GlideWrapper->m_texture_available = false;
 	}
 
 	glm::uvec2 old_size = App.game.size;

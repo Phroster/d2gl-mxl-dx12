@@ -18,7 +18,12 @@
 
 #pragma once
 
-#include "graphic/texture.h"
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <unordered_map>
+#include <vector>
+#include <glm/vec2.hpp>
 
 namespace d2gl {
 
@@ -49,15 +54,25 @@ struct GlideTexture {
 
 extern GlideTexture g_glide_texture;
 
+struct TextureCacheStats {
+	uint64_t reclaimed_slots = 0;
+	uint64_t exhausted = 0;
+	uint64_t missing_source = 0;
+};
+
 class TextureManager {
+	using Upload = std::function<void(uint8_t*, const SubTextureInfo&, uint16_t, uint16_t)>;
 	std::map<uint16_t, TextureManagerData> m_data;
 	SubTextureCounts m_size_counts;
+	Upload m_upload;
+	TextureCacheStats m_stats;
 
 public:
-	TextureManager(const SubTextureCounts& size_counts);
+	TextureManager(const SubTextureCounts& size_counts, Upload upload);
 	~TextureManager() = default;
 
 	inline size_t getUsage(uint16_t size) { return m_data[size].tex_count - m_data[size].available.size(); }
+	const TextureCacheStats& stats() const { return m_stats; }
 
 	const SubTextureInfo* getSubTextureInfo(uint32_t address, uint16_t size, uint16_t width, uint16_t height, uint32_t frame_count);
 	void clearCache();
