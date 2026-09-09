@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/banner-dx12-v1.14.svg" alt="MXL Smooth Motion DX12 1.14" width="880">
+  <img src="docs/banner-dx12-v1.15.svg" alt="MXL Smooth Motion DX12 1.15" width="880">
 </p>
 
 <p align="center">
-  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.14/mxl-smooth-motion-dx12-1.14.zip"><strong>Download 1.14</strong></a>
+  <a href="https://github.com/Phroster/d2gl-mxl-dx12/releases/download/v1.15/mxl-smooth-motion-dx12-1.15.zip"><strong>Download 1.15</strong></a>
 </p>
 
 - Improved performance and fewer FPS drops.

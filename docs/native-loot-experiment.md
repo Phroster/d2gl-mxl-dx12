@@ -1,6 +1,6 @@
 # Native loot effects implementation
 
-Release 1.14 uses animated Diablo sprites for real ground items, with readable
+Release 1.15 uses animated Diablo sprites for real ground items, with readable
 names and optional click-to-pickup interaction. The included 2,468-base catalog
 has 66 item profiles. See the [loot guide](loot-effects-guide.md) for categories,
 progression rules and controls. These categories describe visual importance,
@@ -49,6 +49,11 @@ These limits are not a measurement of frame times in a crowded live game.
 The shared Glide sprite cache keys texture contents by both width and height.
 Reusing an address or identical bytes at another aspect ratio cannot reuse an
 incompatible atlas rectangle. Current-frame sprite slots remain pinned.
+
+Loot cells use their own immutable texture identities. On an atlas miss, their
+pixels come from the intended DC6 frame; cache hits require no extra decode.
+Native geometry, clipping, blending and world order remain in use. Invalid
+cells are skipped, and diagnostics record native texture-source mismatches.
 
 ## Labels and pickup
 
