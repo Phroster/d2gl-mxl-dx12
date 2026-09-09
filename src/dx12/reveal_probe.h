@@ -20,7 +20,11 @@ struct RevealDeepFns {
     RevealLayerFn layer=nullptr;
 };
 bool start_reveal_probe(HWND window=nullptr);
+#if MXL_ENABLE_DIAGNOSTICS
 void reveal_event(uint64_t trace,const char* phase,uint64_t began,uint64_t ended,int32_t act,int32_t level,int32_t x,int32_t y,bool resident) noexcept;
+#else
+inline void reveal_event(uint64_t,const char*,uint64_t,uint64_t,int32_t,int32_t,int32_t,int32_t,bool) noexcept {}
+#endif
 #ifdef MXL_REVEAL_TEST
 bool test_reveal_lookup_signature(uintptr_t base);
 bool test_reveal_before_scene_signature(uintptr_t base,uintptr_t fps=0);

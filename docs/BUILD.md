@@ -21,7 +21,7 @@ cmake --build C:/MXL-DX12-Build --config Release --parallel 6
 ctest --test-dir C:/MXL-DX12-Build -C Release --output-on-failure
 ```
 
-The native checks cover rendering, shaders, the settings menu, movement timing, uploads, automatic reveal, native sound cancellation and optional recording. GPU tests require a working DirectX 12 device. Test output stays in the build directory.
+The native checks cover rendering, shaders, the settings menu, movement timing, uploads, automatic reveal, native sound cancellation. GPU tests require a working DirectX 12 device. Test output stays in the build directory.
 
 ## Create the player download
 
@@ -31,7 +31,7 @@ With Python 3 installed:
 python tools/package.py --build-dir C:/MXL-DX12-Build
 ```
 
-The ZIP contains seven installation files, the optional `mxl-loot-filter.json` and one consolidated `LICENSES.txt`, including `mxl-native-loot.ini` with loot effects enabled. Guides, images, source files and build tools stay in the repository. The packaging script checks the complete ZIP inventory, file hashes, disabled recording and enabled loot defaults. It writes the verification manifest and checksum beside the ZIP, outside the player download.
+The ZIP contains six installation files, the optional `mxl-loot-filter.json` and one consolidated `LICENSES.txt`, including `mxl-native-loot.ini` with loot effects enabled. Guides, images, source files and build tools stay in the repository. The packaging script checks the complete ZIP inventory, file hashes, enabled loot defaults. It writes the verification manifest and checksum beside the ZIP, outside the player download.
 
 The native loot catalog and palette headers are included; no game extraction is required to build. `native_loot_test` covers classification, progression, animation cells and pulse timing. Passing a game folder as its first argument additionally verifies sprite decoding through the installed `D2CMP.dll` in an offline helper. An optional second argument exports the generated sprites for `tools/preview_native_loot.py` (requires Pillow). Pass `-` as the second argument to skip exports and a built
 renderer DLL as the third argument to compare all embedded artwork with the
@@ -50,10 +50,10 @@ The notice inventory is maintained in [`licenses/player-notices.json`](../licens
 | Folder | Contents |
 |---|---|
 | `d2gl/` | D2GL source, Glide/DirectDraw entry points, matching MPQ and required libraries. |
-| `src/dx12/` | DirectX 12 rendering, automatic reveal and optional diagnostics. |
+| `src/dx12/` | DirectX 12 rendering, automatic reveal. |
 | `tests/` | Native verification programs. |
 | `cmake/` | Build setup, dependency revisions and test registration. |
-| `tools/` | Packaging, shader asset checks and diagnostic report analysis. |
+| `tools/` | Packaging and shader asset checks. |
 | `defaults/` | Player graphics and FPS settings. |
 
 The active package uses Median XL's official `d2fps.dll`. Its timing integration is in `d2gl/d2gl/src/mxl_smoothing.c`; the FPS settings menu is in `src/dx12/fps_menu.cpp`.

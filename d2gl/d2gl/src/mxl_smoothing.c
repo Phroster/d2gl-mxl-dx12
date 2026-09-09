@@ -30,7 +30,9 @@ typedef struct {
     const char *label;
 } BytePatch;
 typedef struct { BYTE *address; DWORD protection; BOOL writable; } ClockPage;
+#if MXL_ENABLE_DIAGNOSTICS
 static HANDLE log_file = INVALID_HANDLE_VALUE;
+#endif
 static LONG initialized;
 static volatile LONG smoothing_active;
 static const volatile DWORD *game_type;
@@ -81,6 +83,7 @@ static BytePatch clock_patch(const ClockSite *site) {
     return patch;
 }
 
+#if MXL_ENABLE_DIAGNOSTICS
 static void log_line(const char *format, ...) {
     char text[1024]; DWORD written; va_list args;
     va_start(args, format);
@@ -94,7 +97,9 @@ static void log_line(const char *format, ...) {
         FlushFileBuffers(log_file);
     }
 }
-
+#else
+#define log_line(...) ((void)0)
+#endif
 #ifdef MXL_SMOOTHING_TEST
 static int protect_calls, fail_protect_call;
 #endif
@@ -198,18 +203,21 @@ static BOOL check_module(HMODULE module, const wchar_t *directory, const char *h
 }
 
 void __stdcall MxlSmoothing_Initialize(void) {
-    wchar_t directory[MAX_PATH], log_path[MAX_PATH];
+    wchar_t directory[MAX_PATH];
     if (InterlockedCompareExchange(&initialized,1,0)) return;
     if (!GetModuleFileNameW(NULL,directory,MAX_PATH)) return;
     wchar_t *name=wcsrchr(directory,L'\\');
     if (!name || _wcsicmp(name+1,L"Game.exe")) return;
     name[1]=0;
+#if MXL_ENABLE_DIAGNOSTICS
+    wchar_t log_path[MAX_PATH];
     if (swprintf(log_path,MAX_PATH,L"%lsmxl-smoothing.log",directory)<0) return;
     log_file=CreateFileW(log_path,GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,
                         CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
     SYSTEMTIME now; GetLocalTime(&now);
     log_line("MXL Smooth Motion DX12 1.15 / x86 / %04u-%02u-%02u %02u:%02u:%02u",
               now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond);
+#endif
     HMODULE client=GetModuleHandleW(L"D2Client.dll"), fps=GetModuleHandleW(L"d2fps.dll");
     if (!check_module(client,directory,"dd8bc6025de921216a97c17f97cd1a50fbb85926e838ec60e13451448836d906",0x135000,0x4b95ca3e) ||
         !check_module(fps,directory,"db9de4d4d320a7b70e66fe6b4aaa0e6f1560a5300a4993cc81cf4512ab1240c1",0x3d000,0x68ed0db7)) {
@@ -249,7 +257,12 @@ void __stdcall MxlSmoothing_Initialize(void) {
         log_line("Realm type 3: maximum extra visual prediction is 20 ms. SP/LAN: original clamp.");
     } else log_line("FAILED: patch attempt did not pass all checks; see preceding reason.");
 done:
+#if MXL_ENABLE_DIAGNOSTICS
     if (log_file!=INVALID_HANDLE_VALUE) { CloseHandle(log_file); log_file=INVALID_HANDLE_VALUE; }
+#else
+    (void)0;
+#endif
+
 }
 
 int __stdcall MxlSmoothing_IsActive(void) { return smoothing_active == 1; }

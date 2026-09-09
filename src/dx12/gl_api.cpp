@@ -218,7 +218,11 @@ void glCompileShader(GLuint id) {
     const auto began=diag::enabled()?diag::ticks():0;
     auto& s=state().shaders.at(id);
     try{s.normal=compile_shader(s.source,s.stage,false,"D2GL DX12 shader");if(s.stage==Stage::Vertex)s.flipped=compile_shader(s.source,s.stage,true,"D2GL DX12 vertex");s.valid=true;}
-    catch(const std::exception& e){s.error=e.what();s.valid=false;OutputDebugStringA(s.error.c_str());}
+    catch(const std::exception& e){s.error=e.what();s.valid=false;
+#if MXL_ENABLE_DIAGNOSTICS
+    OutputDebugStringA(s.error.c_str());
+#endif
+    }
     if(began)diag::note(s.valid?"shader_compile_us":"shader_compile_failed_us",int64_t(diag::milliseconds(diag::ticks()-began)*1000));
 }
 void glGetShaderiv(GLuint id,GLenum name,GLint* result) {auto& s=state().shaders.at(id);*result=name==GL_COMPILE_STATUS?s.valid:name==GL_INFO_LOG_LENGTH?GLint(s.error.size()+1):0;}

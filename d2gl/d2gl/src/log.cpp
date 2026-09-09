@@ -20,6 +20,7 @@
 
 namespace d2gl {
 
+#if MXL_ENABLE_DIAGNOSTICS
 FILE* log_file = nullptr;
 
 void logInit()
@@ -99,4 +100,12 @@ void logFileClose()
 	log_file = nullptr;
 }
 
+#else
+void logInit() {}
+void logTrace(WORD, bool, const char*, ...) {}
+void logTraceDef(uint8_t, const char*, ...) {}
+bool logFileOpen(const char*) { return false; }
+void logFileWrite(uint8_t, const char*, ...) {}
+void logFileClose() {}
+#endif
 }

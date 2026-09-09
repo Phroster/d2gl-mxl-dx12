@@ -4,13 +4,13 @@ The [main guide](../README.md#install--copy-paste-play) is the normal installati
 
 ## Keep your existing settings
 
-Back up your current files. After setting the launcher options in the main guide and closing the game and launcher, copy **`glide3x.dll`, `ddraw.dll`, `d2gl.mpq` and `mxl-diagnostics.ini`**, and add **`mxl-native-loot.ini`** for loot effects. Keep your own `d2gl.ini` and `d2fps.ini`.
+Back up your current files. After setting the launcher options in the main guide and closing the game and launcher, copy **`glide3x.dll`, `ddraw.dll` and `d2gl.mpq`**, and add **`mxl-native-loot.ini`** for loot effects. Keep your own `d2gl.ini` and `d2fps.ini`.
 
 Open **Ctrl+O → FPS** and make sure high FPS in game, high FPS in menus and smooth movement are enabled. Save any changes and restart. Keep your preferred FPS target.
 
-The supplied `mxl-diagnostics.ini` turns performance recording off without disabling the fixes. If you have no graphics/FPS INIs, use the two included in the download.
+If you have no graphics/FPS INIs, use the two included in the download.
 
-Already using MXL Smooth Motion DX12? Replace `glide3x.dll`, `ddraw.dll` and `mxl-diagnostics.ini`, and add `mxl-native-loot.ini` if it is missing. Your matching MPQ and graphics/FPS settings can stay as they are.
+Already using MXL Smooth Motion DX12? Replace `glide3x.dll` and `ddraw.dll`, and add `mxl-native-loot.ini` if it is missing. Your matching MPQ and graphics/FPS settings can stay as they are.
 
 Names stay visible on loot with effects. Click the glow or name to pick it up without holding Alt, including with your inventory open. If Alt brings back the old labels, clear **Show Items** in the game's key bindings and leave its show-items toggle off. Keep **HD text** enabled in Ctrl+O for the new labels. Set `ClickEffects=0` in `mxl-native-loot.ini` and restart to use the original pickup controls.
 

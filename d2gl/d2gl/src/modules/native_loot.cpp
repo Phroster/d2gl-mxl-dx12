@@ -90,8 +90,10 @@ std::array<mxl::native_loot::HoverLabel,60> groundLabels{};
 unsigned groundLabelCount=0;
 bool labelsPainted=false;
 uint64_t permanentLabels=0,nameFormats=0,fallingLabels=0,emptyNameRetries=0;
+#if MXL_ENABLE_DIAGNOSTICS
 unsigned nameDiagnostics=0;
 std::array<mxl::native_loot::GroundEntry,16> nameDiagnosticItems{};
+#endif
 uint64_t labelPlacements=0,labelMoves=0,labelSpaceLimited=0;
 using StartupClock=std::chrono::steady_clock;
 double startupTotalMs=0,startupHashMs=0,startupUnpackMs=0,startupNormalizeMs=0;
@@ -111,6 +113,7 @@ __declspec(naked) int __fastcall worldMouse(int*,int*) {
     __asm { jmp dword ptr [worldMouseAddress] }
 }
 
+#if MXL_ENABLE_DIAGNOSTICS
 void report(const char* status)
 {
     if (directory.empty()) return;
@@ -144,6 +147,9 @@ void report(const char* status)
     }
 }
 
+#else
+#define report(...) ((void)0)
+#endif
 mxl::native_loot::View view()
 {
     return {*d2::level_no,*d2::screen_width,*d2::screen_height,*d2::screen_shift,d2::isPerspective()};
@@ -207,6 +213,7 @@ NameEntry& nameFor(d2::UnitAny* unit,const mxl::native_loot::GroundEntry& entry,
         // D2Client formatter indexes rare affixes one record earlier.
         if(!itemName(unit,slot->text.data(),0)) slot->text[0]=0;
         slot->text.back()=0;slot->updated=now;++nameFormats;
+#if MXL_ENABLE_DIAGNOSTICS
         // Bounded evidence for later name/quality reports; no per-frame I/O.
         if(slot->text[0] && unsigned(data.dwQuality)>=6 && unsigned(data.dwQuality)<=9
             && nameDiagnostics<nameDiagnosticItems.size()
@@ -223,6 +230,7 @@ NameEntry& nameFor(d2::UnitAny* unit,const mxl::native_loot::GroundEntry& entry,
                 std::fclose(f);
             }
         }
+#endif
     }
     slot->lastSeen=now;
     return *slot;

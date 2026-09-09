@@ -13,7 +13,7 @@ NAME = "mxl-smooth-motion-dx12-1.15"
 REPOSITORY = "https://github.com/Phroster/d2gl-mxl-dx12"
 PLAYER_FILES = frozenset({
     "glide3x.dll", "ddraw.dll", "d2gl.mpq", "d2gl.ini", "d2fps.ini",
-    "mxl-diagnostics.ini", "mxl-native-loot.ini", "LICENSES.txt",
+    "mxl-native-loot.ini", "LICENSES.txt",
     "mxl-loot-filter.json",
 })
 
@@ -58,6 +58,9 @@ def main():
     parser.add_argument("--build-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, default=ROOT / "dist")
     args = parser.parse_args()
+    cache = (args.build_dir / "CMakeCache.txt").read_text(encoding="utf-8")
+    if "MXL_ENABLE_DIAGNOSTICS:BOOL=OFF" not in cache.splitlines():
+        raise ValueError("Player packages require MXL_ENABLE_DIAGNOSTICS=OFF")
     dependencies = json.loads((args.build_dir / "mxl-build-dependencies.json").read_text(encoding="utf-8"))
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     inputs = {
@@ -65,15 +68,15 @@ def main():
         "ddraw.dll": args.build_dir / "Release/ddraw.dll",
         "d2gl.mpq": ROOT / "d2gl/d2gl.mpq",
         "d2fps.ini": ROOT / "defaults/d2fps.ini",
-        "mxl-diagnostics.ini": ROOT / "mxl-diagnostics.ini",
         "mxl-native-loot.ini": ROOT / "mxl-native-loot.ini",
         "mxl-loot-filter.json": ROOT / "defaults/mxl-loot-filter.json",
     }
     files = {name: path.read_bytes() for name, path in inputs.items()}
-    diagnostics = configparser.ConfigParser()
-    diagnostics.read_string(files["mxl-diagnostics.ini"].decode("utf-8"))
-    if diagnostics.getint("Diagnostics", "enabled") != 0:
-        raise ValueError("Release recording must default to off")
+    # Also reject stale DLLs left by a recording-enabled build.
+    for name in ("ddraw.dll", "glide3x.dll"):
+        for marker in ("mxl-diagnostics", "mxl-native-loot-", "mxl-sprite-cache-", "mxl-smoothing.log", "native-sound.csv"):
+            if any(marker.encode(enc) in files[name] for enc in ("utf-8", "utf-16le")):
+                raise ValueError(f"Recording code remains in {name}: {marker}")
     loot = configparser.ConfigParser()
     loot.read_string(files["mxl-native-loot.ini"].decode("utf-8"))
     if loot.getint("NativeLoot", "Enabled") != 1:
@@ -115,7 +118,7 @@ def main():
     manifest = {
         "product": "MXL Smooth Motion DX12", "version": "1.15",
         "source_commit": commit, "source_repository": REPOSITORY,
-        "performance_recording_default": False, "automatic_act_reveal": True,
+        "automatic_act_reveal": True,
         "native_loot_effects_default": True,
         "native_loot_pickup_default": True,
         "native_filter_profile": profile["name"],

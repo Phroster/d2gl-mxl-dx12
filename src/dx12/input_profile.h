@@ -20,5 +20,9 @@ struct InputResult {
 InputSample input_sample() noexcept;
 InputResult input_difference(const InputSample& before,const InputSample& after,uint64_t began,uint64_t ended) noexcept;
 void input_owner(const void* procedure,InputResult& result) noexcept;
+#if MXL_ENABLE_DIAGNOSTICS
 void record_input(const InputResult& result) noexcept;
+#else
+inline void record_input(const InputResult&) noexcept {}
+#endif
 }

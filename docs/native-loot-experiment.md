@@ -53,7 +53,7 @@ incompatible atlas rectangle. Current-frame sprite slots remain pinned.
 Loot cells use their own immutable texture identities. On an atlas miss, their
 pixels come from the intended DC6 frame; cache hits require no extra decode.
 Native geometry, clipping, blending and world order remain in use. Invalid
-cells are skipped, and diagnostics record native texture-source mismatches.
+cells are skipped.
 
 ## Labels and pickup
 
@@ -90,13 +90,10 @@ audio samples are unchanged. The additional D2Client detours are the world draw
 at RVA 0x6CC00 and selection update at RVA 0x51E80; native game files on disk are
 unchanged. Existing renderer hooks remain in place.
 
-## Compatibility, diagnostics and validation
+## Compatibility and validation
 
 Startup verifies the supported game DLL and item-archive hashes and checks native
-entry points before installing hooks. A mismatch disables the affected feature
-and records the reason in `mxl-native-loot-<process ID>.log`. Diagnostics include
-startup timings, draw counts, rejected identities and interaction counts. Frame
-samples are bounded; the normal loop does not continuously write diagnostic logs.
+entry points before installing hooks. A mismatch disables the affected feature.
 
 `native_loot_test` checks classification, progression, budgets, both unit tables,
 identity expiry, view invalidation, pulses, tiled frame reconstruction and asset

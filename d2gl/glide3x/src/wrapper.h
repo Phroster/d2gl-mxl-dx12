@@ -39,14 +39,16 @@ class Wrapper {
 	std::unique_ptr<TextureManager> m_texture_manager;
 	bool m_texture_available = false;
 	bool m_solid_colour = false;
+#if MXL_ENABLE_DIAGNOSTICS
 	uint64_t m_skipped_sprites = 0;
 	uint64_t m_loot_source_checks = 0;
 	uint64_t m_loot_source_mismatches = 0;
 	uint64_t m_cache_reported_events = UINT64_MAX;
 	uint64_t m_cache_report_time = 0;
-	bool drawable();
 	void reportTextureCache();
+#endif
 
+	bool drawable();
 public:
 	Wrapper();
 	~Wrapper();

@@ -5,7 +5,9 @@
 #include <cstring>
 #include <thread>
 
+#if MXL_ENABLE_DIAGNOSTICS
 namespace mxl::diag {void note(const char*,int64_t) noexcept {}}
+#endif
 namespace {
 using namespace mxl::archive_hash;
 thread_local unsigned calls=0;

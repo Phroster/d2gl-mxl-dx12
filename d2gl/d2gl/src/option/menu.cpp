@@ -405,7 +405,7 @@ void Menu::draw()
 			childSeparator("##w6");
 			ImGui::TextUnformatted(MxlSmoothing_IsActive() ? "Multiplayer Smoothing Fix: On" : "Multiplayer Smoothing Fix: Unavailable");
 			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip(MxlSmoothing_IsActive() ? "Built in and enabled automatically." : "See mxl-smoothing.log for the supported-file check.");
+				ImGui::SetTooltip(MxlSmoothing_IsActive() ? "Built in and enabled automatically." : "This game version is not supported by the smoothing fix.");
 			}
 			ImGui::BeginDisabled(App.d2fps_mod);
 				drawCheckbox_m("Motion Prediction", App.motion_prediction, "D2DX's motion prediction feature.", motion_prediction)

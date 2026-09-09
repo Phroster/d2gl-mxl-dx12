@@ -48,10 +48,13 @@ Wrapper::~Wrapper()
 bool Wrapper::drawable()
 {
 	if (m_solid_colour || m_texture_available) return true;
+#if MXL_ENABLE_DIAGNOSTICS
 	++m_skipped_sprites;
+#endif
 	return false;
 }
 
+#if MXL_ENABLE_DIAGNOSTICS
 void Wrapper::reportTextureCache()
 {
 	const auto& stats = m_texture_manager->stats();
@@ -73,6 +76,7 @@ void Wrapper::reportTextureCache()
 	out << '\n';
 }
 
+#endif
 void Wrapper::onBufferClear()
 {
 	if (!m_swapped)
@@ -87,7 +91,9 @@ void Wrapper::onBufferSwap()
 	if (m_swapped)
 		return;
 	m_swapped = true;
+#if MXL_ENABLE_DIAGNOSTICS
 	reportTextureCache();
+#endif
 
 #ifdef _DEBUG
 	App.var[0] = m_texture_manager->getUsage(256);
@@ -241,6 +247,7 @@ void Wrapper::grTexSource(GrChipID_t tmu, FxU32 start_address, GrTexInfo* info)
 		? m_texture_manager->getImmutableSubTextureInfo(uint32_t(sprite->identity), width, height, frame_count,
 			[&](uint8_t* pixels) {
 				if (!sprite->decode(pixels, width, height)) return false;
+#if MXL_ENABLE_DIAGNOSTICS
 				// Check only on an atlas miss, alongside the required decode. Keep
 				// evidence if the native TMU cache offers a different image later.
 				++m_loot_source_checks;
@@ -249,6 +256,7 @@ void Wrapper::grTexSource(GrChipID_t tmu, FxU32 start_address, GrTexInfo* info)
 					|| !g_glide_texture.hash.count(start_address)
 					|| std::memcmp(pixels, g_glide_texture.memory + start_address, width * height))
 					++m_loot_source_mismatches;
+#endif
 				return true;
 			})
 		: m_texture_manager->getSubTextureInfo(start_address, size, width, height, frame_count);

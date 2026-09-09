@@ -68,6 +68,4 @@ separate allowance so common items cannot consume it. A crowded pile may exceed
 those visual limits. Animation artwork is included in the renderer and loaded
 once, keeping game entry quick.
 
-The native diagnostics retain draw counts by item profile, including
-`ArcaneShard`, `ArcaneCrystal`, `ScytheBase`, `RuneGreat` and the other categories.
 See [installation and backups](INSTALL.md) to keep your settings or restore an earlier build.

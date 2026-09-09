@@ -66,7 +66,11 @@ void dllAttach(HMODULE hmodule)
 		return;
 	}
 
+#if MXL_ENABLE_DIAGNOSTICS
 	App.log = command_line.find("-log") != std::string::npos;
+#else
+	App.log = false;
+#endif
 	App.direct = command_line.find("-direct") != std::string::npos;
 
 	logInit();

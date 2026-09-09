@@ -75,14 +75,6 @@ It holds the fonts, textures and shaders used by D2GL. Keep the included MPQ bes
 
 Each act reveals automatically when you enter it. There may be a short pause while the map is prepared; pressing T afterward has no full-act reveal left to do. Returning to an already revealed act does not repeat the work. Starting a new game starts fresh.
 
-## Optional performance recording
-
-Recording is **off by default**. The FPS improvements and automatic map reveal stay on. You do not need to change anything for normal play.
-
-To record frame and sound timings, close the game and open `mxl-diagnostics.ini` in Notepad. Change `enabled=0` to `enabled=1`, save, and start the game. Reports appear in the `mxl-diagnostics` folder beside `Game.exe`.
-
-When finished, set `enabled=0` again and restart. Keep `audio=1` to include sound timings when recording. This controls recording only; it does not mute or change game audio. Existing reports are kept until you delete them.
-
 ## ReShade
 
 Use the official [ReShade installer](https://reshade.me) for your `Game.exe` and choose **DirectX 10/11/12**. Keep your preset and shader folder. An existing OpenGL ReShade installation needs to be switched to DirectX.
@@ -94,7 +86,7 @@ Use the official [ReShade installer](https://reshade.me) for your `Game.exe` and
 | The game refuses `-w` or the new renderer does not activate | Select Glide or DirectDraw and turn Windowed off in the launcher. Remove `-w` from custom shortcuts; use Alt+Enter after startup. |
 | The launcher replaces the renderer | Under **Unofficial Graphic Drivers**, tick both **Glide3x.dll** and **Ddraw.dll**, then copy the package files again after updates finish. |
 | The launcher restores `d2fps.dll` | Keep it. The official file supplies the FPS engine; our D2GL applies the fix at startup. Restoring the supported official file is expected. |
-| The fix says Unavailable | Confirm you used the folder with `Game.exe` and `D2Sigma.dll`. Read `mxl-smoothing.log`; newer game files may need an updated release. |
+| The fix says Unavailable | Confirm you used the folder with `Game.exe` and `D2Sigma.dll`. Newer game files may need an updated release. |
 | Movement still looks unsmoothed | Check `game-fps=true` and `motion-smoothing=true` in `d2fps.ini`, then restart. |
 | No new menu title or status | Check that the selected renderer DLL was copied into the actual game folder and was not replaced by the launcher. |
 | Missing fonts or shaders | Copy the matching `d2gl.mpq` beside the DLLs. |

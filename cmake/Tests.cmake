@@ -103,6 +103,7 @@ endforeach()
 add_test(NAME reveal_preselection_without_logging COMMAND $<TARGET_FILE:dx12_reveal_probe_test>
   "${CMAKE_BINARY_DIR}/test-output/preselection-only" --preselection-only)
 set_tests_properties(reveal_preselection_without_logging PROPERTIES TIMEOUT 30)
+if(MXL_ENABLE_DIAGNOSTICS)
 add_test(NAME reveal_before_scene_unsupported COMMAND ${CMAKE_COMMAND}
   "-DTEST_EXECUTABLE=$<TARGET_FILE:dx12_auto_reveal_test>"
   "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/before-scene-unsupported"
@@ -129,3 +130,21 @@ foreach(mode missing disabled enabled)
     "-DMODE=${mode}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
   set_tests_properties(logging_${mode} PROPERTIES TIMEOUT 30)
 endforeach()
+else()
+  add_executable(public_build_test tests/public_build_test.cpp)
+  target_link_libraries(public_build_test PRIVATE mxl_diagnostics)
+  target_compile_definitions(public_build_test PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  add_test(NAME public_build_test COMMAND ${CMAKE_COMMAND}
+    "-DTEST_EXECUTABLE=$<TARGET_FILE:public_build_test>"
+    "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/public-build"
+    -DMODE=public -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
+  set_tests_properties(public_build_test PROPERTIES TIMEOUT 30)
+  foreach(mode missing disabled)
+    add_test(NAME public_reveal_${mode} COMMAND ${CMAKE_COMMAND}
+      "-DTEST_EXECUTABLE=$<TARGET_FILE:dx12_auto_reveal_test>"
+      "-DTEST_ROOT=${CMAKE_BINARY_DIR}/test-output/public-reveal-${mode}"
+      "-DDIAGNOSTICS_INI=${CMAKE_CURRENT_SOURCE_DIR}/mxl-diagnostics.ini"
+      "-DMODE=${mode}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunTest.cmake")
+    set_tests_properties(public_reveal_${mode} PROPERTIES TIMEOUT 30)
+  endforeach()
+endif()

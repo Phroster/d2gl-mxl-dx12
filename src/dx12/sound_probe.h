@@ -10,9 +10,13 @@ enum class NativeSound : uint32_t {
 };
 bool start_sound_probe();
 // Native scopes may nest. Object IDs are pointers/handles and may be reused.
+#if MXL_ENABLE_DIAGNOSTICS
 void native_sound_call(NativeSound operation, uint64_t began, uint64_t ended,
     uintptr_t caller, uintptr_t object, uint32_t argument, uintptr_t result,
     const char* path = "", unsigned path_status = 3) noexcept;
+#else
+inline void native_sound_call(NativeSound, uint64_t, uint64_t, uintptr_t, uintptr_t, uint32_t, uintptr_t, const char* = "", unsigned = 3) noexcept {}
+#endif
 
 #ifdef MXL_SOUND_TEST
 // Client: async load/buffer/ready, open/read/close. Sound: enter/leave,

@@ -37,7 +37,7 @@ void logFileClose();
 #define C_YELLOW  FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN
 #define C_MAGENTA FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_BLUE
 
-#ifdef _DEBUG
+#if MXL_ENABLE_DIAGNOSTICS && defined(_DEBUG)
 #define trace(format, ...) logTraceDef(0, format, ##__VA_ARGS__)
 #define error(format, ...) logTraceDef(1, format, ##__VA_ARGS__)
 #define warn(format, ...) logTraceDef(2, format, ##__VA_ARGS__)
@@ -47,9 +47,15 @@ void logFileClose();
 #define warn(format, ...)
 #endif
 
+#if MXL_ENABLE_DIAGNOSTICS
 #define trace_log(format, ...) { logFileWrite(0, format, ##__VA_ARGS__);trace(format, ##__VA_ARGS__); }
 #define error_log(format, ...) { logFileWrite(1, format, ##__VA_ARGS__);error(format, ##__VA_ARGS__); }
 #define warn_log(format, ...) { logFileWrite(2, format, ##__VA_ARGS__);warn(format, ##__VA_ARGS__); }
+#else
+#define trace_log(...) ((void)0)
+#define error_log(...) ((void)0)
+#define warn_log(...) ((void)0)
+#endif
 // clang-format on
 
 }
