@@ -10,19 +10,28 @@
 #include <cstring>
 #include <filesystem>
 #include <share.h>
+#include <psapi.h>
 
 namespace mxl::diag {
 namespace {
 constexpr size_t Metrics=size_t(Metric::Count), Counts=size_t(Count::Count), AudioOps=size_t(Audio::Count), NativeOps=size_t(NativeSound::Count), Capacity=8192;
 const char* metric_names[]={"render_ms","input_wait_ms","gpu_fence_wait_ms","present_call_ms","latency_wait_ms","submit_ms","pipeline_ms","bindings_ms","index_scan_ms","upload_ms","allocation_ms","producer_build_ms",
-    "loot_effects_ms","loot_labels_ms","loot_names_ms","loot_pickup_sampled_ms","loot_capture_sampled_ms"};
+    "loot_effects_ms","loot_labels_ms","loot_names_ms","loot_pickup_sampled_ms","loot_capture_sampled_ms",
+    "game_world_ms","game_ui_ms","game_map_ms","probe_ms","present_probe_ms"};
 const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spill_bytes","new_pipelines","binding_misses","barriers","minimap","width","height","game_screen","new_textures",
     "loot_enabled","loot_pickup_enabled","loot_targets","loot_labels","loot_sprites","loot_name_formats",
     "loot_selection_calls","loot_selection_samples","loot_capture_calls","loot_capture_samples",
     "loot_inventory_queries","loot_unit_lookups","loot_cache_reclaims","loot_cache_uploads","loot_cache_hits","loot_cache_skipped",
     "motion_valid","motion_samples","motion_elapsed_ticks","motion_interval_ticks","motion_clamped_ticks",
     "motion_client_updates","motion_update_ms","motion_clock_ms","motion_game_type",
-    "motion_player_valid","motion_player_id","motion_player_x","motion_player_y","motion_camera_x","motion_camera_y","motion_panels"};
+    "motion_player_valid","motion_player_id","motion_player_x","motion_player_y","motion_camera_x","motion_camera_y","motion_panels",
+    "context_valid","level","player_mode","world_units","world_players","world_monsters","world_missiles","world_items",
+    "motion_render_ticks","motion_update_ticks","motion_probe_ticks",
+    "build_cycles_valid","build_cycles","wait_cycles_valid","wait_cycles","render_cycles_valid","render_cycles",
+    "present_start","present_end","present_result","present_vsync","present_probed","present_stats_result",
+    "present_stats_count","present_refresh","sync_refresh","sync_qpc","present_id_valid","present_id","latency_result",
+    "process_valid","process_user","process_kernel","process_read","process_write","process_faults","working_set","private_bytes",
+    "logger_cpu_valid","logger_cpu","queue_peak","queue_size"};
 const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d","get_status","get_current_position","release","query_interface"};
 const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep","async_ready"};
 static_assert(std::size(native_names)==NativeOps);
@@ -35,11 +44,12 @@ struct Record {
 };
 struct AudioTotals { std::atomic<uint64_t> calls{0},elapsed{0},maximum{0},errors{0}; };
 struct State {
-    std::atomic<bool> active{false},quitting{false}; bool audio=true,assets=false,details=false,testing=false;
+    std::atomic<bool> active{false},quitting{false}; bool audio=true,assets=false,details=false,testing=false,comprehensive=false;
+    uint32_t event_parts=3;
     std::atomic<uint64_t> dropped{0}; HWND window=nullptr; HANDLE worker=nullptr,owner=nullptr;
     LARGE_INTEGER frequency{}; uint64_t started=0; double threshold=10.0,audio_threshold=.5;
     std::wstring directory; SRWLOCK lock=SRWLOCK_INIT;
-    std::array<Record,Capacity> queue{}; size_t read=0,write=0,size=0;
+    std::array<Record,Capacity> queue{}; size_t read=0,write=0,size=0,peak=0;
     std::array<AudioTotals,AudioOps> audio_totals{};
     std::array<AudioTotals,NativeOps> native_totals{};
 };
@@ -50,12 +60,26 @@ thread_local bool frame_active=false;
 thread_local uint64_t previous_end=0;
 thread_local bool previous_focused=false;
 thread_local uint32_t previous_screen=0;
+struct CycleSample {uint64_t value=0;bool valid=false;};
+thread_local CycleSample build_cycles,wait_cycles,render_cycles;
+thread_local uint64_t stage_start=0;
+thread_local unsigned draw_stage=0;
+CycleSample cycle_sample() noexcept {
+    const auto error=GetLastError();CycleSample sample;
+    sample.valid=QueryThreadCycleTime(GetCurrentThread(),&sample.value)!=FALSE;
+    SetLastError(error);return sample;
+}
+void cycle_delta(Record& record,CycleSample before,CycleSample after,Count valid,Count value) {
+    if(before.valid && after.valid && after.value>=before.value) {
+        record.counts[size_t(valid)]=1;record.counts[size_t(value)]=after.value-before.value;
+    }
+}
 void put(const Record& record) noexcept {
     auto& s=state();
     if(!s.active.load(std::memory_order_relaxed)) return;
     if(!TryAcquireSRWLockExclusive(&s.lock)){++s.dropped;return;}
     if(s.size==Capacity) ++s.dropped;
-    else {s.queue[s.write]=record;s.write=(s.write+1)%Capacity;++s.size;}
+    else {s.queue[s.write]=record;s.write=(s.write+1)%Capacity;++s.size;s.peak=std::max(s.peak,s.size);}
     ReleaseSRWLockExclusive(&s.lock);
 }
 void header(FILE* file) {
@@ -84,7 +108,7 @@ DWORD WINAPI writer(void*) {
     FILE* file=nullptr;FILE* inputs=nullptr;FILE* reveals=nullptr;FILE* assets=nullptr;FILE* native=nullptr;
     uint32_t part=0,input_count=0,reveal_count=0,asset_count=0,native_count=0;uint64_t last_summary=ticks(),written=0,slow=0;
     auto open=[&](){
-        const auto name=s.directory+L"\\events-"+std::to_wstring(part%3)+L".csv";
+        const auto name=s.directory+L"\\events-"+std::to_wstring(part%s.event_parts)+L".csv";
         file=_wfsopen(name.c_str(),L"wb",_SH_DENYNO);
         if(!file)return false;
         setvbuf(file,nullptr,_IOFBF,256*1024);header(file);return true;
@@ -160,12 +184,32 @@ DWORD WINAPI writer(void*) {
                     r.counts[0]=calls;strcpy_s(r.detail,native_names[i]);write_record(file,r);
                 }
             }
-            Record status;status.kind="logger";status.at=now;status.value=s.dropped.load();strcpy_s(status.detail,"dropped_records");write_record(file,status);
+            if(s.comprehensive) {
+                const auto began=ticks();Record process;process.kind="process";process.at=now;process.tid=GetCurrentThreadId();
+                auto set=[&](Count key,uint64_t value){process.counts[size_t(key)]=value;};
+                auto ft=[](FILETIME value){return (uint64_t(value.dwHighDateTime)<<32)|value.dwLowDateTime;};
+                FILETIME created{},exited{},kernel{},user{};uint64_t valid=0;
+                if(GetProcessTimes(GetCurrentProcess(),&created,&exited,&kernel,&user)) {
+                    valid|=1;set(Count::ProcessUser,ft(user));set(Count::ProcessKernel,ft(kernel));
+                }
+                IO_COUNTERS io{};
+                if(GetProcessIoCounters(GetCurrentProcess(),&io)) {valid|=2;set(Count::ProcessRead,io.ReadTransferCount);set(Count::ProcessWrite,io.WriteTransferCount);}
+                PROCESS_MEMORY_COUNTERS_EX memory{};memory.cb=sizeof(memory);
+                if(GetProcessMemoryInfo(GetCurrentProcess(),reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),sizeof(memory))) {
+                    valid|=4;set(Count::ProcessFaults,memory.PageFaultCount);set(Count::WorkingSet,memory.WorkingSetSize);set(Count::PrivateBytes,memory.PrivateUsage);
+                }
+                set(Count::ProcessValid,valid);
+                if(GetThreadTimes(GetCurrentThread(),&created,&exited,&kernel,&user)) {set(Count::LoggerCpuValid,1);set(Count::LoggerCpu,ft(user)+ft(kernel));}
+                process.ms[size_t(Metric::Probe)]=milliseconds(ticks()-began);write_record(file,process);
+            }
+            Record status;status.kind="logger";status.at=now;status.value=s.dropped.load();
+            AcquireSRWLockExclusive(&s.lock);status.counts[size_t(Count::QueuePeak)]=s.peak;status.counts[size_t(Count::QueueSize)]=s.size;ReleaseSRWLockExclusive(&s.lock);
+            strcpy_s(status.detail,"dropped_records");write_record(file,status);
             fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);if(assets)fflush(assets);if(native)fflush(native);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
-                fprintf(out,"MXL Smooth Motion DX12 1.15 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\n",
-                    s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load());fclose(out);
+                fprintf(out,"MXL Smooth Motion DX12 1.15 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\nevent_parts_written=%u\nretention_overwrites=%u\n",
+                    s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load(),part+1,part>=s.event_parts?part-s.event_parts+1:0);fclose(out);
             }
             if(GetFileAttributesW((s.directory+L"\\STOP").c_str())!=INVALID_FILE_ATTRIBUTES) {
                 s.active=false;s.quitting=true;
@@ -184,6 +228,7 @@ double milliseconds(uint64_t elapsed) noexcept {return state().frequency.QuadPar
 bool enabled() noexcept {return state().active.load(std::memory_order_relaxed);}
 bool audio_enabled() noexcept {return enabled()&&state().audio;}
 bool detail_logs_enabled() noexcept {return enabled()&&state().details;}
+bool comprehensive_enabled() noexcept {return enabled()&&state().comprehensive;}
 bool assets_enabled() noexcept {return enabled()&&state().assets;}
 bool start(HWND window,const std::wstring& test_directory) {
     auto& s=state();if(s.worker)return enabled();
@@ -199,6 +244,8 @@ bool start(HWND window,const std::wstring& test_directory) {
     s.audio=GetPrivateProfileIntW(L"Diagnostics",L"audio",1,ini.c_str())!=0;
     s.assets=GetPrivateProfileIntW(L"Diagnostics",L"assets",0,ini.c_str())!=0;
     s.details=GetPrivateProfileIntW(L"Diagnostics",L"detail_logs",0,ini.c_str())!=0;
+    s.comprehensive=GetPrivateProfileIntW(L"Diagnostics",L"comprehensive",0,ini.c_str())!=0;
+    s.event_parts=std::clamp(GetPrivateProfileIntW(L"Diagnostics",L"event_parts",3,ini.c_str()),3u,32u);
     s.threshold=std::clamp(GetPrivateProfileIntW(L"Diagnostics",L"slow_frame_ms",10,ini.c_str()),5u,1000u);
     QueryPerformanceFrequency(&s.frequency);s.started=ticks();s.window=window;s.testing=!test_directory.empty();
     SYSTEMTIME utc{},local{};GetSystemTime(&utc);GetLocalTime(&local);wchar_t session[80];
@@ -214,7 +261,7 @@ bool start(HWND window,const std::wstring& test_directory) {
             std::filesystem::copy_file(source,std::filesystem::path(s.directory)/name,
                 std::filesystem::copy_options::overwrite_existing,ec);
     };
-    for(const auto* name:{L"mxl-native-loot.ini",L"d2gl.ini",L"d2fps.ini"})snapshot(root/name,name);
+    for(const auto* name:{L"mxl-native-loot.ini",L"d2gl.ini",L"d2fps.ini",L"mxl-diagnostics.ini"})snapshot(root/name,name);
     if(test_directory.empty()) {
         wchar_t appdata[32768]{};
         const auto length=GetEnvironmentVariableW(L"APPDATA",appdata,DWORD(std::size(appdata)));
@@ -226,6 +273,13 @@ bool start(HWND window,const std::wstring& test_directory) {
         fprintf(file,"MXL Smooth Motion DX12 1.15 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fputs("build_kind=MXL_PRIVATE_LOOT_DIAGNOSTICS_V1\nSaved filter/settings snapshots are launch-time state only; later menu changes are not observed directly.\n",file);
+        fprintf(file,"comprehensive_schema=1\ncomprehensive=%u\nevent_parts=%u\nevent_capacity_mb=%u\n",unsigned(s.comprehensive),s.event_parts,s.event_parts*32);
+        fputs("Draw stages cover producer drawing only; world/UI/map timings include nested loot costs. World-unit counts are hook visits, not unique entities. Player mode is the native action mode; level is the native area ID.\n"
+              "Build/wait/render cycle values are CPU cycles with separate validity flags, not milliseconds. Probe times include new clock/counter reads; logger CPU is sampled on its background writer.\n"
+              "Process CPU and I/O are cumulative and include the recorder; CPU FILETIME units are 100 ns. Faults include soft faults. I/O counters are not physical disk traffic. Process-valid bits: 1 CPU, 2 I/O, 4 memory.\n"
+              "Input events record categories and handler wall time only, without key text. They do not measure input-to-display latency.\n"
+              "Presentation columns identify Present call start/end/result and submitted present ID. DXGI frame statistics may describe an older present, be unsupported, or be disjoint. SyncQPC is a refresh synchronization point, not a timestamp for this exact rendered frame. HRESULT/valid fields must be checked.\n"
+              "motion_render_ticks and motion_update_ticks are the verified D2FPS presentation timeline and game epoch. motion_probe_ticks is QPC at the snapshot. These are observations only.\n",file);
         fputs("motion_schema=2\nMotion fields observe the signed visual phase. motion_valid=0 means unavailable.\n"
               "motion_samples is a cumulative clamp-call counter; unchanged means the recorded clamp values are stale for that producer row.\n"
               "Elapsed/clamped ticks are signed int64 values encoded as uint64; interval ticks are positive. Convert using qpc_frequency. Both elapsed signs enter this clamp.\n"
@@ -267,7 +321,7 @@ bool start(HWND window,const std::wstring& test_directory) {
               "tile_cache_* and archive_hash_* notes report optional, independently guarded caches. Hash reuse is limited to one native CMP file open and never caches archive selection.\n"
               "Frame render_ms includes nested scopes. Do not add them together.\n"
               "No per-frame disk writes on game/render/audio threads; the queue can drop samples instead of blocking.\n"
-              "At most three 32 MiB CSV files per session. Create an empty STOP file here to stop recording.\n",file);fclose(file);
+              "Event CSV retention uses event_parts files of 32 MiB; overwrites are reported in status.txt. Create an empty STOP file here to stop recording.\n",file);fclose(file);
     }
     if(test_directory.empty()) {HMODULE self=nullptr;GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&start),&self);}
     s.active=true;s.worker=CreateThread(nullptr,0,writer,nullptr,0,nullptr);
@@ -280,6 +334,7 @@ void begin_frame(uint64_t id,double input_wait,uint32_t width,uint32_t height,bo
     frame.ms[size_t(Metric::InputWait)]=input_wait;
     frame.counts[size_t(Count::Width)]=width;frame.counts[size_t(Count::Height)]=height;frame.counts[size_t(Count::Minimap)]=minimap;
     frame.counts[size_t(Count::GameScreen)]=screen;
+    if(comprehensive_enabled()){const auto began=ticks();render_cycles=cycle_sample();frame.ms[size_t(Metric::Probe)]+=milliseconds(ticks()-began);}
 }
 void end_frame() noexcept {
     if(!frame_active)return;const auto end=ticks();frame.duration=milliseconds(end-frame.at);
@@ -288,13 +343,38 @@ void end_frame() noexcept {
     const auto screen=uint32_t(frame.counts[size_t(Count::GameScreen)]);
     frame.slow=frame.focused && previous_focused && screen==1 && previous_screen==1 && frame.interval>=state().threshold && milliseconds(end-state().started)>2000;
     previous_focused=frame.focused;previous_screen=screen;
+    if(comprehensive_enabled()){const auto began=ticks();cycle_delta(frame,render_cycles,cycle_sample(),Count::RenderCyclesValid,Count::RenderCycles);frame.ms[size_t(Metric::Probe)]+=milliseconds(ticks()-began);}
     put(frame);frame_active=false;
 }
 void add(Metric metric,uint64_t elapsed) noexcept {if(frame_active)frame.ms[size_t(metric)]+=milliseconds(elapsed);}
 void count(Count metric,uint64_t amount) noexcept {if(frame_active)frame.counts[size_t(metric)]+=amount;}
 void producer(uint64_t id,uint64_t ready,uint64_t returned,double interval,uint32_t vertices,double build_ms) noexcept {
+    if(comprehensive_enabled()){const auto began=ticks();cycle_delta(producer_work,wait_cycles,cycle_sample(),Count::WaitCyclesValid,Count::WaitCycles);producer_add(Metric::Probe,ticks()-began);wait_cycles={};}
     if(!enabled())return;Record r=producer_work;producer_work={};r.kind="producer";r.id=id;r.at=ready;r.tid=GetCurrentThreadId();
     r.duration=milliseconds(returned-ready);r.interval=interval;r.counts[0]=vertices;r.ms[size_t(Metric::ProducerBuild)]=build_ms;put(r);
+}
+void producer_begin() noexcept {
+    if(!comprehensive_enabled())return;
+    const auto began=ticks();build_cycles=cycle_sample();wait_cycles={};draw_stage=0;stage_start=ticks();
+    producer_add(Metric::Probe,stage_start-began);
+}
+void producer_stage(unsigned stage) noexcept {
+    if(!comprehensive_enabled())return;
+    const auto now=ticks();const Metric metrics[]={Metric::GameWorld,Metric::GameUI,Metric::GameMap};
+    if(stage_start)producer_add(metrics[draw_stage],now-stage_start);
+    draw_stage=std::min(stage,2u);stage_start=now;
+}
+void producer_ready() noexcept {
+    if(!comprehensive_enabled())return;
+    producer_stage(draw_stage);stage_start=0;
+    const auto began=ticks();const auto sample=cycle_sample();
+    cycle_delta(producer_work,build_cycles,sample,Count::BuildCyclesValid,Count::BuildCycles);build_cycles={};wait_cycles=sample;
+    producer_add(Metric::Probe,ticks()-began);
+}
+void input_event(const char* category,uint64_t began) noexcept {
+    if(!comprehensive_enabled() || !began)return;
+    Record r;r.kind="input_event";r.at=began;r.tid=GetCurrentThreadId();r.duration=milliseconds(ticks()-began);
+    strncpy_s(r.detail,category,_TRUNCATE);put(r);
 }
 void producer_add(Metric metric,uint64_t elapsed) noexcept {if(enabled())producer_work.ms[size_t(metric)]+=milliseconds(elapsed);}
 void producer_count(Count metric,uint64_t amount) noexcept {if(enabled())producer_work.counts[size_t(metric)]+=amount;}

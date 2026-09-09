@@ -42,6 +42,7 @@ static const volatile DWORD *game_type;
 static volatile DWORD motion_samples;
 static volatile DWORD motion_elapsed[2], motion_interval[2], motion_clamped[2];
 static DWORD (WINAPI *motion_clock)(void);
+static const BYTE *motion_fps;
 #endif
 
 /* At the original sign test/clamp: EAX:ECX = one simulation interval;
@@ -312,6 +313,7 @@ void __stdcall MxlSmoothing_Initialize(void) {
     if (apply_patches(patches,6)) {
 #if MXL_ENABLE_DIAGNOSTICS
         motion_clock=(DWORD(WINAPI *)(void))(uintptr_t)precise;
+        motion_fps=fb;
 #endif
         smoothing_active=1;
         log_line("SUCCESS: 6 regions changed and verified; simulation interval remains 40 ms.");
@@ -331,7 +333,7 @@ int __stdcall MxlSmoothing_IsActive(void) { return smoothing_active == 1; }
 
 #if MXL_ENABLE_DIAGNOSTICS
 int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
-    if (!output || !smoothing_active || !game_type || !motion_clock) return 0;
+    if (!output || !smoothing_active || !game_type || !motion_clock || !motion_fps) return 0;
     __try {
         // Initialization already verified this exact Client and D2FPS build.
         // Read existing loop globals only; never change update times or count.
@@ -344,6 +346,9 @@ int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
         sample.elapsed_ticks=((ULONGLONG)motion_elapsed[1]<<32)|motion_elapsed[0];
         sample.interval_ticks=((ULONGLONG)motion_interval[1]<<32)|motion_interval[0];
         sample.clamped_ticks=((ULONGLONG)motion_clamped[1]<<32)|motion_clamped[0];
+        sample.render_ticks=*(const volatile ULONGLONG *)(motion_fps+0x38070);
+        sample.update_ticks=*(const volatile ULONGLONG *)(motion_fps+0x380f8);
+        LARGE_INTEGER now;QueryPerformanceCounter(&now);sample.probe_ticks=now.QuadPart;
         *output=sample;return 1;
     } __except(EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
@@ -476,12 +481,15 @@ int main(void) {
         game_type=(DWORD *)(client+0x11c394);*(DWORD *)game_type=3;
         *(DWORD *)(client+0x1197e0+24)=123;
         *(DWORD *)(client+0x1197e0+16)=70;
-        motion_clock=new_clock;smoothing_active=1;
+        motion_clock=new_clock;motion_fps=client;smoothing_active=1;
+        *(ULONGLONG *)(client+0x38070)=123456789012ULL;
+        *(ULONGLONG *)(client+0x380f8)=123456788888ULL;
         if(!MxlSmoothing_ReadMotion(&sample) || sample.samples!=cases+negative_cases+6 || sample.game_type!=3
             || sample.client_updates!=123 || sample.client_update_ms!=70 || sample.clock_ms!=91
             || sample.interval_ticks!=400000 || sample.elapsed_ticks!=38889
-            || sample.clamped_ticks!=38889)return 13;
-        smoothing_active=0;game_type=NULL;motion_clock=NULL;VirtualFree(client,0,MEM_RELEASE);
+            || sample.clamped_ticks!=38889 || sample.render_ticks!=123456789012ULL
+            || sample.update_ticks!=123456788888ULL || !sample.probe_ticks)return 13;
+        smoothing_active=0;game_type=NULL;motion_clock=NULL;motion_fps=NULL;VirtualFree(client,0,MEM_RELEASE);
         puts("PASS: private motion snapshot reads loop state and exact clamp values without altering interpolation.");
     }
 #endif

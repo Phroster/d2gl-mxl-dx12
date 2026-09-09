@@ -399,6 +399,16 @@ bool loadAnimation(unsigned resource,unsigned cells,std::vector<uint8_t>& bytes,
 uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 {
 #if MXL_ENABLE_DIAGNOSTICS
+    if(mxl::diag::comprehensive_enabled() && unit) {
+        using mxl::diag::Count;
+        mxl::diag::producer_count(Count::WorldUnits);
+        switch(unsigned(unit->dwType)) {
+            case 0:mxl::diag::producer_count(Count::WorldPlayers);break;
+            case 1:mxl::diag::producer_count(Count::WorldMonsters);break;
+            case 3:mxl::diag::producer_count(Count::WorldMissiles);break;
+            case 4:mxl::diag::producer_count(Count::WorldItems);break;
+        }
+    }
     if(mxl::diag::enabled() && unit && unit->dwType==d2::UnitType::Player
         && unit==d2::getPlayerUnit() && unit->v110.pPath) {
         using mxl::diag::Count;
@@ -409,6 +419,9 @@ uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uin
         mxl::diag::producer_set(Count::MotionCameraX,uint32_t(*cameraX));
         mxl::diag::producer_set(Count::MotionCameraY,uint32_t(*cameraY));
         mxl::diag::producer_set(Count::MotionPanels,*d2::screen_shift);
+        mxl::diag::producer_set(Count::ContextValid,1);
+        mxl::diag::producer_set(Count::Level,*d2::level_no);
+        mxl::diag::producer_set(Count::PlayerMode,unit->v110.dwMode);
     }
 #endif
     ++worldCalls;

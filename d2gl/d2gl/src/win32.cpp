@@ -125,6 +125,24 @@ COLORREF WINAPI GetPixel(HDC hdc, int x, int y)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#if MXL_ENABLE_DIAGNOSTICS
+    struct ActionProbe {
+        uint64_t began=0;const char* category=nullptr;
+        ActionProbe(HWND window,UINT message,LPARAM data) {
+            if(!mxl::diag::comprehensive_enabled() || window!=App.hwnd)return;
+            switch(message) {
+                case WM_LBUTTONDOWN:case WM_LBUTTONDBLCLK:category="primary_down";break;
+                case WM_LBUTTONUP:category="primary_up";break;
+                case WM_RBUTTONDOWN:case WM_RBUTTONDBLCLK:category="secondary_down";break;
+                case WM_RBUTTONUP:category="secondary_up";break;
+                case WM_MOUSEWHEEL:category="wheel";break;
+                case WM_KEYDOWN:case WM_SYSKEYDOWN:if(!(data&(1L<<30)))category="key_down";break;
+            }
+            if(category)began=mxl::diag::ticks();
+        }
+        ~ActionProbe(){if(began){const auto error=GetLastError();mxl::diag::input_event(category,began);SetLastError(error);}}
+    } action_probe(hWnd,uMsg,lParam);
+#endif
     modules::NativeLoot::inputMessage(uMsg);
     if(mxl::reveal::window_message(hWnd,uMsg,wParam,App.game.screen==GameScreen::InGame))return 0;
     struct TMarker {

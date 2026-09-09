@@ -173,6 +173,10 @@ def motion_summary(frames, producers, frequency):
         player_valid += current.get("motion_player_valid") == "1"
         if previous and int(frame["frame_id"]) == int(previous[0]["frame_id"]) + 1:
             old = previous[1]
+            if 'context_valid' in current or 'context_valid' in old:
+                if current.get('context_valid') != '1' or old.get('context_valid') != '1' or current['level'] != old['level']:
+                    previous = frame, current
+                    continue
             if current.get("motion_valid") == old.get("motion_valid") == "1" and current["motion_game_type"] == old["motion_game_type"]:
                 # DWORD counters wrap. Backwards/reset jumps are not observations.
                 samples = (int(current["motion_samples"]) - int(old["motion_samples"])) & 0xffffffff
@@ -209,6 +213,68 @@ def motion_summary(frames, producers, frequency):
             "player_step_tiles": distribution(s["path_distance"] for s in steps),
             "camera_step_pixels": distribution(s["camera_distance"] for s in steps),
             "limits": "Only adjacent recorded gameplay frames are paired. Counter resets and game-type changes are excluded; unchanged clamp counters contain stale values. Schema 1 did not observe negative-time paths; schema 2 observes both signs. Player pairs require the same player and panel state; area transitions can still jump. Stationary coordinates do not establish stutter without a known continuous-movement segment. These are draw-time observations, not displayed-frame measurements."}
+
+
+def comprehensive_summary(rows, frames, producers):
+    def distribution(values):
+        values = sorted(values)
+        return {"median": statistics.median(values), "p95": values[int((len(values)-1)*.95)],
+                "p99": values[int((len(values)-1)*.99)], "max": values[-1]} if values else None
+
+    groups = defaultdict(list)
+    for frame in frames:
+        producer = producers.get(frame['frame_id'], {})
+        if producer.get('context_valid') == '1':
+            key = (int(producer['level']), int(producer['player_mode']), int(producer['motion_panels']), int(producer['loot_targets']) > 0)
+            groups[key].append((frame, producer))
+    contexts = []
+    for (level, mode, panels, loot), items in sorted(groups.items()):
+        contexts.append(dict(level=level, player_mode=mode, panels=panels, loot_visible=loot, frames=len(items),
+            frame_interval_ms=distribution(float(f['interval_ms']) for f, _ in items),
+            producer_timings_ms={key: distribution(float(p[key]) for _, p in items if key in p)
+                for key in ('producer_build_ms', 'game_world_ms', 'game_ui_ms', 'game_map_ms', 'loot_effects_ms', 'loot_labels_ms', 'probe_ms')},
+            max_world_hook_visits=max((int(p.get('world_units', 0)) for _, p in items), default=0)))
+    probed = [f for f in frames if f.get('present_probed') == '1']
+    successes = [f for f in probed if int(f['present_stats_result']) < (1 << 31)]
+    previous = None
+    refresh_steps = Counter()
+    repeats = 0
+    for frame in sorted(frames, key=lambda f: int(f['frame_id'])):
+        if frame.get('present_probed') != '1' or int(frame['present_stats_result']) >= (1 << 31):
+            previous = None
+            continue
+        if previous and int(frame['frame_id']) == int(previous['frame_id'])+1:
+            count = (int(frame['present_stats_count'])-int(previous['present_stats_count'])) & 0xffffffff
+            refresh = (int(frame['present_refresh'])-int(previous['present_refresh'])) & 0xffffffff
+            if count == 1 and refresh < 10000:
+                refresh_steps[refresh] += 1
+            elif count == 0:
+                repeats += 1
+        previous = frame
+    actions = [r for r in rows if r['type'] == 'input_event']
+    processes = [r for r in rows if r['type'] == 'process']
+    logger_cpu = None
+    if len(processes) >= 2:
+        first, last = processes[0], processes[-1]
+        elapsed = float(last['session_ms'])-float(first['session_ms'])
+        if first.get('logger_cpu_valid') == last.get('logger_cpu_valid') == '1' and elapsed > 0:
+            used = int(last['logger_cpu'])-int(first['logger_cpu'])
+            if used >= 0:
+                logger_cpu = used / 10000 / elapsed * 100
+    return {'available': bool(contexts or probed or processes), 'contexts': contexts,
+            'presentation': {'queries': len(probed), 'successful_queries': len(successes),
+                'results': dict(Counter(hex(int(f['present_stats_result'])) for f in probed)),
+                'refresh_steps_for_consecutive_present_ids': dict(refresh_steps), 'repeated_statistics': repeats,
+                'query_cost_ms': distribution(float(f['present_probe_ms']) for f in probed)},
+            'actions': {'counts': dict(Counter(r['detail'] for r in actions)),
+                'handler_ms': distribution(float(r['duration_ms']) for r in actions),
+                'slowest': [{'category': r['detail'], 'session_ms': float(r['session_ms']), 'handler_ms': float(r['duration_ms'])}
+                            for r in sorted(actions, key=lambda r: float(r['duration_ms']), reverse=True)[:20]]},
+            'process': {'samples': len(processes), 'logger_cpu_percent_of_one_core': logger_cpu,
+                'max_private_bytes': max((int(r['private_bytes']) for r in processes if int(r['process_valid']) & 4), default=None),
+                'max_working_set': max((int(r['working_set']) for r in processes if int(r['process_valid']) & 4), default=None)},
+            'queue_peak': max((int(r['queue_peak']) for r in rows if r['type'] == 'logger' and 'queue_peak' in r), default=None),
+            'limits': 'Context requires an observed local player and is joined by frame ID. Area/action/panel changes form separate groups. Stage timings include nested effects and probe work. Successful DXGI statistics can repeat or refer to an older present; refresh counters are not per-frame scanout timestamps and may be unreliable with multiple monitors. Failed, skipped and disjoint queries are not zero frame time. Process counters include diagnostics. Logger CPU is averaged over the sampled interval, not peak overhead. Missing rows and retention overwrites limit conclusions.'}
 
 
 def analyze(folder):
@@ -330,6 +396,7 @@ def analyze(folder):
             "audio_calls": dict(audio_totals), "audio_long_or_failed_calls": len(audio), "notes": notes,
             "asset_io": asset_summary,
             "loot_work": loot_work_summary(folder, frames, producer),
+            "comprehensive": comprehensive_summary(rows, frames, producer),
             "motion": motion_summary(frames, producer, int(metadata.get("session.txt", {}).get("qpc_frequency", 0))),
             "fps_75_to_85": band_summary,
             "T_profiles": input_profiles,

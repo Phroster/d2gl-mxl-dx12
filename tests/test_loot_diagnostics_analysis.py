@@ -11,6 +11,33 @@ spec.loader.exec_module(diagnostics)
 
 
 class LootAnalysis(unittest.TestCase):
+    def test_comprehensive_context_and_invalid_presentation_are_not_zero(self):
+        def frame(n, hr=0, count=1, refresh=1):
+            return dict(frame_id=str(n), interval_ms='7', present_probed='1', present_stats_result=str(hr),
+                        present_stats_count=str(count), present_refresh=str(refresh), present_probe_ms='.001')
+        frames = [frame(1, count=0xffffffff, refresh=0xffffffff), frame(2, count=0, refresh=0),
+                  frame(3, hr=0x887a000b), frame(4, count=2, refresh=9), frame(5, count=2, refresh=9), frame(7, count=3, refresh=12)]
+        producers = {'1': dict(context_valid='1', level='1', player_mode='2', motion_panels='0', loot_targets='0'),
+                     '2': dict(context_valid='1', level='2', player_mode='2', motion_panels='0', loot_targets='1'),
+                     '3': dict(context_valid='0', level='0')}
+        result = diagnostics.comprehensive_summary([], frames, producers)
+        self.assertEqual(len(result['contexts']), 2)
+        self.assertEqual(result['presentation']['successful_queries'], 5)
+        self.assertEqual(result['presentation']['refresh_steps_for_consecutive_present_ids'], {1: 1})
+        self.assertEqual(result['presentation']['repeated_statistics'], 1)
+        old = diagnostics.comprehensive_summary([], [{'frame_id': '1'}], {})
+        self.assertFalse(old['available'])
+        self.assertIsNone(old['presentation']['query_cost_ms'])
+
+    def test_motion_does_not_join_different_areas(self):
+        def row(level, x):
+            return dict(context_valid='1', level=str(level), motion_player_valid='1', motion_player_id='1',
+                        motion_panels='0', motion_player_x=str(x), motion_player_y='0', motion_camera_x='0', motion_camera_y='0')
+        result = diagnostics.motion_summary([{'frame_id': '1'}, {'frame_id': '2'}],
+                                            {'1': row(1, 65536), '2': row(2, 100000000)}, 10000000)
+        self.assertEqual(result['observed_player_frames'], 2)
+        self.assertEqual(result['adjacent_player_pairs'], 0)
+
     def test_frame_join_states_and_startup_filter(self):
         frames = [{"frame_id": str(i), "interval_ms": str(ms), "slow": str(int(ms > 10))}
                   for i, ms in [(1, 7), (2, 8), (3, 20), (4, 12), (5, 9)]]

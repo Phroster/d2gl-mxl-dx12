@@ -607,6 +607,8 @@ void Context::onShaderChange()
 
 void Context::onStageChange()
 {
+    mxl::diag::producer_stage(App.game.draw_stage==DrawStage::World?0:
+        (App.game.draw_stage==DrawStage::Map || App.game.draw_stage==DrawStage::Map2)?2:1);
 	if (App.game.screen == GameScreen::Movie)
 		return;
 
@@ -682,10 +684,12 @@ void Context::setBlendState(uint32_t index)
 void Context::beginFrame()
 {
     diagnostic_build_start=mxl::diag::enabled()?mxl::diag::ticks():0;
+    mxl::diag::producer_begin();
     modules::NativeLoot::beginFrame();
 #if MXL_ENABLE_DIAGNOSTICS
     if(mxl::diag::enabled() && App.game.screen==GameScreen::InGame) {
-        static_assert(sizeof(MxlMotionSnapshot)==48);
+        const auto probe_start=mxl::diag::ticks();
+        static_assert(sizeof(MxlMotionSnapshot)==72);
         MxlMotionSnapshot motion{};
         if(MxlSmoothing_ReadMotion(&motion)) {
             using mxl::diag::Count;
@@ -698,7 +702,11 @@ void Context::beginFrame()
             mxl::diag::producer_set(Count::MotionUpdateMs,motion.client_update_ms);
             mxl::diag::producer_set(Count::MotionClockMs,motion.clock_ms);
             mxl::diag::producer_set(Count::MotionGameType,motion.game_type);
+            mxl::diag::producer_set(Count::MotionRenderTicks,motion.render_ticks);
+            mxl::diag::producer_set(Count::MotionUpdateTicks,motion.update_ticks);
+            mxl::diag::producer_set(Count::MotionProbeTicks,motion.probe_ticks);
         }
+        mxl::diag::producer_add(mxl::diag::Metric::Probe,mxl::diag::ticks()-probe_start);
     }
 #endif
     mxl::reveal::begin_frame(App.hwnd);
@@ -752,6 +760,7 @@ void Context::presentFrame()
 
     const auto diagnostic_id=++m_diagnostic_next_id;
     m_command_buffer[m_frame_index].m_diagnostic_frame_id=diagnostic_id;
+    mxl::diag::producer_ready();
     const auto ready=mxl::diag::enabled()?mxl::diag::ticks():0;
     const auto vertices=m_frame.vertex_count;
 

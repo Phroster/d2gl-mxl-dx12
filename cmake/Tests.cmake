@@ -115,7 +115,7 @@ add_test(NAME reveal_preselection_without_logging COMMAND $<TARGET_FILE:dx12_rev
 set_tests_properties(reveal_preselection_without_logging PROPERTIES TIMEOUT 30)
 if(MXL_ENABLE_DIAGNOSTICS)
 add_executable(loot_diagnostics_test tests/loot_diagnostics_test.cpp)
-target_link_libraries(loot_diagnostics_test PRIVATE mxl_diagnostics)
+target_link_libraries(loot_diagnostics_test PRIVATE mxl_dx12_device)
 target_compile_definitions(loot_diagnostics_test PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 add_test(NAME loot_diagnostics_auto_start COMMAND ${CMAKE_COMMAND}
   "-DTEST_EXECUTABLE=$<TARGET_FILE:loot_diagnostics_test>"

@@ -25,6 +25,8 @@ int wmain(int argc, wchar_t** argv) {
         require(!start(nullptr,(root/L"forced-session").wstring()), "Test-directory bypass enabled public recording.");
         require(!enabled() && !audio_enabled() && !assets_enabled(), "Public recording flag active.");
         require(!detail_logs_enabled(), "Public detail logging active.");
+        require(!comprehensive_enabled(), "Public comprehensive logging active.");
+        producer_begin();producer_stage(1);producer_ready();input_event("primary_down",1);
         require(!start_audio() && !start_sound_probe() && audio_hook_count()==0, "Audio instrumentation activated.");
         const auto began=ticks();
         require(began!=0 && milliseconds(began)>0, "Shared clock helpers stopped working.");

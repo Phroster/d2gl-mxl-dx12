@@ -95,6 +95,10 @@ private:
     uint64_t* timestamps_=nullptr;
     uint64_t timestamp_frequency_=0;
     ComPtr<IDXGISwapChain3> swap_;
+#if MXL_ENABLE_DIAGNOSTICS
+    uint64_t diagnostic_present_polls_=0;
+    bool diagnostic_stats_retry_=false;
+#endif
     ComPtr<ID3D12DescriptorHeap> rtv_heap_;
     std::array<Frame,FrameCount> frames_;
     std::array<Resource,FrameCount> backbuffers_;

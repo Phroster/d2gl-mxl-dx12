@@ -252,13 +252,36 @@ void Device::present(bool vsync) {
     flush(false);
     const auto present_start=diag::enabled()?diag::ticks():0;
     const auto result=swap_->Present(vsync?1:0,(!vsync&&tearing_)?DXGI_PRESENT_ALLOW_TEARING:0);
-    if(present_start)diag::add(diag::Metric::Present,diag::ticks()-present_start);
+    const auto present_end=present_start?diag::ticks():0;
+    if(present_start)diag::add(diag::Metric::Present,present_end-present_start);
+#if MXL_ENABLE_DIAGNOSTICS
+    if(diag::comprehensive_enabled()) {
+        diag::count(diag::Count::PresentStart,present_start);diag::count(diag::Count::PresentEnd,present_end);
+        diag::count(diag::Count::PresentResult,uint32_t(result));diag::count(diag::Count::PresentVsync,vsync);
+    }
+#endif
     check(result,"Present");
     if(result==DXGI_STATUS_OCCLUDED){Sleep(10);return;}
     if(latency_event_) {
         diag::Scope measured(diag::Metric::LatencyWait);
-        if(WaitForSingleObject(latency_event_,1000)==WAIT_FAILED) throw std::runtime_error("Frame latency wait failed.");
+        const auto wait_result=WaitForSingleObject(latency_event_,1000);
+        if(diag::comprehensive_enabled())diag::count(diag::Count::LatencyResult,wait_result);
+        if(wait_result==WAIT_FAILED) throw std::runtime_error("Frame latency wait failed.");
     }
+#if MXL_ENABLE_DIAGNOSTICS
+    if(diag::comprehensive_enabled() && (!diagnostic_stats_retry_ || ++diagnostic_present_polls_%144==0)) {
+        diag::Scope probe(diag::Metric::PresentProbe);
+        DXGI_FRAME_STATISTICS stats{};UINT submitted=0;
+        const auto hr=swap_->GetFrameStatistics(&stats);
+        diagnostic_stats_retry_=FAILED(hr);
+        diag::count(diag::Count::PresentProbed,1);diag::count(diag::Count::PresentStatsResult,uint32_t(hr));
+        if(SUCCEEDED(hr)) {
+            diag::count(diag::Count::PresentStatsCount,stats.PresentCount);diag::count(diag::Count::PresentRefresh,stats.PresentRefreshCount);
+            diag::count(diag::Count::SyncRefresh,stats.SyncRefreshCount);diag::count(diag::Count::SyncQpc,uint64_t(stats.SyncQPCTime.QuadPart));
+        }
+        if(SUCCEEDED(swap_->GetLastPresentCount(&submitted))) {diag::count(diag::Count::PresentIdValid,1);diag::count(diag::Count::PresentId,submitted);}
+    }
+#endif
 }
 uint32_t Device::validation_errors() const {
     ComPtr<ID3D12InfoQueue> info;if(FAILED(device_.As(&info))) return 0;
