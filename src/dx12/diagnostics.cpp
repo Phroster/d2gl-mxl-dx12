@@ -31,7 +31,8 @@ const char* count_names[]={"draws","indices","texture_bytes","buffer_bytes","spi
     "present_start","present_end","present_result","present_vsync","present_probed","present_stats_result",
     "present_stats_count","present_refresh","sync_refresh","sync_qpc","present_id_valid","present_id","latency_result",
     "process_valid","process_user","process_kernel","process_read","process_write","process_faults","working_set","private_bytes",
-    "logger_cpu_valid","logger_cpu","queue_peak","queue_size"};
+    "logger_cpu_valid","logger_cpu","queue_peak","queue_size",
+    "motion_epoch_raw_ticks","motion_epoch_samples","motion_epoch_resets","motion_epoch_reason","motion_epoch_active"};
 const char* audio_names[]={"factory","create_buffer","duplicate_buffer","play","stop","lock","unlock","volume","pan","frequency","cursor","restore","parameters_3d","position_3d","commit_3d","get_status","get_current_position","release","query_interface"};
 const char* native_names[]={"async_load","async_buffer","async_free","client_open","client_read","client_close","sound_lock_wait","sound_lock_hold","sound_wait","sound_sleep","music_begin","music_end","music_position","client_wait","client_sleep","async_ready"};
 static_assert(std::size(native_names)==NativeOps);
@@ -279,7 +280,10 @@ bool start(HWND window,const std::wstring& test_directory) {
               "Process CPU and I/O are cumulative and include the recorder; CPU FILETIME units are 100 ns. Faults include soft faults. I/O counters are not physical disk traffic. Process-valid bits: 1 CPU, 2 I/O, 4 memory.\n"
               "Input events record categories and handler wall time only, without key text. They do not measure input-to-display latency.\n"
               "Presentation columns identify Present call start/end/result and submitted present ID. DXGI frame statistics may describe an older present, be unsupported, or be disjoint. SyncQPC is a refresh synchronization point, not a timestamp for this exact rendered frame. HRESULT/valid fields must be checked.\n"
-              "motion_render_ticks and motion_update_ticks are the verified D2FPS presentation timeline and game epoch. motion_probe_ticks is QPC at the snapshot. These are observations only.\n",file);
+              "motion_render_ticks and motion_update_ticks are the verified D2FPS presentation timeline and game epoch. motion_probe_ticks is QPC at the snapshot.\n"
+              "epoch_schema=1\n"
+              "motion_epoch_raw_ticks is the original clock conversion before our visual epoch correction. motion_update_ticks is the epoch actually stored in D2FPS.\n"
+              "motion_epoch_samples/resets are cumulative update-hook counts. reason: 0 passthrough, 1 first anchor, 2 continuous step, 3 area, 4 discontinuity/pause, 5 over 20 ms disagreement. motion_epoch_active marks realm correction.\n",file);
         fputs("motion_schema=2\nMotion fields observe the signed visual phase. motion_valid=0 means unavailable.\n"
               "motion_samples is a cumulative clamp-call counter; unchanged means the recorded clamp values are stale for that producer row.\n"
               "Elapsed/clamped ticks are signed int64 values encoded as uint64; interval ticks are positive. Convert using qpc_frequency. Both elapsed signs enter this clamp.\n"

@@ -39,6 +39,9 @@ int wmain(int argc,wchar_t** argv) {
         producer_set(Count::MotionElapsedTicks,600001);producer_set(Count::MotionClampedTicks,600000);
         producer_set(Count::MotionIntervalTicks,400000);producer_set(Count::MotionPlayerValid,1);
         producer_set(Count::MotionPlayerX,123456789);producer_set(Count::MotionCameraX,uint32_t(-200));
+        producer_set(Count::MotionEpochRawTicks,123456788999ULL);producer_set(Count::MotionUpdateTicks,123456780000ULL);
+        producer_set(Count::MotionEpochSamples,45);producer_set(Count::MotionEpochResets,2);
+        producer_set(Count::MotionEpochReason,2);producer_set(Count::MotionEpochActive,1);
         producer_set(Count::ContextValid,1);producer_set(Count::Level,40);producer_set(Count::PlayerMode,6);
         for(unsigned i=0;i<128;++i) {
             ProducerSampleScope sampled(Metric::LootPickupSampled,Count::LootSelectionCalls,Count::LootSelectionSamples);
@@ -92,6 +95,10 @@ int wmain(int argc,wchar_t** argv) {
         require(number(3,"loot_enabled")==1 && number(3,"loot_targets")==0 && number(3,"loot_selection_calls")==0 && number(3,"loot_labels_ms")==0,"Counters leaked across producer frames.");
         require(number(20,"loot_targets")==7 && number(20,"loot_labels")==0,"Totals crossed thread boundaries.");
         require(number(3,"motion_valid")==0 && number(3,"motion_player_valid")==0,"Missing motion sample was treated as valid.");
+        require(number(2,"motion_epoch_raw_ticks")==123456788999ULL && number(2,"motion_update_ticks")==123456780000ULL
+            && number(2,"motion_epoch_samples")==45 && number(2,"motion_epoch_resets")==2
+            && number(2,"motion_epoch_reason")==2 && number(2,"motion_epoch_active")==1
+            && number(3,"motion_epoch_active")==0,"Visual clock observation changed or leaked into a missing sample.");
         require(number(2,"game_world_ms")>0 && number(2,"game_map_ms")>0 && number(2,"game_ui_ms")>0,"Draw stages not measured.");
         require(number(2,"context_valid")==1 && number(2,"level")==40 && number(2,"player_mode")==6,"Area/action context missing.");
         require(number(2,"build_cycles_valid")==1 && number(2,"probe_ms")>0,"CPU cycles/probe timing missing.");

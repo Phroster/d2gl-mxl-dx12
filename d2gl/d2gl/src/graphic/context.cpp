@@ -689,7 +689,7 @@ void Context::beginFrame()
 #if MXL_ENABLE_DIAGNOSTICS
     if(mxl::diag::enabled() && App.game.screen==GameScreen::InGame) {
         const auto probe_start=mxl::diag::ticks();
-        static_assert(sizeof(MxlMotionSnapshot)==72);
+        static_assert(sizeof(MxlMotionSnapshot)==96);
         MxlMotionSnapshot motion{};
         if(MxlSmoothing_ReadMotion(&motion)) {
             using mxl::diag::Count;
@@ -705,6 +705,11 @@ void Context::beginFrame()
             mxl::diag::producer_set(Count::MotionRenderTicks,motion.render_ticks);
             mxl::diag::producer_set(Count::MotionUpdateTicks,motion.update_ticks);
             mxl::diag::producer_set(Count::MotionProbeTicks,motion.probe_ticks);
+            mxl::diag::producer_set(Count::MotionEpochRawTicks,motion.epoch_raw_ticks);
+            mxl::diag::producer_set(Count::MotionEpochSamples,motion.epoch_samples);
+            mxl::diag::producer_set(Count::MotionEpochResets,motion.epoch_resets);
+            mxl::diag::producer_set(Count::MotionEpochReason,motion.epoch_reason);
+            mxl::diag::producer_set(Count::MotionEpochActive,motion.epoch_active);
         }
         mxl::diag::producer_add(mxl::diag::Metric::Probe,mxl::diag::ticks()-probe_start);
     }

@@ -7,6 +7,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include "mxl_smoothing.h"
+#include "mxl_visual_clock.h"
 #include <windows.h>
 #include <wincrypt.h>
 #include <stdint.h>
@@ -36,6 +37,58 @@ static HANDLE log_file = INVALID_HANDLE_VALUE;
 static LONG initialized;
 static volatile LONG smoothing_active;
 static const volatile DWORD *game_type;
+static BYTE *epoch_client, *epoch_fps;
+static uint64_t epoch_frequency;
+static MxlVisualClock visual_clock;
+
+static uint64_t __stdcall stable_epoch(uint64_t raw) {
+    return mxl_visual_epoch(&visual_clock,raw,
+        *(const volatile uint64_t *)(epoch_fps+0x38070),epoch_frequency,
+        *(const volatile DWORD *)(epoch_client+0x1197e0+16),
+        *(const volatile DWORD *)(epoch_client+0x1197e0+24),
+        *(const volatile DWORD *)(epoch_client+0x11c310),*game_type);
+}
+
+/* D2FPS+EB20 stores ESI:EDI into its visual epoch. Retain all native live
+ * registers/flags and SSE state across C code, then replay those two stores.
+ * This runs on updates, not each rendered frame. It changes no client state. */
+__declspec(naked) static void store_stable_epoch(void) {
+    __asm {
+        pushfd
+        pushad
+        sub esp, 128
+        movdqu [esp], xmm0
+        movdqu [esp+16], xmm1
+        movdqu [esp+32], xmm2
+        movdqu [esp+48], xmm3
+        movdqu [esp+64], xmm4
+        movdqu [esp+80], xmm5
+        movdqu [esp+96], xmm6
+        movdqu [esp+112], xmm7
+        push esi
+        push edi
+        call stable_epoch
+        mov [esp+128], eax
+        mov [esp+132], edx
+        movdqu xmm0, [esp]
+        movdqu xmm1, [esp+16]
+        movdqu xmm2, [esp+32]
+        movdqu xmm3, [esp+48]
+        movdqu xmm4, [esp+64]
+        movdqu xmm5, [esp+80]
+        movdqu xmm6, [esp+96]
+        movdqu xmm7, [esp+112]
+        add esp, 128
+        popad
+        popfd
+        push eax
+        mov eax, epoch_fps
+        mov [eax+380f8h], edi
+        mov [eax+380fch], esi
+        pop eax
+        ret
+    }
+}
 #if MXL_ENABLE_DIAGNOSTICS
 // Private observations of our existing clamp; no additional native patch.
 // Written/read on the game thread, without clock calls or locks in the clamp.
@@ -148,6 +201,19 @@ static BytePatch phase_patch(BYTE *instruction) {
     DWORD relative=(DWORD)((uintptr_t)bounded_mp_interval-(uintptr_t)(instruction+5));
     memcpy(patch.replacement+1,&relative,4);
     return patch;
+}
+
+static BytePatch epoch_patch(BYTE *fps) {
+    BytePatch patch;memset(&patch,0,sizeof(patch));
+    patch.instruction=fps+0xeb20;patch.length=12;
+    patch.label="D2FPS+EB20 realm visual clock anchor";
+    patch.expected[0]=0x89;patch.expected[1]=0x3d;
+    patch.expected[6]=0x89;patch.expected[7]=0x35;
+    DWORD low=(DWORD)(uintptr_t)(fps+0x380f8),high=low+4;
+    memcpy(patch.expected+2,&low,4);memcpy(patch.expected+8,&high,4);
+    memset(patch.replacement,0x90,12);patch.replacement[0]=0xe8;
+    DWORD relative=(DWORD)((uintptr_t)store_stable_epoch-(uintptr_t)(patch.instruction+5));
+    memcpy(patch.replacement+1,&relative,4);return patch;
 }
 
 #if MXL_ENABLE_DIAGNOSTICS
@@ -306,17 +372,25 @@ void __stdcall MxlSmoothing_Initialize(void) {
         {cb+0x44c00,{0x8b,0x3d},(DWORD)(uintptr_t)(cb+0xcef5c),(DWORD)(uintptr_t)(cb+0xcf124),"D2Client+44C00 client loop time"},
         {fb+0xeabc,{0xff,0x15},(DWORD)(uintptr_t)(fb+0x30114),(DWORD)(uintptr_t)(fb+0x30190),"D2FPS+EABC multiplayer interpolation clock"}
     };
-    BytePatch patches[6];
+    LARGE_INTEGER frequency;
+    if(!QueryPerformanceFrequency(&frequency) || frequency.QuadPart<1000
+        || frequency.QuadPart>10000000000LL || frequency.QuadPart%1000) {
+        log_line("REFUSED: unsupported visual clock frequency; zero changes.");goto done;
+    }
+    BytePatch patches[7];
     for (size_t i=0;i<5;++i) patches[i]=clock_patch(&sites[i]);
     patches[5]=phase_patch(fb+0xedb9);
+    patches[6]=epoch_patch(fb);
     game_type=(const volatile DWORD *)(cb+0x11c394);
-    if (apply_patches(patches,6)) {
+    epoch_client=cb;epoch_fps=fb;epoch_frequency=(uint64_t)frequency.QuadPart;
+    if (apply_patches(patches,7)) {
 #if MXL_ENABLE_DIAGNOSTICS
         motion_clock=(DWORD(WINAPI *)(void))(uintptr_t)precise;
         motion_fps=fb;
 #endif
         smoothing_active=1;
-        log_line("SUCCESS: 6 regions changed and verified; simulation interval remains 40 ms.");
+        log_line("SUCCESS: 7 regions changed and verified; simulation interval remains 40 ms.");
+        log_line("Realm visual epoch anchored across normal client steps; resets on area, discontinuity or >20 ms drift.");
         log_line("Source and consumer both resolve to winmm!timeGetTime at %08lX.",precise);
         log_line("Realm type 3: signed visual phase -20..60 ms. SP/LAN: original 0..40 ms clamp.");
     } else log_line("FAILED: patch attempt did not pass all checks; see preceding reason.");
@@ -349,6 +423,9 @@ int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
         sample.render_ticks=*(const volatile ULONGLONG *)(motion_fps+0x38070);
         sample.update_ticks=*(const volatile ULONGLONG *)(motion_fps+0x380f8);
         LARGE_INTEGER now;QueryPerformanceCounter(&now);sample.probe_ticks=now.QuadPart;
+        sample.epoch_raw_ticks=visual_clock.raw;sample.epoch_samples=visual_clock.samples;
+        sample.epoch_resets=visual_clock.resets;sample.epoch_reason=visual_clock.reason;
+        sample.epoch_active=visual_clock.active;
         *output=sample;return 1;
     } __except(EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
@@ -356,6 +433,101 @@ int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
 
 #ifdef MXL_SMOOTHING_TEST
 static void *test_phase_target;
+static void *test_epoch_target;
+static BYTE epoch_sse_before[128],epoch_sse_after[128];
+static DWORD epoch_test_b,epoch_test_flags;
+static int epoch_test_exception(EXCEPTION_POINTERS *e) {
+    printf("native fixture exception=%08lx ip=%p image=%p target=%p stable=%p store=%p fault=%p eax=%08lx ebx=%08lx ecx=%08lx edx=%08lx esp=%08lx ebp=%08lx\n",
+        e->ExceptionRecord->ExceptionCode,e->ExceptionRecord->ExceptionAddress,GetModuleHandleW(NULL),test_epoch_target,
+        stable_epoch,store_stable_epoch,(void *)e->ExceptionRecord->ExceptionInformation[1],e->ContextRecord->Eax,e->ContextRecord->Ebx,
+        e->ContextRecord->Ecx,e->ContextRecord->Edx,e->ContextRecord->Esp,e->ContextRecord->Ebp);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+static int test_epoch_store(uint64_t raw,uint64_t expected) {
+    DWORD lo=(DWORD)raw,hi=(DWORD)(raw>>32),a,c,d,actual_si,actual_di,flags_before;
+    for(unsigned i=0;i<128;++i)epoch_sse_before[i]=(BYTE)(i*37+11);
+    __asm {
+        lea eax,epoch_sse_before
+        movdqu xmm0,[eax]
+        movdqu xmm1,[eax+16]
+        movdqu xmm2,[eax+32]
+        movdqu xmm3,[eax+48]
+        movdqu xmm4,[eax+64]
+        movdqu xmm5,[eax+80]
+        movdqu xmm6,[eax+96]
+        movdqu xmm7,[eax+112]
+        mov edi,lo
+        mov esi,hi
+        mov eax,12345678h
+        mov ecx,3456789ah
+        mov edx,456789abh
+        cmp eax,eax
+        stc
+        pushfd
+        pop flags_before
+        // MSVC can use EBX as the aligned frame base. Save it before the
+        // sentinel and restore it before addressing C locals again.
+        push ebx
+        mov ebx,23456789h
+        call test_epoch_target
+        pushfd
+        pop epoch_test_flags
+        mov epoch_test_b,ebx
+        pop ebx
+        mov a,eax
+        mov c,ecx
+        mov d,edx
+        mov actual_si,esi
+        mov actual_di,edi
+        lea eax,epoch_sse_after
+        movdqu [eax],xmm0
+        movdqu [eax+16],xmm1
+        movdqu [eax+32],xmm2
+        movdqu [eax+48],xmm3
+        movdqu [eax+64],xmm4
+        movdqu [eax+80],xmm5
+        movdqu [eax+96],xmm6
+        movdqu [eax+112],xmm7
+    }
+    return a!=0x12345678 || epoch_test_b!=0x23456789 || c!=0x3456789a || d!=0x456789ab
+        || (((uint64_t)actual_si<<32)|actual_di)!=expected || memcmp(epoch_sse_before,epoch_sse_after,128)
+        || ((flags_before^epoch_test_flags)&0xcd5)
+        || *(uint64_t *)(epoch_fps+0x380f8)!=expected;
+}
+
+static int test_native_epoch(void) {
+    epoch_fps=(BYTE *)VirtualAlloc(NULL,0x3d000,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
+    epoch_client=(BYTE *)VirtualAlloc(NULL,0x135000,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
+    if(!epoch_fps || !epoch_client)return 30;
+    epoch_frequency=10000000;memset(&visual_clock,0,sizeof(visual_clock));
+    game_type=(DWORD *)(epoch_client+0x11c394);*(DWORD *)game_type=3;
+    *(DWORD *)(epoch_client+0x11c310)=1;
+    BytePatch patch=epoch_patch(epoch_fps);
+    memcpy(patch.instruction,patch.expected,patch.length);patch.instruction[12]=0xc3;
+    DWORD old;VirtualProtect(patch.instruction,32,PAGE_EXECUTE_READ,&old);
+    protect_calls=0;fail_protect_call=0;
+    BytePatch bad=patch;bad.expected[11]^=1;
+    if(apply_patches(&bad,1) || memcmp(patch.instruction,patch.expected,12))return 31;
+    if(!apply_patches(&patch,1))return 32;
+    test_epoch_target=patch.instruction;
+    for(unsigned i=0;i<16;++i) {
+        uint64_t expected=0xffff0000ULL+i*400000ULL;
+        *(DWORD *)(epoch_client+0x1197e0+16)=1000+i*40;
+        *(DWORD *)(epoch_client+0x1197e0+24)=100+i;
+        *(uint64_t *)(epoch_fps+0x38070)=expected;
+        uint64_t raw=expected+(i?(i%2?10000:-10000LL):0);
+        if(test_epoch_store(raw,expected))return 33;
+    }
+    *(DWORD *)game_type=0;
+    if(test_epoch_store(98765432100ULL,98765432100ULL))return 34;
+    MEMORY_BASIC_INFORMATION region;VirtualQuery(patch.instruction,&region,sizeof(region));
+    if(region.Protect!=PAGE_EXECUTE_READ)return 35;
+    VirtualFree(epoch_fps,0,MEM_RELEASE);VirtualFree(epoch_client,0,MEM_RELEASE);
+    epoch_client=NULL;epoch_fps=NULL;epoch_frequency=0;game_type=NULL;
+    memset(&visual_clock,0,sizeof(visual_clock));
+    puts("PASS: native guarded epoch stores, 64-bit carry, GP/SSE/flags, page restore, signature rejection and SP passthrough.");
+    return 0;
+}
 static DWORD __stdcall old_clock(void) { return 17; }
 static DWORD __stdcall new_clock(void) { return 91; }
 static int test_case(int mode) {
@@ -418,11 +590,14 @@ static uint64_t test_clamp(uint64_t since, uint64_t interval, DWORD type, BOOL *
     return ((uint64_t)result_hi<<32)|result_lo;
 }
 int main(void) {
+    setvbuf(stdout,NULL,_IONBF,0);
     for (int i=0;i<3;++i) {
         int result=test_case(i);
         printf("case %d (%s): %s [%d]\n",i,i==0?"five executable sites + protection restore":i==1?"bad last signature leaves all unchanged":"second-page failure restores first page",result?"FAIL":"PASS",result);
         if (result) return result;
     }
+    __try {int result=test_native_epoch();if(result){printf("FAIL native epoch: %d\n",result);return result;}}
+    __except(epoch_test_exception(GetExceptionInformation())) {return 36;}
     BYTE *phase_code=(BYTE *)VirtualAlloc(NULL,4096,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);
     if(!phase_code)return 16;
     BytePatch phase=phase_patch(phase_code);
@@ -484,11 +659,15 @@ int main(void) {
         motion_clock=new_clock;motion_fps=client;smoothing_active=1;
         *(ULONGLONG *)(client+0x38070)=123456789012ULL;
         *(ULONGLONG *)(client+0x380f8)=123456788888ULL;
+        visual_clock.raw=123456788999ULL;visual_clock.samples=45;visual_clock.resets=2;
+        visual_clock.reason=MXL_EPOCH_STEP;visual_clock.active=1;
         if(!MxlSmoothing_ReadMotion(&sample) || sample.samples!=cases+negative_cases+6 || sample.game_type!=3
             || sample.client_updates!=123 || sample.client_update_ms!=70 || sample.clock_ms!=91
             || sample.interval_ticks!=400000 || sample.elapsed_ticks!=38889
             || sample.clamped_ticks!=38889 || sample.render_ticks!=123456789012ULL
-            || sample.update_ticks!=123456788888ULL || !sample.probe_ticks)return 13;
+            || sample.update_ticks!=123456788888ULL || !sample.probe_ticks
+            || sample.epoch_raw_ticks!=123456788999ULL || sample.epoch_samples!=45 || sample.epoch_resets!=2
+            || sample.epoch_reason!=MXL_EPOCH_STEP || sample.epoch_active!=1)return 13;
         smoothing_active=0;game_type=NULL;motion_clock=NULL;motion_fps=NULL;VirtualFree(client,0,MEM_RELEASE);
         puts("PASS: private motion snapshot reads loop state and exact clamp values without altering interpolation.");
     }

@@ -10,6 +10,8 @@ typedef struct {
     DWORD samples, game_type, client_updates, client_update_ms, clock_ms;
     ULONGLONG elapsed_ticks, interval_ticks, clamped_ticks;
     ULONGLONG render_ticks, update_ticks, probe_ticks;
+    ULONGLONG epoch_raw_ticks;
+    DWORD epoch_samples, epoch_resets, epoch_reason, epoch_active;
 } MxlMotionSnapshot;
 int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output);
 #endif

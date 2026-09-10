@@ -11,6 +11,20 @@ spec.loader.exec_module(diagnostics)
 
 
 class LootAnalysis(unittest.TestCase):
+    def test_visual_epoch_updates_wrap_gaps_and_old_recordings(self):
+        def row(samples, epoch, ms, reason='2'):
+            return dict(motion_epoch_active='1', motion_epoch_samples=str(samples), motion_epoch_reason=reason,
+                        motion_update_ticks=str(epoch), motion_update_ms=str(ms), level='1')
+        frames=[{'frame_id':str(n)} for n in (1,2,3,5,6,7)]
+        producers={'1':row(0xffffffff,1000000,0xfffffff0), '2':row(0,1400000,24),
+                   '3':row(0,1400000,24), '5':row(1,9999999,64),
+                   '6':row(3,9999999,144), '7':row(4,19999999,184,'3')}
+        result=diagnostics.epoch_summary(frames,producers,10000000)
+        self.assertEqual(result['continuous_updates_checked'],1)
+        self.assertEqual(result['maximum_absolute_step_error_ms'],0)
+        self.assertEqual(result['observed_update_reasons'],{2:1,3:1})
+        self.assertFalse(diagnostics.epoch_summary(frames,{},10000000)['available'])
+
     def test_comprehensive_context_and_invalid_presentation_are_not_zero(self):
         def frame(n, hr=0, count=1, refresh=1):
             return dict(frame_id=str(n), interval_ms='7', present_probed='1', present_stats_result=str(hr),

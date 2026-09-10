@@ -215,6 +215,33 @@ def motion_summary(frames, producers, frequency):
             "limits": "Only adjacent recorded gameplay frames are paired. Counter resets and game-type changes are excluded; unchanged clamp counters contain stale values. Schema 1 did not observe negative-time paths; schema 2 observes both signs. Player pairs require the same player and panel state; area transitions can still jump. Stationary coordinates do not establish stutter without a known continuous-movement segment. These are draw-time observations, not displayed-frame measurements."}
 
 
+def epoch_summary(frames, producers, frequency):
+    reasons = Counter()
+    errors = []
+    previous = None
+    active = 0
+    for frame in sorted(frames, key=lambda f: int(f['frame_id'])):
+        row = producers.get(frame['frame_id'], {})
+        if row.get('motion_epoch_active') != '1':
+            previous = None
+            continue
+        active += 1
+        if previous and int(frame['frame_id']) == previous[0]+1:
+            old = previous[1]
+            advance = (int(row['motion_epoch_samples'])-int(old['motion_epoch_samples'])) & 0xffffffff
+            if advance == 1:
+                reasons[int(row['motion_epoch_reason'])] += 1
+                if row['motion_epoch_reason'] == '2' and row.get('level') == old.get('level') and frequency:
+                    native = (int(row['motion_update_ms'])-int(old['motion_update_ms'])) & 0xffffffff
+                    ticks = int(row['motion_update_ticks'])-int(old['motion_update_ticks'])
+                    errors.append(ticks/frequency*1000-native)
+        previous = (int(frame['frame_id']), row)
+    return dict(available=bool(active), active_frames=active, observed_update_reasons=dict(reasons),
+                continuous_updates_checked=len(errors),
+                maximum_absolute_step_error_ms=max(map(abs,errors)) if errors else None,
+                limits='Only adjacent observed active frames with exactly one epoch-hook advance are compared; missing/batched updates are excluded. Reasons are observed events, not the full cumulative reset count. Old recordings have no epoch instrumentation.')
+
+
 def comprehensive_summary(rows, frames, producers):
     def distribution(values):
         values = sorted(values)
@@ -398,6 +425,7 @@ def analyze(folder):
             "loot_work": loot_work_summary(folder, frames, producer),
             "comprehensive": comprehensive_summary(rows, frames, producer),
             "motion": motion_summary(frames, producer, int(metadata.get("session.txt", {}).get("qpc_frequency", 0))),
+            "visual_clock": epoch_summary(frames, producer, int(metadata.get("session.txt", {}).get("qpc_frequency", 0))),
             "fps_75_to_85": band_summary,
             "T_profiles": input_profiles,
             "reveal_traces": reveal_traces,
