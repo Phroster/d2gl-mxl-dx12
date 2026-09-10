@@ -5,6 +5,7 @@
 #include <glm/vec2.hpp>
 #include "native_loot_cells.h"
 #include "native_loot_pickup.h"
+#include "world_objects.h"
 #include "diagnostics.h"
 #include <iostream>
 #include <stdexcept>
@@ -12,8 +13,8 @@
 
 namespace fixture {
 namespace d2 {
-enum class UnitType { Player, Item };
-struct UnitAny { UnitType dwType=UnitType::Item; struct { unsigned dwMode=3; } v110; };
+enum class UnitType { Player, Item, Object };
+struct UnitAny { UnitType dwType=UnitType::Item; struct { unsigned dwMode=3,dwUnitId=1; } v110; };
 unsigned panels=0,alt=0,c1=0,c2=0,c3=0;
 int mx=100,my=100;
 unsigned *screen_shift=&panels,*is_alt_clicked=&alt,*cursor_state1=&c1,*cursor_state2=&c2,*cursor_state3=&c3;
@@ -27,6 +28,12 @@ unsigned *selectionLocked=&locked,*cursorAction=&action;
 unsigned pickCount=0,pickDrawn=100;
 uint64_t selectionCalls=0,hoverChecks=0,hoverSelections=0,panelHoverSelections=0;
 bool hoveredValid=false,carried=false,alive=true;
+bool objectIndicatorsEnabled=true,objectsPainted=false,hoveredObjectValid=false,objectAlive=true;
+ObjectIndicators objectIndicators;
+std::array<HoverLabel,object_label_limit> oldObjectLabels{};
+unsigned oldObjectLabelCount=0,objectLookups=0;
+GroundEntry hoveredObject{};
+d2::UnitAny objectUnit{d2::UnitType::Object,{0,17}};
 SelectionCache selectionCache;
 std::array<GroundEntry,60> pickItems{};
 GroundEntry hovered{};
@@ -35,7 +42,8 @@ unsigned GetTickCount() { return 100; }
 short GetKeyState(int) { return 0; }
 bool carryingItem() { ++inventoryQueries; return carried; }
 void originalSelection() { ++nativeCalls; d2::selected=d2::nativeResult; }
-bool inputAllowed(int,int) { ++inputQueries; return !carryingItem() && !locked; }
+bool inputAllowed(int x,int y) { ++inputQueries; return !carryingItem() && !locked && !d2::alt
+    && world_input_point(d2::panels,1280,720,x,y) && GetTickCount()-pickDrawn<=120; }
 View view() { return {3,1280,720,0,false}; }
 d2::UnitAny* resolve(const GroundEntry&) { ++lookups; return alive?&d2::unit:nullptr; }
 Appearance lookFor(d2::UnitAny*) { return appearance(P_Supply); }
@@ -44,7 +52,12 @@ bool onItemLabel(const GroundEntry&,int,int,int,int,unsigned) { return false; }
 int worldMouse(int*,int*) { return 0; }
 bool selectable(d2::UnitAny*,int,int,int) { return alive && !carried; }
 void selectNative(d2::UnitAny* unit) { d2::selected=unit; }
+d2::UnitAny* resolveObject(const GroundEntry& id) {
+    ++objectLookups;
+    return objectAlive && objectUnit.v110.dwMode==0 && id.id==17 && id.seed==93 && !carried?&objectUnit:nullptr;
+}
 
+#include "modules/native_object_selection.inl"
 #include "modules/native_loot_selection.inl"
 
 void require(bool ok,const char* why) { if(!ok) throw std::runtime_error(why); }
@@ -111,6 +124,41 @@ void scenarios() {
         << " unit_lookups=" << lookups << " (synthetic callbacks, not live game timing)\n";
     require(nativeCalls==1000000 && inventoryQueries==1000 && inputQueries==1000 && lookups==60000,
         "Unchanged missed hovers repeated inventory queries between draw frames.");
+    // Object-only scenes must activate extension input without dropped loot.
+    pickCount=0;d2::mx=400;d2::my=294;objectsPainted=true;++frameRevision;
+    ObjectIndicator e{};e.identity={17,4,93,1,0,0,view()};e.x=400;e.y=300;
+    e.look={ObjectKind::Shrine,2,3,1,24};e.name[0]=L'S';objectIndicators.remember(e);
+    updateSelection();
+    require(hoveredObjectValid && !hoveredValid && d2::selected==&objectUnit,"Shrine effect cannot be selected without item loot.");
+    auto objectCalls=nativeCalls;updateSelection();
+    require(nativeCalls==objectCalls && hoveredObjectValid,"Object hover flickers between identical polls.");
+    oldObjectLabels[0]={e.identity,{-70,-80,70,-50},100,true};oldObjectLabelCount=1;
+    d2::mx=450;d2::my=230;updateSelection();
+    require(hoveredObjectValid && d2::selected==&objectUnit,"Displaced object name cannot be selected.");
+    beforeObjectClick(450,230);require(d2::selected==&objectUnit,"Valid object label click lost native target.");
+    objectUnit.v110.dwMode=2;beforeObjectClick(450,230);
+    require(!d2::selected && !hoveredObjectValid,"Consumed shrine retained a clickable target.");
+    objectUnit.v110.dwMode=0;++frameRevision;updateSelection();
+    require(hoveredObjectValid,"Reusable valid target did not recover.");
+    objectAlive=false;updateSelection();require(!hoveredObjectValid && !d2::selected,"Removed object retained cached selection.");
+    objectAlive=true;++frameRevision;updateSelection();
+    carried=true;beforeObjectClick(450,230);require(!d2::selected,"Object extension intercepted held inventory item.");
+    carried=false;d2::alt=1;++frameRevision;updateSelection();require(!hoveredObjectValid,"Object extension ignored Alt gate.");
+    d2::alt=0;d2::panels=3;++frameRevision;updateSelection();require(!hoveredObjectValid,"Object target covered both inventory panels.");
+    d2::panels=0;oldObjectLabels[0].item.seed=99;++frameRevision;updateSelection();
+    require(!hoveredObjectValid,"Recycled object identity inherited stale label.");
+    oldObjectLabels[0].item.seed=93;oldObjectLabels[0].painted=unsigned(100-121);++frameRevision;updateSelection();
+    require(!hoveredObjectValid,"Expired object label stayed clickable.");
+    d2::mx=400;d2::my=294;d2::nativeResult=&d2::nativeUnit;++frameRevision;updateSelection();
+    require(!hoveredObjectValid && d2::selected==&d2::nativeUnit,"Object cue stole native player/monster selection.");
+    d2::nativeResult=nullptr;objectsPainted=false;++frameRevision;updateSelection();
+    require(!hoveredObjectValid,"Unpainted object became clickable.");
+    objectsPainted=true;d2::mx=1100;d2::my=600;
+    nativeCalls=inventoryQueries=inputQueries=objectLookups=0;
+    for(unsigned i=0;i<1000000;++i) { if(i%1000==0) ++frameRevision;updateSelection(); }
+    require(nativeCalls==1000000 && inventoryQueries==1000 && objectLookups==0,
+        "Missed object hovers resolve game objects or poll inventory between frames.");
+    std::cout << "Object input: glow/name clicks, consumed/removed/recycled targets, UI/held-item gates and 1000000 missed polls passed.\n";
 }
 }
 int main() {

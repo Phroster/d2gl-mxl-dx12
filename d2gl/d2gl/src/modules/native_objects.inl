@@ -2,8 +2,37 @@
 // Included inside NativeLoot's private namespace after its native draw state.
 bool objectIndicatorsEnabled=false;
 mxl::native_loot::ObjectIndicators objectIndicators;
-std::array<mxl::native_loot::HoverLabel,mxl::native_loot::object_indicator_limit> oldObjectLabels{};
+std::array<mxl::native_loot::HoverLabel,mxl::native_loot::object_label_limit> oldObjectLabels{};
 unsigned oldObjectLabelCount=0;
+bool objectsPainted=false,hoveredObjectValid=false;
+mxl::native_loot::GroundEntry hoveredObject{};
+
+mxl::native_loot::ObjectLook objectLook(d2::UnitAny* unit)
+{
+    if(!unit || unit->dwType!=d2::UnitType::Object) return {};
+    const auto& data=unit->v110;
+    if(!data.pObjectData || !data.pStaticPath || data.dwMode>=8) return {};
+    const auto* object=reinterpret_cast<const uint8_t*>(data.pObjectData);
+    const uint8_t* table=nullptr;std::memcpy(&table,object,sizeof(table));
+    if(!table) return {};
+    uint32_t sx=0,sy=0;
+    std::memcpy(&sx,table+0xd0,4);std::memcpy(&sy,table+0xd4,4);
+    return mxl::native_loot::object_look({data.dwMode,table[0x167],table[0x1b3],sx,sy,data.dwClassId,
+        table[0xc4+data.dwMode]!=0,table[0x150]!=0,table[0x13a]!=0,(object[4]&0x80)!=0});
+}
+
+d2::UnitAny* resolveObject(const mxl::native_loot::GroundEntry& entry)
+{
+    return mxl::native_loot::resolve_ground([&](bool second) {
+        return (second?d2::findUnitServer:d2::findUnitClient)(entry.id,2);
+    },[&](d2::UnitAny* unit) {
+        if(!unit || unit->dwType!=d2::UnitType::Object) return false;
+        const auto& data=unit->v110;
+        return data.dwUnitId==entry.id && data.dwClassId==entry.base && data.dwInitSeed==entry.seed
+            && reinterpret_cast<uintptr_t>(data.pAct)==entry.act && objectLook(unit).rank
+            && selectable(unit,0,0,0);
+    });
+}
 
 void captureObject(d2::UnitAny* unit,int x,int y)
 {
@@ -18,15 +47,19 @@ void captureObject(d2::UnitAny* unit,int x,int y)
     const uint8_t* table=nullptr;
     std::memcpy(&table,object,sizeof(table));
     if(!table) return;
-    uint32_t sx=0,sy=0;
-    std::memcpy(&sx,table+0xd0,4);std::memcpy(&sy,table+0xd4,4);
-    const mxl::native_loot::ObjectFacts facts={data.dwMode,table[0x167],table[0x1b3],sx,sy,data.dwClassId,
-        table[0xc4+data.dwMode]!=0,table[0x150]!=0,table[0x13a]!=0,(object[4]&0x80)!=0};
-    const auto look=mxl::native_loot::object_look(facts);
+    const auto look=objectLook(unit);
     if(!look.rank) return;
     const auto viewport=view();
-    // a/b in the verified D2Client+6CC00 entry are its projected world origin.
-    // Native object art adds its own offsets; labels and rings stay at its feet.
+    // a/b at D2Client+6CC00 are WORLD pixels, not screen pixels. The native
+    // object branch enters +6C490, which subtracts the camera at +6C4EC.
+    // Project before viewport rejection; distant levels otherwise lose every
+    // object marker despite their containers being visible on the screen.
+    if(viewport.perspective) {
+        const auto projected=anchor(unit,true);x=projected.x;y=projected.y;
+    } else {
+        const auto projected=mxl::native_loot::object_screen_point(x,y,*cameraX,*cameraY,*viewShift);
+        x=projected.x;y=projected.y;
+    }
     const auto offset=MotionPrediction::Instance().isActive()?MotionPrediction::Instance().getGlobalOffset():glm::ivec2{};
     x-=offset.x;y-=offset.y;
     if(!mxl::native_loot::world_input_point(viewport.panels,viewport.width,viewport.height,x,y)) return;
@@ -52,9 +85,24 @@ void paintObjectEffects()
     if(!objectIndicatorsEnabled || !objectIndicators.count || !landingAnimations || !floorPainted
         || App.game.draw_stage!=DrawStage::World || d2::isEscMenuOpen() || option::Menu::instance().isVisible()) return;
     const auto viewport=view();
+    objectsPainted=true;
     for(unsigned i=0;i<objectIndicators.count;++i) {
         const auto& entry=objectIndicators.entries[i];
-        if(!(entry.identity.view==viewport) || !entry.look.pulseRank) continue;
+        if(!(entry.identity.view==viewport)) continue;
+        if(entry.look.rank<2 || !entry.look.pulseRank) {
+            // Every ordinary usable object gets a small native glint. Keep the
+            // larger sprite pulses for important objects so packed urn rooms
+            // remain readable and do not require hundreds of sprite draws.
+            constexpr uint8_t colours[]={158,111,133,155,98,255};
+            const uint8_t alpha=uint8_t(144+(mxl::native_loot::object_pulse_frame(tick,entry.identity.id)-9)*4);
+            const uint8_t colour=colours[std::min(entry.look.colour,5u)];
+            const int x=entry.x,y=entry.y-6;
+            d2::drawLine(x-5,y,x,y-3,colour,alpha);
+            d2::drawLine(x,y-3,x+5,y,colour,alpha);
+            d2::drawLine(x+5,y,x,y+3,colour,alpha);
+            d2::drawLine(x,y+3,x-5,y,colour,alpha);
+            continue;
+        }
         auto* file=(*landingAnimations)[(entry.look.pulseRank-1)*6+entry.look.colour].file;
         const unsigned parts=file->numcells/mxl::native_loot::frame_count;
         const unsigned frame=mxl::native_loot::object_pulse_frame(tick,entry.identity.id);

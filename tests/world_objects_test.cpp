@@ -8,7 +8,20 @@ using namespace mxl::native_loot;
 void check(bool ok,const char* why) { if(!ok) throw std::runtime_error(why); }
 int main() {
     try {
+        // Reproduce the missing chest: raw world pixels are far outside the
+        // viewport even when the native camera puts the chest in its centre.
+        const auto arcane=object_screen_point(18000,9000,17488,8670,0);
+        check(!world_input_point(0,1024,768,18000,9000),"regression fixture no longer rejects the old coordinates");
+        check(arcane.x==512 && arcane.y==338 && world_input_point(0,1024,768,arcane.x,arcane.y),"visible Arcane chest lost before capture");
+        const auto moving=object_screen_point(18000,9000,17508,8660,0);
+        check(moving.x==arcane.x-20 && moving.y==arcane.y+10,"marker detached from camera motion");
+        const auto inventory=object_screen_point(18000,9000,17488,8670,-256);
+        check(world_input_point(1,1024,768,inventory.x,inventory.y),"inventory view rejected visible chest");
         ObjectFacts chest{0,8,4,1,2,5,true,true,false,false};
+        for(unsigned id:{387u,389u,390u,391u}) {
+            auto f=chest;f.classId=id;
+            check(object_look(f).pulseRank>0,"Arcane Sanctuary chest class excluded");
+        }
         check(object_look(chest).rank==1,"normal chest too loud");
         check(!object_has_label(object_look(chest)),"ordinary chest gained a cluttering label");
         auto locked=chest;locked.locked=true;
@@ -21,9 +34,12 @@ int main() {
         invalid=chest;invalid.selectable=false;check(!object_look(invalid).rank,"non-interactive object marked");
         invalid=chest;invalid.drawn=false;check(!object_look(invalid).rank,"invisible object marked");
         invalid=chest;invalid.door=true;check(!object_look(invalid).rank,"door clutter");
+        invalid=chest;invalid.subclass=0x80;check(!object_look(invalid).rank,"door subclass clutter");
         for(unsigned op:{0u,8u,11u,13u,15u}) {
             auto f=chest;f.subclass=0;f.operate=op;
-            check(!object_look(f).rank,"scenery or portal highlighted as treasure");
+            check(object_look(f).rank==1 && !object_has_label(object_look(f)),"unknown usable object missing quiet cue");
+            f.mode=2;check(object_look(f).rank==1,"reusable interactable lost cue after activation");
+            f.selectable=false;check(!object_look(f).rank,"noninteractive scenery marked");
         }
         for(unsigned op:{3u,5u,7u,30u,68u}) {
             auto f=chest;f.subclass=0;f.operate=op;
@@ -43,19 +59,30 @@ int main() {
             e.x=700+int(id);e.y=400;e.name[0]=L'C';e.look=object_look(f);return e;
         };
         for(unsigned i=0;i<100;++i) queue.remember(make(i,chest));
-        check(queue.count==12,"object draw budget exceeded");
+        check(queue.count==100,"label limit hid ordinary object cues");
         queue.remember(make(999,special));
-        check(std::any_of(queue.entries.begin(),queue.entries.end(),[](auto& e){return e.identity.id==999;}),"valuable object crowded out");
+        check(queue.count==101,"valuable object crowded out");
         auto duplicate=make(999,special);duplicate.x=300;queue.remember(duplicate);
-        check(queue.count==12,"multi-part object duplicated");
+        check(queue.count==101 && queue.entries[100].x==300,"multi-part object duplicated or stale");
+        check(object_hitbox(duplicate).contains(300,400) && !object_hitbox(duplicate).contains(500,400),"object hitbox unreachable or steals distant clicks");
+        check(object_hitbox(make(1,chest)).contains(705,394),"ordinary glint is not clickable");
+        check(queue.labels().count==1,"ordinary object gained a label");
+        for(unsigned i=0;i<40;++i) queue.remember(make(2000+i,locked));
+        const auto limitedNames=queue.labels();
+        check(queue.count==141 && limitedNames.count==object_label_limit,"name limit removed other cues");
+        check(queue.entries[limitedNames.indices[0]].identity.id==999,"special object label lost priority");
         ObjectIndicators reversed;
-        reversed.remember(make(999,special));
-        for(int i=99;i>=0;--i) reversed.remember(make(unsigned(i),chest));
-        // Reconstruct without moving one entry, then compare retained identities.
-        ObjectIndicators forward;for(unsigned i=0;i<100;++i) forward.remember(make(i,chest));forward.remember(make(999,special));
-        std::array<unsigned,12> a{},b{};
-        for(unsigned i=0;i<12;++i){a[i]=forward.entries[i].identity.id;b[i]=reversed.entries[i].identity.id;}
+        reversed.remember(make(9999,special));
+        for(int i=1099;i>=0;--i) reversed.remember(make(unsigned(i),locked));
+        ObjectIndicators forward;for(unsigned i=0;i<1100;++i) forward.remember(make(i,locked));forward.remember(make(9999,special));
+        check(forward.count==object_indicator_limit && reversed.count==object_indicator_limit,"bounded capture overflow");
+        std::array<unsigned,object_indicator_limit> a{},b{};
+        for(unsigned i=0;i<a.size();++i){a[i]=forward.entries[i].identity.id;b[i]=reversed.entries[i].identity.id;}
         std::sort(a.begin(),a.end());std::sort(b.begin(),b.end());check(a==b,"draw order changes retained markers");
+        const auto forwardNames=forward.labels(),reverseNames=reversed.labels();
+        check(forwardNames.count==object_label_limit && reverseNames.count==object_label_limit,"dense scene lost names");
+        for(unsigned i=0;i<object_label_limit;++i)
+            check(forward.entries[forwardNames.indices[i]].identity.id==reversed.entries[reverseNames.indices[i]].identity.id,"draw order changes visible names");
         queue.clear();check(queue.count==0,"markers retained into an empty frame");
         unsigned last=object_pulse_frame(0,7);
         for(unsigned t=110;t<100000;t+=110) {

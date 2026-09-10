@@ -8,8 +8,9 @@ void __stdcall updateSelection()
     // The native input loop can poll thousands of times between draw frames.
     // Without an eligible target, do not query inventory, keys or unit state.
     // Invalidate the custom hover/cache so new loot is checked immediately.
-    if(!pickCount) {
+    if(!pickCount && !objectTargetsAvailable()) {
         hoveredValid=false;
+        hoveredObjectValid=false;
         selectionCache={};
         originalSelection();
         return;
@@ -28,12 +29,15 @@ void __stdcall updateSelection()
             auto* unit=resolve(hovered);
             if(unit && unit->v110.dwMode==3 && d2::getSelectedUnit()==unit) return;
         }
+        if(hoveredObjectValid && inputAllowed(*d2::mouse_x,*d2::mouse_y) && retainObjectHover()) return;
         hoveredValid=false;
+        hoveredObjectValid=false;
         originalSelection();
         return;
     }
     originalSelection();
     hoveredValid=false;
+    hoveredObjectValid=false;
     if(!inputAllowed(*d2::mouse_x,*d2::mouse_y) || (GetKeyState(VK_LBUTTON)&0x8000)) return;
     ++hoverChecks;
     // Run the same world/UI gate as native selection. Its outputs are world
@@ -61,7 +65,12 @@ void __stdcall updateSelection()
         if(!selectable(unit,0,0,0)) continue;
         choice.offer(int(i),entry.id,x,y,pos.x,pos.y,onLabel);
     }
-    if(choice.index<0) return;
+    if(choice.index<0) {
+        // Keep native object/monster selection and actual loot priority. The
+        // extension only fills empty ground around a visible cue or name.
+        if(!selected) selectObjectAt(x,y);
+        return;
+    }
     const auto& entry=pickItems[choice.index];
     auto* unit=resolve(entry);
     if(!unit || unit->v110.dwMode!=3 || !selectable(unit,0,0,0)) return;

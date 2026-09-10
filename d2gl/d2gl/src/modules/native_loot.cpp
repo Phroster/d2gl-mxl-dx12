@@ -280,6 +280,7 @@ bool inputAllowed(int x,int y)
         App.game.screen==GameScreen::InGame,locked,coveredByUi,menu,alt,combat);
 }
 
+#include "native_object_selection.inl"
 #include "native_loot_selection.inl"
 
 void emit(d2::UnitAny* unit,int x,int y,const mxl::native_loot::GroundEntry& entry)
@@ -588,6 +589,7 @@ void beginFrame()
 {
     ++frameRevision;
     objectIndicators.clear();
+    objectsPainted=false;
     labelsPainted=false;
     // Sigma has completed loading/patching by the first world frame.
     const bool inGame = App.game.screen == GameScreen::InGame;
@@ -664,6 +666,7 @@ void hoverLabel(int left,int top,int right,int bottom)
 
 void beforeLeftClick(int x,int y)
 {
+    beforeObjectClick(x,y);
     if(!hoveredValid || !inputAllowed(x,y)) return;
     auto* unit=resolve(hovered);
     if(!unit || unit->v110.dwMode!=3 || d2::getSelectedUnit()!=unit) return;
@@ -746,13 +749,15 @@ void drawLabels()
         const auto color=mxl::native_loot::loot_label_color(itemColor(unit),look.colour,base.gear || base.jewel);
         draws[count++]={i,look.rank,color,unit->v110.dwMode,pos,name.text.data(),selected==unit};
     }
-    if(objectIndicatorsEnabled) for(unsigned i=0;i<objectIndicators.count;++i) {
+    const auto objectNames=objectIndicators.labels();
+    if(objectIndicatorsEnabled) for(unsigned n=0;n<objectNames.count;++n) {
+        const unsigned i=objectNames.indices[n];
         const auto& object=objectIndicators.entries[i];
         if(!mxl::native_loot::object_has_label(object.look)) continue;
         const auto& entry=object.identity;
         if(!(entry.view==viewport)) continue;
-        // Let the native, detailed hover name take over without duplicating it.
-        if(selected && selected->dwType==d2::UnitType::Object && selected->v110.dwUnitId==entry.id) continue;
+        // Keep the clickable label in place while selected. Removing it on
+        // hover makes the target disappear and flicker between input polls.
         const glm::ivec2 pos{object.x,object.y};
         if(!mxl::native_loot::world_input_point(viewport.panels,viewport.width,viewport.height,pos.x,pos.y)) continue;
         glm::ivec2 size{};
@@ -768,7 +773,8 @@ void drawLabels()
                 old.relative.right+pos.x,old.relative.bottom+pos.y};request.hasPrevious=true;break;
         }
         const unsigned color=mxl::native_loot::loot_label_color(0,object.look.colour,false);
-        draws[count++]={i,object.look.rank,color,0,pos,object.name.data(),false,true};
+        const bool objectHovered=selected && selected->dwType==d2::UnitType::Object && selected->v110.dwUnitId==entry.id;
+        draws[count++]={i,object.look.rank,color,0,pos,object.name.data(),objectHovered,true};
     }
     mxl::native_loot::arrange_loot_labels({requests.data(),count},
         mxl::native_loot::world_input_rect(viewport.panels,viewport.width,viewport.height));
