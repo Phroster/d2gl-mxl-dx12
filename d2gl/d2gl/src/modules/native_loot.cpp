@@ -583,6 +583,7 @@ void finishWorld()
     // labels, panels, map and cursor remain above these native cell draws.
     paintWorldEffects();
     paintObjectEffects();
+    auditObjectHover();
 }
 
 void beginFrame()
@@ -602,7 +603,7 @@ void beginFrame()
     if (!active) return;
     auto* player=inGame?d2::getPlayerUnit():nullptr;
     playerLevel=player?d2::getUnitStat(player,12):0;
-    if (wasInGame && !inGame) report("left game");
+    if (wasInGame && !inGame) { report("left game");flushObjectAudit(); }
     if (!inGame) { sampleFrame=0;pulseHistory.clear();pickCount=0;hoveredValid=false;label={};selectionCache={};names={};groundLabelCount=0;oldObjectLabelCount=0; }
     else {
         ++sampleFrame;
@@ -638,6 +639,7 @@ void capture(int x, int y)
 
 void shutdown()
 {
+    flushObjectAudit();
     if (!active) return;
     report("shutdown");
     if (DetourTransactionBegin() == NO_ERROR) {
@@ -784,6 +786,7 @@ void drawLabels()
         const auto& bounds=request.placed;
         if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,draw.colour,draw.rank,draw.hovered,draw.object)) continue;
         if(draw.object) {
+            auditObjectDraw(objectIndicators.entries[draw.item],2);
             oldObjectLabels[oldObjectLabelCount++]={objectIndicators.entries[draw.item].identity,
                 {bounds.left-draw.anchor.x,bounds.top-draw.anchor.y,bounds.right-draw.anchor.x,bounds.bottom-draw.anchor.y},now,true};
             continue; // Object names never become item-pickup targets.

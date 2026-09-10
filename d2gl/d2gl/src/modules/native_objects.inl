@@ -34,8 +34,11 @@ d2::UnitAny* resolveObject(const mxl::native_loot::GroundEntry& entry)
     });
 }
 
+#include "native_object_audit.inl"
+
 void captureObject(d2::UnitAny* unit,int x,int y)
 {
+    auditObject(unit,x,y,false);
     if(!objectIndicatorsEnabled || !unit || unit->dwType!=d2::UnitType::Object
         || App.game.draw_stage!=DrawStage::World || App.game.screen!=GameScreen::InGame) return;
     const auto& data=unit->v110;
@@ -78,6 +81,7 @@ void captureObject(d2::UnitAny* unit,int x,int y)
         std::wcsncpy(entry.name.data(),fallback,entry.name.size()-1);
     }
     objectIndicators.remember(entry);
+    auditObjectDraw(entry,0);
 }
 
 void paintObjectEffects()
@@ -89,6 +93,7 @@ void paintObjectEffects()
     for(unsigned i=0;i<objectIndicators.count;++i) {
         const auto& entry=objectIndicators.entries[i];
         if(!(entry.identity.view==viewport)) continue;
+        auditObjectDraw(entry,1);
         if(entry.look.rank<2 || !entry.look.pulseRank) {
             // Every ordinary usable object gets a small native glint. Keep the
             // larger sprite pulses for important objects so packed urn rooms
