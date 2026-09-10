@@ -5,6 +5,7 @@
 - Improved performance and fewer FPS drops.
 - Smoother movement.
 - Loot effects, a leveling filter and easier pickup.
+- Chest and shrine highlights.
 - Automatic map reveal.
 
 **Install:** Close the game and launcher, then extract into your game folder. Keep the game's `d2fps.dll`. [Installation and update guide](https://github.com/Phroster/d2gl-mxl-dx12#install--copy-paste-play).

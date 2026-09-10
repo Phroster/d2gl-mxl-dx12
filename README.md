@@ -9,6 +9,7 @@
 - Improved performance and fewer FPS drops.
 - Smoother movement.
 - Loot effects, a leveling filter and easier pickup.
+- Chest and shrine highlights.
 - Automatic map reveal.
 
 <a id="install--copy-paste-play"></a>
@@ -26,7 +27,7 @@
 
 </details>
 
-**Updating?** Replace `glide3x.dll` and `ddraw.dll`; add `mxl-native-loot.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and `d2gl.mpq` to keep your settings.
+**Updating?** Replace `glide3x.dll`, `ddraw.dll` and `mxl-native-loot.ini`. Keep your existing `d2gl.ini`, `d2fps.ini` and `d2gl.mpq` to keep your settings.
 
 **Controls:** Ctrl+O for settings · Alt+Enter for fullscreen · Click loot to pick it up.
 

@@ -10,11 +10,13 @@ Open **Ctrl+O → FPS** and make sure high FPS in game, high FPS in menus and sm
 
 If you have no graphics/FPS INIs, use the two included in the download.
 
-Already using MXL Smooth Motion DX12? Replace `glide3x.dll` and `ddraw.dll`, and add `mxl-native-loot.ini` if it is missing. Your matching MPQ and graphics/FPS settings can stay as they are.
+Already using MXL Smooth Motion DX12? Replace `glide3x.dll`, `ddraw.dll` and `mxl-native-loot.ini`. Your matching MPQ and graphics/FPS settings can stay as they are.
 
 Names stay visible on loot with effects. Click the glow or name to pick it up without holding Alt, including with your inventory open. If Alt brings back the old labels, clear **Show Items** in the game's key bindings and leave its show-items toggle off. Keep **HD text** enabled in Ctrl+O for the new labels. Set `ClickEffects=0` in `mxl-native-loot.ini` and restart to use the original pickup controls.
 
 Loot effects are enabled by default. Set `Enabled=0` in `mxl-native-loot.ini` and restart to turn them off. Your native lootfilter, notifications and map markers keep their existing settings.
+
+Chest and shrine highlights are also enabled. Set `ObjectLabels=0` in `mxl-native-loot.ini` and restart to hide them. [Container groups and controls](world-objects.md).
 
 ## Loot filter
 
