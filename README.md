@@ -31,7 +31,13 @@
 
 **Controls:** Ctrl+O for settings · Alt+Enter for fullscreen · Click loot to pick it up.
 
-**Loot filter:** The ZIP includes an optional leveling filter. [Import instructions](docs/INSTALL.md#loot-filter).
+**Optional loot filter**
+
+1. Open the included `mxl-smooth-motion-filter.json` with **Notepad**. Press **Ctrl+A**, then **Ctrl+C**.
+2. In game, open **Game Settings → Loot Filter Settings → Import Configuration from Clipboard**.
+3. Select **MXL Smooth Motion Progression**.
+
+You can edit, switch or disable the filter in the same menu. Copying the file into the game folder alone does not activate it.
 
 [Installation guide](docs/INSTALL.md) · [Settings](docs/SETTINGS.md) · [Loot guide](docs/loot-effects-guide.md)
 
