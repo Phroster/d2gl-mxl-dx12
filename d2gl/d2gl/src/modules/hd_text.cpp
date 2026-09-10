@@ -319,7 +319,7 @@ bool HDText::measureLootLabel(const wchar_t* str,unsigned rank,glm::ivec2& size)
 	return size.x>0 && size.y>0;
 }
 
-bool HDText::drawLootLabel(const wchar_t* str,int left,int top,uint32_t color,unsigned rank,bool hovered)
+bool HDText::drawLootLabel(const wchar_t* str,int left,int top,uint32_t color,unsigned rank,bool hovered,bool subdued)
 {
 	glm::vec2 size{},padding{};
 	// Measuring other labels updates the shared rank font's line widths. Restore
@@ -332,11 +332,12 @@ bool HDText::drawLootLabel(const wchar_t* str,int left,int top,uint32_t color,un
 	// Inventory tooltips and other text keep their own font sizes.
 	m_object_bg->setFlags(2);
 	m_object_bg->setPosition(pos);m_object_bg->setSize(size);
-	m_object_bg->setColor(hovered?0x213F98DD:0x00000099,1);
+	m_object_bg->setColor(subdued?0x00000055:(hovered?0x213F98DD:0x00000099),1);
 	m_object_bg->setExtra(size);App.context->pushObject(m_object_bg);
 	font->setAlign(TextAlign::Center);font->setShadow(0);
-	font->setMasking(false);font->setOpacity(1.f);
+	font->setMasking(false);font->setOpacity(subdued?.82f:1.f);
 	font->drawText(str,pos+padding+glm::vec2(0,fontSize),g_text_colors.at(getColor(color)),true);
+	font->setOpacity(1.f);
 	return true;
 }
 

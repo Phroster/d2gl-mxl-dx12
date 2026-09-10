@@ -11,9 +11,11 @@
 #include "native_loot_labels.h"
 #include "native_loot_render.h"
 #include "native_loot_texture.h"
+#include "world_objects.h"
 #include "diagnostics.h"
 #include "option/menu.h"
 #include "hd_text.h"
+#include "motion_prediction.h"
 #include <detours/detours.h>
 #include <wincrypt.h>
 #include <cstdio>
@@ -169,6 +171,8 @@ glm::ivec2 anchor(d2::UnitAny* unit, bool perspective)
     }
     return point;
 }
+
+#include "native_objects.inl"
 
 d2::UnitAny* resolve(const mxl::native_loot::GroundEntry& entry)
 {
@@ -436,6 +440,7 @@ uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uin
         ++groundCalls;
     }
     const auto result = original(unit,light,a,b,c,d);
+    if(objectIndicatorsEnabled && unit && unit->dwType==d2::UnitType::Object) captureObject(unit,int(a),int(b));
     current = previous; painted = previousPainted;
     return result;
 }
@@ -526,6 +531,7 @@ void initialize()
     active = result == NO_ERROR;
     report(active ? "enabled: bigger native loot, star showers, tall beams and pulses (spectacle-v5)" : "disabled: draw hooks could not attach");
     if(!active) return;
+    objectIndicatorsEnabled=GetPrivateProfileIntW(L"NativeLoot",L"ObjectLabels",0,ini.c_str())!=0;
     const auto sigma=reinterpret_cast<uint8_t*>(GetModuleHandleW(L"D2Sigma.dll"));
     const uint8_t nameEntry[]={0x81,0xec,0x88,0x02,0x00,0x00,0x53,0x55,0x56,0x8b,0xb4,0x24,0x98,0x02,0x00,0x00,0x57};
     const uint8_t colorEntry[]={0x53,0x57,0x8b,0xf9,0x85,0xff};
@@ -575,11 +581,13 @@ void finishWorld()
     // clipping still describe the world. The normal scene bloom/LUT follows;
     // labels, panels, map and cursor remain above these native cell draws.
     paintWorldEffects();
+    paintObjectEffects();
 }
 
 void beginFrame()
 {
     ++frameRevision;
+    objectIndicators.clear();
     labelsPainted=false;
     // Sigma has completed loading/patching by the first world frame.
     const bool inGame = App.game.screen == GameScreen::InGame;
@@ -593,7 +601,7 @@ void beginFrame()
     auto* player=inGame?d2::getPlayerUnit():nullptr;
     playerLevel=player?d2::getUnitStat(player,12):0;
     if (wasInGame && !inGame) report("left game");
-    if (!inGame) { sampleFrame=0;pulseHistory.clear();pickCount=0;hoveredValid=false;label={};selectionCache={};names={};groundLabelCount=0; }
+    if (!inGame) { sampleFrame=0;pulseHistory.clear();pickCount=0;hoveredValid=false;label={};selectionCache={};names={};groundLabelCount=0;oldObjectLabelCount=0; }
     else {
         ++sampleFrame;
         // Only three startup samples per game, then no frame-loop disk writes.
@@ -694,6 +702,9 @@ void drawLabels()
     mxl::diag::ProducerScope timing(mxl::diag::Metric::LootLabels);
     const auto previousLabels=groundLabels;
     const auto previousCount=groundLabelCount;
+    const auto previousObjects=oldObjectLabels;
+    const auto previousObjectCount=oldObjectLabelCount;
+    oldObjectLabelCount=0;
     labelsPainted=true;groundLabelCount=0;
     if(d2::isEscMenuOpen() || option::Menu::instance().isVisible()) return;
     const auto viewport=view();const auto now=GetTickCount();
@@ -702,10 +713,10 @@ void drawLabels()
         unsigned item=0,rank=0,colour=0,mode=0;
         glm::ivec2 anchor{};
         const wchar_t* name=nullptr;
-        bool hovered=false;
+        bool hovered=false,object=false;
     };
-    std::array<DrawLabel,60> draws{};
-    std::array<mxl::native_loot::LootLabelRequest,60> requests{};
+    std::array<DrawLabel,mxl::native_loot::world_label_limit> draws{};
+    std::array<mxl::native_loot::LootLabelRequest,mxl::native_loot::world_label_limit> requests{};
     unsigned count=0;
     for(unsigned i=0;i<pickCount;++i) {
         const auto& entry=pickItems[i];
@@ -735,13 +746,42 @@ void drawLabels()
         const auto color=mxl::native_loot::loot_label_color(itemColor(unit),look.colour,base.gear || base.jewel);
         draws[count++]={i,look.rank,color,unit->v110.dwMode,pos,name.text.data(),selected==unit};
     }
+    if(objectIndicatorsEnabled) for(unsigned i=0;i<objectIndicators.count;++i) {
+        const auto& object=objectIndicators.entries[i];
+        if(!mxl::native_loot::object_has_label(object.look)) continue;
+        const auto& entry=object.identity;
+        if(!(entry.view==viewport)) continue;
+        // Let the native, detailed hover name take over without duplicating it.
+        if(selected && selected->dwType==d2::UnitType::Object && selected->v110.dwUnitId==entry.id) continue;
+        const glm::ivec2 pos{object.x,object.y};
+        if(!mxl::native_loot::world_input_point(viewport.panels,viewport.width,viewport.height,pos.x,pos.y)) continue;
+        glm::ivec2 size{};
+        if(!HDText::Instance().measureLootLabel(object.name.data(),object.look.rank,size)) continue;
+        auto& request=requests[count];
+        const int left=pos.x-size.x/2,top=pos.y-22-size.y;
+        request.wanted={left,top,left+size.x,top+size.y};request.id=entry.id;
+        request.priority=object.look.priority; // Every actual loot label comes first.
+        for(unsigned j=0;j<previousObjectCount;++j) {
+            const auto& old=previousObjects[j];
+            if(!old.valid || uint32_t(now-old.painted)>120 || !mxl::native_loot::same_ground(old.item,entry)) continue;
+            request.previous={old.relative.left+pos.x,old.relative.top+pos.y,
+                old.relative.right+pos.x,old.relative.bottom+pos.y};request.hasPrevious=true;break;
+        }
+        const unsigned color=mxl::native_loot::loot_label_color(0,object.look.colour,false);
+        draws[count++]={i,object.look.rank,color,0,pos,object.name.data(),false,true};
+    }
     mxl::native_loot::arrange_loot_labels({requests.data(),count},
         mxl::native_loot::world_input_rect(viewport.panels,viewport.width,viewport.height));
     for(unsigned i=0;i<count;++i) {
         const auto& request=requests[i];const auto& draw=draws[i];
         if(!request.visible) { ++labelSpaceLimited;continue; }
         const auto& bounds=request.placed;
-        if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,draw.colour,draw.rank,draw.hovered)) continue;
+        if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,draw.colour,draw.rank,draw.hovered,draw.object)) continue;
+        if(draw.object) {
+            oldObjectLabels[oldObjectLabelCount++]={objectIndicators.entries[draw.item].identity,
+                {bounds.left-draw.anchor.x,bounds.top-draw.anchor.y,bounds.right-draw.anchor.x,bounds.bottom-draw.anchor.y},now,true};
+            continue; // Object names never become item-pickup targets.
+        }
         mxl::diag::producer_count(mxl::diag::Count::LootLabels);
         constexpr int padding=mxl::native_loot::loot_label_padding;
         groundLabels[groundLabelCount++]={pickItems[draw.item],

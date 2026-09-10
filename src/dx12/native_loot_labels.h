@@ -12,6 +12,7 @@ namespace mxl::native_loot {
 // visible air between them. All coordinates are native game pixels.
 constexpr int loot_label_padding=3;
 constexpr int loot_label_gap=8;
+constexpr unsigned world_label_limit=72; // 60 drops plus 12 quiet object names.
 inline unsigned loot_label_color(unsigned nativeColor,unsigned effectColor,bool equipment) {
     // Equipment names retain Sigma's rarity colour independently of the
     // effect palette. Runes, gems and supplies keep their category colours.
@@ -31,7 +32,7 @@ inline bool labels_overlap(const HitRect& a,const HitRect& b,int gap=loot_label_
 
 class LabelLayout {
     HitRect area{};
-    std::array<HitRect,60> occupied{};
+    std::array<HitRect,world_label_limit> occupied{};
     unsigned count=0;
 
     bool fits(const HitRect& box) const {
@@ -45,7 +46,7 @@ class LabelLayout {
     // pixel or bouncing it between two neighbours.
     bool vertical(int x,int y,int width,int height,HitRect& result) const {
         struct Interval { int first,last; };
-        std::array<Interval,60> blocked{};
+        std::array<Interval,world_label_limit> blocked{};
         unsigned n=0;
         for(unsigned i=0;i<count;++i) {
             const auto& other=occupied[i];
@@ -87,7 +88,7 @@ public:
         else if(!vertical(x,y,width,height,result)) {
             // Only a full-height column needs a neighbouring column. Keep all
             // names inside the visible world and out of inventory/HUD space.
-            std::array<int,122> columns{};
+            std::array<int,world_label_limit*2+2> columns{};
             unsigned n=0;
             columns[n++]=area.left;columns[n++]=area.right-width;
             for(unsigned i=0;i<count;++i) {
@@ -123,9 +124,9 @@ struct LootLabelRequest {
 inline void arrange_loot_labels(std::span<LootLabelRequest> labels,HitRect world) {
     LabelLayout layout(world);
     const auto area=layout.bounds();
-    const unsigned count=unsigned(std::min(labels.size(),size_t(60)));
-    std::array<unsigned,60> parent{},order{};
-    std::array<bool,60> valid{},done{};
+    const unsigned count=unsigned(std::min(labels.size(),size_t(world_label_limit)));
+    std::array<unsigned,world_label_limit> parent{},order{};
+    std::array<bool,world_label_limit> valid{},done{};
     auto root=[&](unsigned i) { while(parent[i]!=i) i=parent[i];return i; };
     for(unsigned i=0;i<count;++i) {
         auto& label=labels[i];label.visible=false;parent[i]=order[i]=i;
@@ -148,7 +149,7 @@ inline void arrange_loot_labels(std::span<LootLabelRequest> labels,HitRect world
         const auto first=order[n];
         if(!valid[first] || done[root(first)]) continue;
         const auto group=root(first);done[group]=true;
-        std::array<unsigned,60> members{};unsigned total=0;
+        std::array<unsigned,world_label_limit> members{};unsigned total=0;
         for(unsigned i=0;i<count;++i) if(valid[order[i]] && root(order[i])==group) members[total++]=order[i];
         // Stack only naturally colliding names. Independent drops keep their
         // own anchor. Highest importance goes first, at the top of each stack.
