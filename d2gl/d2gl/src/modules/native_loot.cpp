@@ -781,6 +781,7 @@ void drawLabels()
         const int left=pos.x-size.x/2,top=pos.y-22-size.y;
         request.wanted={left,top,left+size.x,top+size.y};request.id=entry.id;
         request.priority=object.look.priority; // Every actual loot label comes first.
+        request.followAnchor=true;
         for(unsigned j=0;j<previousObjectCount;++j) {
             const auto& old=previousObjects[j];
             if(!old.valid || uint32_t(now-old.painted)>120 || !mxl::native_loot::same_ground(old.item,entry)) continue;
@@ -822,6 +823,7 @@ bool suppressHoverLabel()
     if(!active || !itemName || App.game.screen!=GameScreen::InGame || d2::isEscMenuOpen() || option::Menu::instance().isVisible()
         || !mxl::native_loot::world_input_point(*d2::screen_shift,*d2::screen_width,*d2::screen_height,*d2::mouse_x,*d2::mouse_y)) return false;
     auto* selected=d2::getSelectedUnit();
+    if(suppressObjectHoverLabel(selected)) return true;
     if(!selected || selected->dwType!=d2::UnitType::Item || selected->v110.dwMode!=3) return false;
     const auto viewport=view();
     for(unsigned i=0;i<groundLabelCount;++i) {

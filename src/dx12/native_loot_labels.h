@@ -119,6 +119,9 @@ struct LootLabelRequest {
     unsigned priority=0;
     uint32_t id=0;
     bool hasPrevious=false,visible=false;
+    // Object names should shed old edge/column offsets as their sprite moves.
+    // Item piles retain their settled layout when a neighbouring drop leaves.
+    bool followAnchor=false;
 };
 
 inline void arrange_loot_labels(std::span<LootLabelRequest> labels,HitRect world) {
@@ -169,6 +172,8 @@ inline void arrange_loot_labels(std::span<LootLabelRequest> labels,HitRect world
                 if(!label.hasPrevious || label.previous.right-label.previous.left!=label.wanted.right-label.wanted.left
                     || label.previous.bottom-label.previous.top!=label.wanted.bottom-label.wanted.top
                     || (i>start && labels[members[i-1]].previous.bottom+loot_label_gap>label.previous.top)) retain=false;
+                if(label.followAnchor && (label.previous.left!=label.wanted.left
+                    || (end==start+1 && label.previous.top!=label.wanted.top))) retain=false;
                 include(previous,label.previous);
             }
             HitRect placed{};

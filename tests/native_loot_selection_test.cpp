@@ -133,11 +133,24 @@ void scenarios() {
     auto objectCalls=nativeCalls;updateSelection();
     require(nativeCalls==objectCalls && hoveredObjectValid,"Object hover flickers between identical polls.");
     oldObjectLabels[0]={e.identity,{-70,-80,70,-50},100,true};oldObjectLabelCount=1;
+    require(suppressObjectHoverLabel(&objectUnit),"Visible permanent object name retained a duplicate native hover name.");
+    require(!suppressObjectHoverLabel(nullptr) && !suppressObjectHoverLabel(&d2::unit)
+        && !suppressObjectHoverLabel(&d2::nativeUnit),"Object-name suppression affected another unit type.");
+    oldObjectLabelCount=0;
+    require(!suppressObjectHoverLabel(&objectUnit),"Unlabelled or budget-limited object lost its native name.");
+    oldObjectLabelCount=1;oldObjectLabels[0].valid=false;
+    require(!suppressObjectHoverLabel(&objectUnit),"Unpainted object name suppressed native hover text.");
+    oldObjectLabels[0].valid=true;oldObjectLabels[0].item.view.width=640;
+    require(!suppressObjectHoverLabel(&objectUnit),"Old viewport's object label suppressed native hover text.");
+    oldObjectLabels[0].item.view=view();objectIndicatorsEnabled=false;
+    require(!suppressObjectHoverLabel(&objectUnit),"Disabled object labels suppressed native hover text.");
+    objectIndicatorsEnabled=true;
     d2::mx=450;d2::my=230;updateSelection();
     require(hoveredObjectValid && d2::selected==&objectUnit,"Displaced object name cannot be selected.");
     beforeObjectClick(450,230);require(d2::selected==&objectUnit,"Valid object label click lost native target.");
     objectUnit.v110.dwMode=2;beforeObjectClick(450,230);
     require(!d2::selected && !hoveredObjectValid,"Consumed shrine retained a clickable target.");
+    require(!suppressObjectHoverLabel(&objectUnit),"Consumed object suppressed native hover text.");
     objectUnit.v110.dwMode=0;++frameRevision;updateSelection();
     require(hoveredObjectValid,"Reusable valid target did not recover.");
     objectAlive=false;updateSelection();require(!hoveredObjectValid && !d2::selected,"Removed object retained cached selection.");
@@ -147,8 +160,10 @@ void scenarios() {
     d2::alt=0;d2::panels=3;++frameRevision;updateSelection();require(!hoveredObjectValid,"Object target covered both inventory panels.");
     d2::panels=0;oldObjectLabels[0].item.seed=99;++frameRevision;updateSelection();
     require(!hoveredObjectValid,"Recycled object identity inherited stale label.");
+    require(!suppressObjectHoverLabel(&objectUnit),"Recycled object inherited another object's name suppression.");
     oldObjectLabels[0].item.seed=93;oldObjectLabels[0].painted=unsigned(100-121);++frameRevision;updateSelection();
     require(!hoveredObjectValid,"Expired object label stayed clickable.");
+    require(!suppressObjectHoverLabel(&objectUnit),"Expired object label suppressed native hover text.");
     d2::mx=400;d2::my=294;d2::nativeResult=&d2::nativeUnit;++frameRevision;updateSelection();
     require(!hoveredObjectValid && d2::selected==&d2::nativeUnit,"Object cue stole native player/monster selection.");
     d2::nativeResult=nullptr;objectsPainted=false;++frameRevision;updateSelection();

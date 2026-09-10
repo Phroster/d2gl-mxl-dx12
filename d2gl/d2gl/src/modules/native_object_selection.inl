@@ -1,6 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Shared with the controlled native-selection fixture. Only actual draws
 // become targets; no room scans, synthetic clicks or direct operate calls.
+bool suppressObjectHoverLabel(d2::UnitAny* selected)
+{
+    if(!objectIndicatorsEnabled || !selected || selected->dwType!=d2::UnitType::Object) return false;
+    const auto viewport=view();const auto now=GetTickCount();
+    // Suppress only a duplicate of a name we actually painted. Unlabelled
+    // objects, names outside the draw budget and expired targets keep theirs.
+    for(unsigned i=0;i<oldObjectLabelCount;++i) {
+        const auto& name=oldObjectLabels[i];
+        if(name.valid && uint32_t(now-name.painted)<=120 && name.item.view==viewport
+            && name.item.id==selected->v110.dwUnitId && resolveObject(name.item)==selected) return true;
+    }
+    return false;
+}
+
 bool objectTargetsAvailable()
 {
     return objectIndicatorsEnabled && objectsPainted && objectIndicators.count;

@@ -80,6 +80,44 @@ int main() {
             require(edgePile[2].placed.bottom<edgePile[1].placed.top && edgePile[1].placed.bottom<edgePile[0].placed.top,"edge clamping changed value order");
         }
 
+        // A chest/shrine label pushed inward at an edge must recenter as the
+        // camera brings its sprite back into view, including inventory views.
+        for(unsigned panels=0;panels<3;++panels) for(bool farEdge:{false,true}) {
+            const auto area=world_input_rect(panels,800,600);
+            const int x=farEdge?area.right-85:area.left-35,y=farEdge?area.bottom-10:-15;
+            std::array object={item(20,1,2,0,false,{x,y,x+120,y+28})};
+            object[0].priority=12;object[0].followAnchor=true;
+            const auto natural=object[0].wanted;
+            arrange_loot_labels(object,area);verify(object,area);
+            const int dx=farEdge?-150:150,dy=farEdge?-140:140;
+            object[0].previous=shifted(object[0].placed,dx,dy);object[0].hasPrevious=true;
+            object[0].wanted=shifted(natural,dx,dy);
+            const auto centered=object[0].wanted;
+            arrange_loot_labels(object,area);verify(object,area);
+            require(same(object[0].placed,centered),"object label retained an edge offset while moving");
+        }
+        // Keep a moving mixed pile ordered, then return its remaining chest
+        // name to the sprite when the overlapping item is picked up.
+        std::array mixed={item(30,1,2,0,false,{300,200,430,228}),item(31,2,7,0,false,{300,200,430,228})};
+        mixed[0].priority=12;mixed[0].followAnchor=true;
+        const auto mixedRaw=mixed;
+        arrange_loot_labels(mixed,world);verify(mixed,world);
+        for(unsigned frame=1;frame<=60;++frame) {
+            auto next=mixedRaw;
+            for(unsigned i=0;i<next.size();++i) {
+                next[i].wanted=shifted(next[i].wanted,int(frame)*2,int(frame));
+                next[i].previous=shifted(mixed[i].placed,2,1);next[i].hasPrevious=true;
+            }
+            arrange_loot_labels(next,world);verify(next,world);
+            for(unsigned i=0;i<next.size();++i)
+                require(same(next[i].placed,shifted(mixed[i].placed,2,1)),"object/loot pile drifted from camera motion");
+            mixed=next;
+        }
+        std::array chestOnly={mixed[0]};
+        chestOnly[0].previous=chestOnly[0].placed;chestOnly[0].hasPrevious=true;
+        arrange_loot_labels(chestOnly,world);verify(chestOnly,world);
+        require(same(chestOnly[0].placed,chestOnly[0].wanted),"isolated chest kept a departed loot pile's offset");
+
         // A full budget can exceed one column's height. Extra columns must
         // remain readable, clickable and separate instead of clipping a pile.
         std::array<LootLabelRequest,60> crowded{};
