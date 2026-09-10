@@ -208,6 +208,7 @@ void automapDrawEnd()
 
 void uiDrawBegin()
 {
+	modules::NativeLoot::finishWorld();
 	App.game.draw_stage = DrawStage::UI;
 	App.context->onStageChange();
 }

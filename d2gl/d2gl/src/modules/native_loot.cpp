@@ -325,7 +325,7 @@ void emit(d2::UnitAny* unit,int x,int y,const mxl::native_loot::GroundEntry& ent
     if(pickCount<pickItems.size()) pickItems[pickCount++]=entry;
 }
 
-void __stdcall floorEffects()
+void paintWorldEffects()
 {
     if (!active || floorPainted || App.game.screen!=GameScreen::InGame
         || App.game.draw_stage!=DrawStage::World) return;
@@ -425,10 +425,8 @@ uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uin
     }
 #endif
     ++worldCalls;
-    // Enter through actual native world-unit drawing, which Sigma demonstrably
-    // uses. Do not depend on the stock caller's optional 0x9F270 render phase.
-    // The first unit of the frame emits the captured effects before itself.
-    floorEffects();
+    // Capture actual native item drawing here. Emit effects only after all
+    // world objects have drawn, so a later wall cannot overwrite their light.
     auto* previous = current;
     const bool previousPainted = painted;
     current = nullptr; painted = false;
@@ -569,6 +567,14 @@ void initialize()
     pickupActive=result==NO_ERROR;
     report(pickupActive?"enabled: native hover names and large effect pickup targets (pickup-inventory-v3)":"pickup disabled: selection hook could not attach");
 }
+}
+
+void finishWorld()
+{
+    // Called before the world -> UI transition, while native projection and
+    // clipping still describe the world. The normal scene bloom/LUT follows;
+    // labels, panels, map and cursor remain above these native cell draws.
+    paintWorldEffects();
 }
 
 void beginFrame()

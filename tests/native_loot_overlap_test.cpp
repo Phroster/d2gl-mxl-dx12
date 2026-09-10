@@ -91,6 +91,20 @@ int main() {
             }
             glBindBuffer(GL_ARRAY_BUFFER,vb);glBufferSubData(GL_ARRAY_BUFFER,0,sizeof(vertices),vertices);glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
         };
+        // Native solid quads exercise the same opaque world/UI draw path as
+        // scenery. Depth is disabled in this renderer; submission order wins.
+        auto solid=[&](float left,float top,float right,float bottom,uint32_t colour) {
+            const float xy[4][2]={{left,top},{right,top},{right,bottom},{left,bottom}};
+            Vertex vertices[4]{};
+            for(unsigned i=0;i<4;++i) {
+                vertices[i].xy[0]=glm::detail::toFloat16(xy[i][0]*2/width-1);
+                vertices[i].xy[1]=glm::detail::toFloat16(1-xy[i][1]*2/height);
+                vertices[i].colour2=colour;vertices[i].flags[1]=1;
+            }
+            glBlendFuncSeparate(GL_ONE,GL_ZERO,GL_ONE,GL_ZERO);
+            glBindBuffer(GL_ARRAY_BUFFER,vb);glBufferSubData(GL_ARRAY_BUFFER,0,sizeof(vertices),vertices);
+            glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
+        };
         unsigned differing=0,comparisons=0;std::vector<uint8_t> first(width*height*4),second(first.size());
         for(unsigned colour:{0u,1u}) for(unsigned chromakey:{0u,1u}) for(unsigned frame=0;frame<24;++frame) {
             auto render=[&](bool reverse,std::vector<uint8_t>& pixels) {
@@ -103,9 +117,35 @@ int main() {
             unsigned lit=0;for(size_t i=0;i<first.size();i+=4) if(first[i]>40 || first[i+1]>40 || first[i+2]>40) ++lit;
             require(lit>100,"potions did not render");
         }
+        std::vector<uint8_t> scenery(first.size()),withUi(first.size());
+        solid(0,0,width,height,0x202020ff);
+        glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,scenery.data());
+        for(unsigned frame=0;frame<24;++frame) {
+            // Reproduce the old order: effects emitted before opaque scenery.
+            glBlendFuncSeparate(GL_ONE,GL_ONE,GL_ZERO,GL_ONE);draw(0,frame,0,0);
+            solid(0,0,width,height,0x202020ff);
+            glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,first.data());
+            require(first==scenery,"Opaque scenery did not reproduce effect overwrite.");
+            // End-of-world native effects survive; later panels still cover them.
+            glBlendFuncSeparate(GL_ONE,GL_ONE,GL_ZERO,GL_ONE);draw(0,frame,0,0);
+            glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,second.data());
+            unsigned visible=0;
+            for(size_t i=0;i<second.size();i+=4)
+                if(second[i]>scenery[i]+8 || second[i+1]>scenery[i+1]+8 || second[i+2]>scenery[i+2]+8)++visible;
+            require(visible>100,"Final world effects disappeared behind scenery.");
+            solid(width/2,0,width,height,0x101010ff);
+            glReadPixels(0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,withUi.data());
+            for(unsigned y=0;y<height;++y)for(unsigned x=0;x<width;++x) {
+                const auto i=(y*width+x)*4;
+                for(unsigned c=0;c<3;++c)
+                    require(x<width/2?withUi[i+c]==second[i+c]:withUi[i+c]==16,
+                        "World effects overwrote UI or the UI changed uncovered world pixels.");
+            }
+        }
         mxl::dx12::shutdown();
         std::cout<<"Potion overlap: "<<comparisons<<" frame/order comparisons; differing RGB channels="<<differing<<'\n';
         require(differing==0,"overlapping potion animations overwrite one another when draw order changes");
         std::cout<<"PASS: real potion sprites retain additive overlap across all animation frames.\n";
+        std::cout<<"PASS: 24 native sprite frames reproduce scenery overwrite, survive after world drawing and remain below UI.\n";
     } catch(const std::exception& e) {std::cerr<<"FAIL: "<<e.what()<<'\n';return 1;}
 }
