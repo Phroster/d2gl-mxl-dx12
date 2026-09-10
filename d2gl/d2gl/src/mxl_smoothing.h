@@ -12,6 +12,8 @@ typedef struct {
     ULONGLONG render_ticks, update_ticks, probe_ticks;
     ULONGLONG epoch_raw_ticks;
     DWORD epoch_samples, epoch_resets, epoch_reason, epoch_active;
+    ULONGLONG render_raw_ticks, render_now_ticks;
+    DWORD render_resets, render_active;
 } MxlMotionSnapshot;
 int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output);
 #endif

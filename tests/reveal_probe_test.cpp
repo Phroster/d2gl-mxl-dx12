@@ -1,6 +1,7 @@
 #include "reveal_probe.h"
 #include "reveal_signatures.h"
 #include "diagnostics.h"
+#include "tile_cache.h"
 #include <array>
 #include <cstring>
 #include <filesystem>
@@ -19,6 +20,14 @@ alignas(4) std::array<uint8_t,0x2da00> lookup_image{};
 constexpr DWORD incoming_error=0x10203040, outgoing_error=0x4142;
 enum class ThrowAt { None, Root, Build, Dt1, Grid };
 ThrowAt throw_at=ThrowAt::None;
+bool tile_scope_test=false,tile_seh=false;
+unsigned tile_opens=0,tile_closes=0;
+uint32_t __fastcall tile_open(const char*,void** out){++tile_opens;*out=reinterpret_cast<void*>(0x1234);return 1;}
+uint32_t __fastcall tile_read(void*,void*,uint32_t,uint32_t*,uint32_t,uint32_t,uint32_t){return 0;}
+uint32_t __fastcall tile_close(void*){++tile_closes;return 1;}
+uint32_t __fastcall tile_seek(void*,int32_t,int32_t*,uint32_t){return 0;}
+uint32_t __fastcall tile_size(void*,uint32_t*){return 8192;}
+uint32_t __stdcall tile_archive(void*,void** out){*out=reinterpret_cast<void*>(0x5678);return 1;}
 alignas(4) std::array<uint8_t,0x3fb000> preselection_image{};
 alignas(4) std::array<uint8_t,0xc80> preselection_tables{};
 alignas(4) std::array<uint8_t,44*0x9c> preselection_rows{};
@@ -49,6 +58,11 @@ __declspec(noinline) uintptr_t __stdcall prepare_mock(void* room) {
 }
 __declspec(noinline) uintptr_t __stdcall dt1_body(void* room) {
     check_error();require(room==room_data.data(),"DT1 register argument changed.");
+    if(tile_scope_test){
+        for(unsigned i=0;i<3;++i){void* handle=nullptr;mxl::tiles::open("data\\global\\tiles\\test\\tile.dt1",&handle,0x1234);mxl::tiles::close(handle);}
+        require(tile_opens==1 && tile_closes==0,"DT1 load did not retain its own handle.");
+    }
+    if(tile_seh)RaiseException(0xe1234567,0,0,nullptr);
     if(throw_at==ThrowAt::Dt1)throw std::runtime_error("simulated DT1 error");
     SetLastError(outgoing_error);return 0x1003;
 }
@@ -360,6 +374,23 @@ void before_scene_signature_scenarios() {
     for(const auto& site:reveal_before_scene_fps_player_sites)check_site(site,fps);
     require(test_reveal_before_scene_signature(base,fps_base),"Restored D2FPS boundary rejected.");
 }
+bool tile_seh_scenario(){
+    __try {invoke_dt1(room_data.data());return false;}
+    __except(GetExceptionCode()==0xe1234567?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH){return true;}
+}
+void tile_scope_scenarios(){
+    mxl::tiles::configure({tile_open,tile_read,tile_close,tile_seek,tile_size,tile_archive},0x1234);
+    tile_scope_test=true;
+    SetLastError(incoming_error);finished(invoke_dt1(room_data.data()),0x1003);
+    require(tile_closes==1,"DT1 scope did not close retained handle.");
+    tile_opens=tile_closes=0;throw_at=ThrowAt::Dt1;bool caught=false;
+    try{SetLastError(incoming_error);invoke_dt1(room_data.data());}catch(const std::runtime_error&){caught=true;}
+    require(caught && tile_opens==1 && tile_closes==1,"DT1 C++ exception leaked cache scope.");
+    throw_at=ThrowAt::None;tile_opens=tile_closes=0;tile_seh=true;
+    SetLastError(incoming_error);require(tile_seh_scenario(),"Native SEH not propagated.");
+    require(tile_opens==1 && tile_closes==1,"DT1 SEH leaked cache scope.");
+    tile_seh=false;tile_scope_test=false;mxl::tiles::configure({},0);
+}
 int wmain(int argc,wchar_t** argv) {
     try {
         const bool omit_lookup=argc==3 && !wcscmp(argv[2],L"--skip-lookup");
@@ -369,8 +400,9 @@ int wmain(int argc,wchar_t** argv) {
         if(preselection_only){
             require(!enabled(),"Preselection-only test unexpectedly started recording.");
             RevealDeepFns deep{preset_mock,build_mock,prepare_mock,reinterpret_cast<void*>(&dt1_mock),reinterpret_cast<void*>(&grid_mock),lookup_mock,layer_mock};
-            require(test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,deep,1u<<3),"Install only gameplay InitLevel hook.");
+            require(test_reveal_probe(root_mock,level_mock,room_mock,init_mock,load_mock,unload_mock,deep,(1u<<3)|(1u<<9)),"Install gameplay InitLevel and DT1 hooks.");
             preselection_scenarios();require(!enabled(),"Gameplay optimization enabled recording.");
+            tile_scope_scenarios();require(!enabled(),"Tile scope enabled recording.");
             std::cout<<"PASS: InitLevel-only preselection without diagnostics, exact caller/signature guards, identical map draws, native nested/invalid forwarding, cache-transition reduction and exception propagation.\n";
             return 0;
         }

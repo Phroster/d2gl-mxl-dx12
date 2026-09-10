@@ -14,7 +14,7 @@ using ArchiveFn=uint32_t(__stdcall*)(void*,void**);
 struct Api {OpenFn open=nullptr;ReadFn read=nullptr;CloseFn close=nullptr;SeekFn seek=nullptr;SizeFn size=nullptr;ArchiveFn archive=nullptr;};
 struct Stats {uint32_t open_hits=0,read_hits=0,prefetches=0,prefetch_failures=0;uint64_t cached_bytes=0,served_bytes=0;};
 
-// Owns real native handles for one producer frame. Unknown callers, asynchronous
+// Owns real native handles for one producer frame or synchronous room load. Unknown callers, asynchronous
 // reads, loose files, oversized files and capacity misses retain native behavior.
 class Cache {
 public:
@@ -40,6 +40,9 @@ private:
 void configure(Api api,uintptr_t tile_open_return);
 void begin_frame(bool in_game);
 void end_frame();
+bool configured();
+bool begin_load();
+void end_load(bool owner);
 uint32_t open(const char* path,void** output,uintptr_t caller);
 uint32_t read(void* handle,void* buffer,uint32_t requested,uint32_t* completed,uint32_t fifth,uint32_t sixth,uint32_t seventh);
 uint32_t close(void* handle);

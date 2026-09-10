@@ -126,6 +126,22 @@ int main(){try{
     add(path,8192);cache.begin(api,true);void* second=nullptr;cache.open(path,&h,true);cache.open(path,&second,true);
     require(h!=second,"Nested opens share a cursor.");cache.close(second);cache.close(h);cache.end();reset();
 
+    // Pre-draw room loads get a bounded scope; nested room/frame scopes borrow
+    // it without closing the handles needed by their outer caller.
+    add(path,8192);configure(api,0x1234);
+    const auto room=begin_load();require(room,"Room scope missing.");
+    mxl::tiles::open(path,&h,0x1234);mxl::tiles::close(h);
+    const auto nested=begin_load();require(!nested,"Nested room owns outer scope.");
+    end_load(nested);require(closes==0,"Nested load closed outer handle.");
+    begin_frame(true);end_frame();require(closes==0,"Nested draw closed outer handle.");
+    mxl::tiles::open(path,&h,0x1234);mxl::tiles::close(h);
+    require(opens==1,"Pre-draw tile handle not reused.");
+    end_load(room);require(closes==1,"Room load did not release handles.");reset();
+    add(path,8192);begin_frame(true);require(!begin_load(),"Room ignored outer frame.");
+    mxl::tiles::open(path,&h,0x1234);mxl::tiles::close(h);end_load(false);
+    require(closes==0,"Borrowed load closed frame handles.");end_frame();reset();
+    configure({},0);require(!begin_load(),"Unconfigured cache started load scope.");
+
     add(path,8192);configure(api,0x1234);std::atomic<unsigned> failures=0;
     auto worker=[&](){try{begin_frame(true);void* local=nullptr;for(unsigned i=0;i<3;++i){mxl::tiles::open(path,&local,0x1234);uint8_t b[8]{};uint32_t n=0;mxl::tiles::read(local,b,8,&n,0,0,0);require(n==8,"Thread read count.");mxl::tiles::close(local);}end_frame();}catch(...){++failures;}};
     std::thread first(worker),second_thread(worker);first.join();second_thread.join();require(failures==0,"Thread-local cache failed.");reset();

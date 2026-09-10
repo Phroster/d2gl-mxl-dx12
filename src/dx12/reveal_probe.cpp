@@ -1,4 +1,5 @@
 #include "reveal_probe.h"
+#include "tile_cache.h"
 #include "reveal_signatures.h"
 #include "diagnostics.h"
 #include "auto_reveal.h"
@@ -167,8 +168,19 @@ __declspec(naked) uintptr_t __stdcall call_tile_grid(void* room,void* pool) {
 }
 uintptr_t __stdcall dt1_wrapper(void* room) {
     const auto incoming_error=GetLastError();
-    if(!active || !enabled()){SetLastError(incoming_error);return call_dt1(room);}
-    const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);const auto result=call_dt1(room);const auto error=GetLastError();emit("dt1_load",began,node);SetLastError(error);return result;
+    // Pre-draw area loads also reopen the same DT1 for successive blocks.
+    // Bound reuse to this native call; release handles before archives can be
+    // unloaded. Nested loads borrow the current scope. SEH must release it too.
+    const bool owner=tiles::begin_load();
+    uintptr_t result=0;
+    __try {
+        if(!active || !enabled()){SetLastError(incoming_error);result=call_dt1(room);}
+        else {
+            const auto node=room_info(room);const auto began=ticks();SetLastError(incoming_error);
+            result=call_dt1(room);const auto error=GetLastError();emit("dt1_load",began,node);SetLastError(error);
+        }
+    } __finally {tiles::end_load(owner);}
+    return result;
 }
 uintptr_t __stdcall tile_grid_wrapper(void* room,void* pool) {
     const auto incoming_error=GetLastError();
@@ -350,10 +362,12 @@ bool start_reveal_probe(HWND window) {
     const bool preselection_supported=preselection_signature(sb);
     if(preselection_supported){preselection_sigma=sb;preselection_caller=sb+0x8847d;}
     else note("reveal_layer_preselection_unsupported");
-    // Gameplay preselection needs only InitLevel when logging is disabled.
+    // Performance hooks also run without logging: InitLevel preselection and
+    // a bounded DT1 load scope, each requiring its own verified entrypoint.
     // Every selected hook still belongs to the same all-or-nothing transaction;
     // a failure leaves the native full-act entrypoint usable.
     selected_sites=preselection_supported?(1u<<3):0;
+    if(tiles::configured() && signature(cb,reveal_sites[9]))selected_sites|=1u<<9;
     if(enabled()){
         // Each depth site is optional. A runtime patch at an unrelated helper
         // must not discard all the supported measurements. Every selected hook

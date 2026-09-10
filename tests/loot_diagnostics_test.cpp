@@ -42,6 +42,8 @@ int wmain(int argc,wchar_t** argv) {
         producer_set(Count::MotionEpochRawTicks,123456788999ULL);producer_set(Count::MotionUpdateTicks,123456780000ULL);
         producer_set(Count::MotionEpochSamples,45);producer_set(Count::MotionEpochResets,2);
         producer_set(Count::MotionEpochReason,2);producer_set(Count::MotionEpochActive,1);
+        producer_set(Count::MotionRenderRawTicks,123456789123ULL);producer_set(Count::MotionRenderNowTicks,123456789456ULL);
+        producer_set(Count::MotionRenderResets,3);producer_set(Count::MotionRenderActive,1);
         producer_set(Count::ContextValid,1);producer_set(Count::Level,40);producer_set(Count::PlayerMode,6);
         for(unsigned i=0;i<128;++i) {
             ProducerSampleScope sampled(Metric::LootPickupSampled,Count::LootSelectionCalls,Count::LootSelectionSamples);
@@ -95,6 +97,8 @@ int wmain(int argc,wchar_t** argv) {
         require(number(3,"loot_enabled")==1 && number(3,"loot_targets")==0 && number(3,"loot_selection_calls")==0 && number(3,"loot_labels_ms")==0,"Counters leaked across producer frames.");
         require(number(20,"loot_targets")==7 && number(20,"loot_labels")==0,"Totals crossed thread boundaries.");
         require(number(3,"motion_valid")==0 && number(3,"motion_player_valid")==0,"Missing motion sample was treated as valid.");
+        require(number(2,"motion_render_raw_ticks")==123456789123ULL && number(2,"motion_render_now_ticks")==123456789456ULL
+            && number(2,"motion_render_resets")==3 && number(2,"motion_render_active")==1,"Render clock columns lost.");
         require(number(2,"motion_epoch_raw_ticks")==123456788999ULL && number(2,"motion_update_ticks")==123456780000ULL
             && number(2,"motion_epoch_samples")==45 && number(2,"motion_epoch_resets")==2
             && number(2,"motion_epoch_reason")==2 && number(2,"motion_epoch_active")==1

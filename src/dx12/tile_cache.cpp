@@ -9,6 +9,7 @@ namespace {
 Api native{};uintptr_t caller_address=0;
 thread_local Cache cache;
 thread_local bool initialized=false;
+thread_local bool scope_active=false,frame_owner=false;
 Cache& local_cache(){if(!initialized){cache.begin(native,false);initialized=true;}return cache;}
 // Only the DT1 block-loader's verified call site can enter the cache. Keep an
 // additional bounded path check so corrupted or unexpected names pass through.
@@ -130,9 +131,16 @@ uint32_t Cache::close(void* handle) {
     SetLastError(incoming);return api_.close(handle);
 }
 void configure(Api api,uintptr_t tile_open_return){native=api;caller_address=tile_open_return;}
-void begin_frame(bool in_game){local_cache().begin(native,in_game && caller_address!=0);}
-void end_frame(){
+bool configured(){return caller_address && native.open && native.read && native.close && native.seek && native.size && native.archive;}
+bool begin_load(){
+    if(scope_active || !configured())return false;
+    local_cache().begin(native,true);scope_active=true;return true;
+}
+void begin_frame(bool in_game){frame_owner=in_game && begin_load();}
+void end_load(bool owner){
+    if(!owner)return;
     const auto error=GetLastError();const auto s=cache.end();
+    scope_active=false;
     archive_hash::flush_stats();
     if(s.open_hits || s.prefetches || s.prefetch_failures){
         diag::note("tile_cache_open_hits",s.open_hits);diag::note("tile_cache_read_hits",s.read_hits);
@@ -141,6 +149,7 @@ void end_frame(){
     }
     SetLastError(error);
 }
+void end_frame(){end_load(frame_owner);frame_owner=false;}
 uint32_t open(const char* path,void** output,uintptr_t caller){return local_cache().open(path,output,caller==caller_address);}
 uint32_t read(void* h,void* b,uint32_t n,uint32_t* c,uint32_t a,uint32_t d,uint32_t e){return local_cache().read(h,b,n,c,a,d,e);}
 uint32_t close(void* h){return local_cache().close(h);}

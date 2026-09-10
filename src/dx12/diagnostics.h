@@ -24,7 +24,8 @@ enum class Count : uint32_t { Draws, Indices, TextureBytes, BufferBytes, SpillBy
     PresentStatsCount, PresentRefresh, SyncRefresh, SyncQpc, PresentIdValid, PresentId, LatencyResult,
     ProcessValid, ProcessUser, ProcessKernel, ProcessRead, ProcessWrite, ProcessFaults, WorkingSet, PrivateBytes,
     LoggerCpuValid, LoggerCpu, QueuePeak, QueueSize,
-    MotionEpochRawTicks, MotionEpochSamples, MotionEpochResets, MotionEpochReason, MotionEpochActive, Count };
+    MotionEpochRawTicks, MotionEpochSamples, MotionEpochResets, MotionEpochReason, MotionEpochActive,
+    MotionRenderRawTicks, MotionRenderNowTicks, MotionRenderResets, MotionRenderActive, Count };
 enum class Audio : uint32_t { Factory, CreateBuffer, DuplicateBuffer, Play, Stop, Lock, Unlock,
     Volume, Pan, Frequency, Cursor, Restore, Parameters3D, Position3D, Commit3D, Status, GetCursor, Release, Query, Count };
 uint64_t ticks() noexcept;

@@ -8,6 +8,7 @@
 #endif
 #include "mxl_smoothing.h"
 #include "mxl_visual_clock.h"
+#include "mxl_render_clock.h"
 #include <windows.h>
 #include <wincrypt.h>
 #include <stdint.h>
@@ -40,6 +41,95 @@ static const volatile DWORD *game_type;
 static BYTE *epoch_client, *epoch_fps;
 static uint64_t epoch_frequency;
 static MxlVisualClock visual_clock;
+static MxlRenderClock render_clock;
+static void *render_update_original;
+
+static void __cdecl restore_render_raw(void) {
+    uint64_t current=*(const volatile uint64_t *)(epoch_fps+0x38070);
+    if(render_clock.active && current==render_clock.visual)
+        *(volatile uint64_t *)(epoch_fps+0x38070)=render_clock.raw;
+    else render_clock.active=0; /* Menus or another native path took ownership. */
+}
+static void __stdcall finish_render_time(uint64_t now, DWORD drew) {
+    volatile uint64_t *stamp=(volatile uint64_t *)(epoch_fps+0x38070);
+    if(!(drew&255)) {
+        if(render_clock.active && *stamp==render_clock.raw)*stamp=render_clock.visual;
+        else render_clock.active=0;
+        return;
+    }
+    *stamp=mxl_render_time(&render_clock,*stamp,now,epoch_frequency,
+        *(const DWORD *)(epoch_fps+0x38078),*(const DWORD *)(epoch_fps+0x3807c),
+        *(const volatile DWORD *)(epoch_client+0x11c310),*game_type);
+}
+
+/* The verified Rust call uses ECX:EDX for now and two caller-cleaned stack
+ * arguments. Preserve its actual outputs, including SSE/flags, around helpers.
+ * ESI:EDI in draw_game already contains our previous visual timestamp. */
+__declspec(naked) static void update_render_time(void) {
+    __asm {
+        push ebp
+        mov ebp,esp
+        sub esp,8
+        mov [ebp-8],ecx
+        mov [ebp-4],edx
+        pushfd
+        pushad
+        sub esp,128
+        movdqu [esp],xmm0
+        movdqu [esp+16],xmm1
+        movdqu [esp+32],xmm2
+        movdqu [esp+48],xmm3
+        movdqu [esp+64],xmm4
+        movdqu [esp+80],xmm5
+        movdqu [esp+96],xmm6
+        movdqu [esp+112],xmm7
+        call restore_render_raw
+        movdqu xmm0,[esp]
+        movdqu xmm1,[esp+16]
+        movdqu xmm2,[esp+32]
+        movdqu xmm3,[esp+48]
+        movdqu xmm4,[esp+64]
+        movdqu xmm5,[esp+80]
+        movdqu xmm6,[esp+96]
+        movdqu xmm7,[esp+112]
+        add esp,128
+        popad
+        popfd
+        push [ebp+12]
+        push [ebp+8]
+        call render_update_original
+        lea esp,[esp+8]
+        pushfd
+        pushad
+        sub esp,128
+        movdqu [esp],xmm0
+        movdqu [esp+16],xmm1
+        movdqu [esp+32],xmm2
+        movdqu [esp+48],xmm3
+        movdqu [esp+64],xmm4
+        movdqu [esp+80],xmm5
+        movdqu [esp+96],xmm6
+        movdqu [esp+112],xmm7
+        push eax
+        push [ebp-4]
+        push [ebp-8]
+        call finish_render_time
+        movdqu xmm0,[esp]
+        movdqu xmm1,[esp+16]
+        movdqu xmm2,[esp+32]
+        movdqu xmm3,[esp+48]
+        movdqu xmm4,[esp+64]
+        movdqu xmm5,[esp+80]
+        movdqu xmm6,[esp+96]
+        movdqu xmm7,[esp+112]
+        add esp,128
+        popad
+        popfd
+        mov esp,ebp
+        pop ebp
+        ret
+    }
+}
 
 static uint64_t __stdcall stable_epoch(uint64_t raw) {
     return mxl_visual_epoch(&visual_clock,raw,
@@ -216,6 +306,17 @@ static BytePatch epoch_patch(BYTE *fps) {
     memcpy(patch.replacement+1,&relative,4);return patch;
 }
 
+static BytePatch render_patch(BYTE *fps) {
+    BytePatch patch;memset(&patch,0,sizeof(patch));
+    patch.instruction=fps+0xe82c;patch.length=5;
+    patch.label="D2FPS+E82C continuous realm render timeline";
+    patch.expected[0]=patch.replacement[0]=0xe8;
+    DWORD old_relative=0x11900-0xe831;
+    DWORD relative=(DWORD)((uintptr_t)update_render_time-(uintptr_t)(patch.instruction+5));
+    memcpy(patch.expected+1,&old_relative,4);memcpy(patch.replacement+1,&relative,4);
+    return patch;
+}
+
 #if MXL_ENABLE_DIAGNOSTICS
 static void log_line(const char *format, ...) {
     char text[1024]; DWORD written; va_list args;
@@ -377,19 +478,22 @@ void __stdcall MxlSmoothing_Initialize(void) {
         || frequency.QuadPart>10000000000LL || frequency.QuadPart%1000) {
         log_line("REFUSED: unsupported visual clock frequency; zero changes.");goto done;
     }
-    BytePatch patches[7];
+    BytePatch patches[8];
     for (size_t i=0;i<5;++i) patches[i]=clock_patch(&sites[i]);
     patches[5]=phase_patch(fb+0xedb9);
     patches[6]=epoch_patch(fb);
+    patches[7]=render_patch(fb);
     game_type=(const volatile DWORD *)(cb+0x11c394);
     epoch_client=cb;epoch_fps=fb;epoch_frequency=(uint64_t)frequency.QuadPart;
-    if (apply_patches(patches,7)) {
+    render_update_original=fb+0x11900;
+    if (apply_patches(patches,8)) {
 #if MXL_ENABLE_DIAGNOSTICS
         motion_clock=(DWORD(WINAPI *)(void))(uintptr_t)precise;
         motion_fps=fb;
 #endif
         smoothing_active=1;
-        log_line("SUCCESS: 7 regions changed and verified; simulation interval remains 40 ms.");
+        log_line("SUCCESS: 8 regions changed and verified; simulation interval remains 40 ms.");
+        log_line("Realm render timeline follows QPC continuously; native draw deadlines and skipped frames preserved.");
         log_line("Realm visual epoch anchored across normal client steps; resets on area, discontinuity or >20 ms drift.");
         log_line("Source and consumer both resolve to winmm!timeGetTime at %08lX.",precise);
         log_line("Realm type 3: signed visual phase -20..60 ms. SP/LAN: original 0..40 ms clamp.");
@@ -426,6 +530,8 @@ int __stdcall MxlSmoothing_ReadMotion(MxlMotionSnapshot *output) {
         sample.epoch_raw_ticks=visual_clock.raw;sample.epoch_samples=visual_clock.samples;
         sample.epoch_resets=visual_clock.resets;sample.epoch_reason=visual_clock.reason;
         sample.epoch_active=visual_clock.active;
+        sample.render_raw_ticks=render_clock.raw;sample.render_now_ticks=render_clock.now;
+        sample.render_resets=render_clock.resets;sample.render_active=render_clock.active;
         *output=sample;return 1;
     } __except(EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
@@ -661,13 +767,17 @@ int main(void) {
         *(ULONGLONG *)(client+0x380f8)=123456788888ULL;
         visual_clock.raw=123456788999ULL;visual_clock.samples=45;visual_clock.resets=2;
         visual_clock.reason=MXL_EPOCH_STEP;visual_clock.active=1;
+        render_clock.raw=123456789010ULL;render_clock.now=123456789013ULL;
+        render_clock.resets=3;render_clock.active=1;
         if(!MxlSmoothing_ReadMotion(&sample) || sample.samples!=cases+negative_cases+6 || sample.game_type!=3
             || sample.client_updates!=123 || sample.client_update_ms!=70 || sample.clock_ms!=91
             || sample.interval_ticks!=400000 || sample.elapsed_ticks!=38889
             || sample.clamped_ticks!=38889 || sample.render_ticks!=123456789012ULL
             || sample.update_ticks!=123456788888ULL || !sample.probe_ticks
             || sample.epoch_raw_ticks!=123456788999ULL || sample.epoch_samples!=45 || sample.epoch_resets!=2
-            || sample.epoch_reason!=MXL_EPOCH_STEP || sample.epoch_active!=1)return 13;
+            || sample.epoch_reason!=MXL_EPOCH_STEP || sample.epoch_active!=1
+            || sample.render_raw_ticks!=123456789010ULL || sample.render_now_ticks!=123456789013ULL
+            || sample.render_resets!=3 || sample.render_active!=1)return 13;
         smoothing_active=0;game_type=NULL;motion_clock=NULL;motion_fps=NULL;VirtualFree(client,0,MEM_RELEASE);
         puts("PASS: private motion snapshot reads loop state and exact clamp values without altering interpolation.");
     }
