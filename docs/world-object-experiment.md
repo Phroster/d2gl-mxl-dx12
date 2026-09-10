@@ -3,13 +3,14 @@
 Set `ObjectLabels=1` under `[NativeLoot]` in `mxl-native-loot.ini` and restart.
 Set it to `0` to return to the normal item-only display.
 
-Ordinary chests, urns, barrels, racks and other usable objects get a small
-native glint. Locked, large and special containers also get a readable name;
+Chests and racks get a native floor pulse and a compact name. Urns and barrels
+get just the pulse; other usable objects get a small glint. Locked, large and special containers get a stronger cue;
 special containers have a stronger glow. Usable shrines get a name and pulse.
 Wells have a quiet cue. Exploding
 containers use a red cue. Opened/broken loot containers, spent shrines,
 doors, waypoints, portals, personal stash and non-interactive scenery are excluded.
 Hidden stashes remain highlighted as loot containers. Existing dropped-item labels are unchanged.
+Object effects follow the centre of the native body sprite when available.
 
 Names share the loot layout. Object names and effects are clickable when
 `ClickEffects=1`. Actual dropped items and native character targets

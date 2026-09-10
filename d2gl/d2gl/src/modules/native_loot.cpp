@@ -434,6 +434,10 @@ uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uin
     // world objects have drawn, so a later wall cannot overwrite their light.
     auto* previous = current;
     const bool previousPainted = painted;
+    const bool previousObject=drawingObject;
+    const auto previousAnchor=objectSpriteAnchor;
+    drawingObject=objectIndicatorsEnabled && unit && unit->dwType==d2::UnitType::Object;
+    objectSpriteAnchor={};
     current = nullptr; painted = false;
     if (unit && unit->dwType == d2::UnitType::Item && unit->v110.pItemData
         && (unit->v110.dwMode == 3 || unit->v110.dwMode == 5)) {
@@ -442,6 +446,7 @@ uint32_t __fastcall worldDraw(d2::UnitAny* unit, uint32_t light, uint32_t a, uin
     }
     const auto result = original(unit,light,a,b,c,d);
     if(objectIndicatorsEnabled && unit && unit->dwType==d2::UnitType::Object) captureObject(unit,int(a),int(b));
+    drawingObject=previousObject;objectSpriteAnchor=previousAnchor;
     current = previous; painted = previousPainted;
     return result;
 }
@@ -615,6 +620,14 @@ void beginFrame()
     queue.begin(inGame);
     floorPainted=false;
     tick = GetTickCount();
+}
+
+bool objectSpriteActive() { return drawingObject; }
+
+void objectSprite(int x,int y,int offsetX,unsigned width)
+{
+    if(drawingObject && App.game.draw_stage==DrawStage::World)
+        objectSpriteAnchor.observe(x,y,offsetX,width);
 }
 
 void capture(int x, int y)

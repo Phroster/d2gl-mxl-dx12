@@ -10,6 +10,15 @@ namespace mxl::native_loot {
 constexpr unsigned object_indicator_limit=1024;
 constexpr unsigned object_label_limit=12;
 struct ObjectScreenPoint { int x=0,y=0; };
+// Native cell origins need not be horizontally centred in the artwork. Track
+// the widest body cell during one object draw, without retaining cell pointers.
+struct ObjectSpriteAnchor {
+    int x=0,y=0,width=0;
+    void observe(int drawX,int drawY,int offsetX,unsigned cellWidth) {
+        if(!cellWidth || cellWidth>4096 || int(cellWidth)<=width) return;
+        width=int(cellWidth);x=drawX+offsetX+width/2;y=drawY;
+    }
+};
 // D2Client+6C490 receives world-pixel coordinates. Its flat projection at
 // +6C4EC subtracts the camera, adds the horizontal view shift and an 8px Y bias.
 constexpr ObjectScreenPoint object_screen_point(int worldX,int worldY,int cameraX,int cameraY,int viewShift) {
@@ -57,7 +66,10 @@ inline ObjectLook object_look(const ObjectFacts& f) {
     return {ObjectKind::Container,1,5,1,12};
 }
 inline bool object_has_label(const ObjectLook& look) {
-    return look.rank>=2 || look.kind==ObjectKind::Waypoint || look.kind==ObjectKind::Stash;
+    return look.rank>=2 || (look.kind==ObjectKind::Container && look.priority>=12);
+}
+inline bool object_uses_pulse(const ObjectLook& look) {
+    return look.rank>0 && look.pulseRank>0;
 }
 struct ObjectIndicator {
     GroundEntry identity{};
@@ -66,8 +78,9 @@ struct ObjectIndicator {
     std::array<wchar_t,65> name{};
 };
 inline HitRect object_hitbox(const ObjectIndicator& e) {
-    const int half=e.look.rank>=2?40:14;
-    return {e.x-half,e.y-(e.look.rank>=2?32:20),e.x+half,e.y+12};
+    const bool pulse=object_uses_pulse(e.look);
+    const int half=pulse?64:14;
+    return {e.x-half,e.y-(pulse?32:20),e.x+half,e.y+(pulse?24:12)};
 }
 // Current-frame snapshots only: no room scans, no retained game pointers,
 // no lookups when the screen has no eligible objects, and a fixed draw limit.

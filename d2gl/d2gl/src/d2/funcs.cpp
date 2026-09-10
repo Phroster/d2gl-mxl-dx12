@@ -258,6 +258,12 @@ void __stdcall drawImageHooked(CellContext* cell, int x, int y, uint32_t gamma, 
 		const auto pos = modules::MotionPrediction::Instance().drawImage(x, y, D2DrawFn::Image, gamma, draw_mode);
 		modules::NativeLoot::capture(pos.x, pos.y);
 		drawImage(cell, pos.x, pos.y, gamma, draw_mode, palette);
+		// Read the normalized cell after the native draw populated its current
+		// frame. Object cues follow the visible body, not an off-centre origin.
+		if(modules::NativeLoot::objectSpriteActive() && App.game.draw_stage==DrawStage::World && cell && cell->v113.pCurGfxCell) {
+			const auto* image=cell->v113.pCurGfxCell;
+			modules::NativeLoot::objectSprite(pos.x,pos.y,int(image->xoffs),image->width);
+		}
 	}
 
 	modules::HDText::drawItemQuantity(true);

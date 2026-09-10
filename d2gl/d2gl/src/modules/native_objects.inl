@@ -6,6 +6,8 @@ std::array<mxl::native_loot::HoverLabel,mxl::native_loot::object_label_limit> ol
 unsigned oldObjectLabelCount=0;
 bool objectsPainted=false,hoveredObjectValid=false;
 mxl::native_loot::GroundEntry hoveredObject{};
+thread_local bool drawingObject=false;
+thread_local mxl::native_loot::ObjectSpriteAnchor objectSpriteAnchor;
 
 mxl::native_loot::ObjectLook objectLook(d2::UnitAny* unit)
 {
@@ -57,14 +59,18 @@ void captureObject(d2::UnitAny* unit,int x,int y)
     // object branch enters +6C490, which subtracts the camera at +6C4EC.
     // Project before viewport rejection; distant levels otherwise lose every
     // object marker despite their containers being visible on the screen.
-    if(viewport.perspective) {
+    const bool nativeSprite=objectSpriteAnchor.width>0;
+    if(nativeSprite) {
+        x=objectSpriteAnchor.x;y=objectSpriteAnchor.y;
+    } else if(viewport.perspective) {
         const auto projected=anchor(unit,true);x=projected.x;y=projected.y;
     } else {
         const auto projected=mxl::native_loot::object_screen_point(x,y,*cameraX,*cameraY,*viewShift);
         x=projected.x;y=projected.y;
     }
     const auto offset=MotionPrediction::Instance().isActive()?MotionPrediction::Instance().getGlobalOffset():glm::ivec2{};
-    x-=offset.x;y-=offset.y;
+    // The observed sprite has already passed the native motion adjustment.
+    if(!nativeSprite) { x-=offset.x;y-=offset.y; }
     if(!mxl::native_loot::world_input_point(viewport.panels,viewport.width,viewport.height,x,y)) return;
     mxl::native_loot::ObjectIndicator entry{};
     entry.identity={data.dwUnitId,data.dwClassId,data.dwInitSeed,reinterpret_cast<uintptr_t>(data.pAct),0,0,viewport};
@@ -94,10 +100,10 @@ void paintObjectEffects()
         const auto& entry=objectIndicators.entries[i];
         if(!(entry.identity.view==viewport)) continue;
         auditObjectDraw(entry,1);
-        if(entry.look.rank<2 || !entry.look.pulseRank) {
-            // Every ordinary usable object gets a small native glint. Keep the
-            // larger sprite pulses for important objects so packed urn rooms
-            // remain readable and do not require hundreds of sprite draws.
+        if(!mxl::native_loot::object_uses_pulse(entry.look)) {
+            // Unclassified usable objects keep a minimal cue. Loot containers
+            // use their native pulse even at rank 1: the tiny line-only glint
+            // was insufficient on the Arcane chest captured by the audit.
             constexpr uint8_t colours[]={158,111,133,155,98,255};
             const uint8_t alpha=uint8_t(144+(mxl::native_loot::object_pulse_frame(tick,entry.identity.id)-9)*4);
             const uint8_t colour=colours[std::min(entry.look.colour,5u)];

@@ -8,6 +8,16 @@ using namespace mxl::native_loot;
 void check(bool ok,const char* why) { if(!ok) throw std::runtime_error(why); }
 int main() {
     try {
+        ObjectSpriteAnchor body;
+        body.observe(80,200,-12,64);
+        check(body.x==100 && body.y==200,"asymmetric native body not centred");
+        body.observe(60,180,-4,8);
+        check(body.x==100 && body.y==200,"small decorative component moved the body cue");
+        ObjectSpriteAnchor moved;
+        moved.observe(60,210,-12,64);
+        check(moved.x==body.x-20 && moved.y==body.y+10,"sprite-centred cue detached during camera motion");
+        moved.observe(100,200,0,0);moved.observe(100,200,0,99999);
+        check(moved.x==80,"invalid sprite bounds changed cue position");
         // Reproduce the missing chest: raw world pixels are far outside the
         // viewport even when the native camera puts the chest in its centre.
         const auto arcane=object_screen_point(18000,9000,17488,8670,0);
@@ -23,7 +33,8 @@ int main() {
             check(object_look(f).pulseRank>0,"Arcane Sanctuary chest class excluded");
         }
         check(object_look(chest).rank==1,"normal chest too loud");
-        check(!object_has_label(object_look(chest)),"ordinary chest gained a cluttering label");
+        check(object_uses_pulse(object_look(chest)),"ordinary chest fell back to tiny line-only glint");
+        check(object_has_label(object_look(chest)),"ordinary chest missing its compact name");
         auto locked=chest;locked.locked=true;
         check(object_look(locked).rank>object_look(chest).rank,"locked chest not distinguished");
         check(object_has_label(object_look(locked)),"important chest missing its name");
@@ -76,7 +87,8 @@ int main() {
         check(queue.count==101 && queue.entries[100].x==300,"multi-part object duplicated or stale");
         check(object_hitbox(duplicate).contains(300,400) && !object_hitbox(duplicate).contains(500,400),"object hitbox unreachable or steals distant clicks");
         check(object_hitbox(make(1,chest)).contains(705,394),"ordinary glint is not clickable");
-        check(queue.labels().count==1,"ordinary object gained a label");
+        check(object_hitbox(make(1,chest)).contains(750,400),"native chest pulse exceeds clickable area");
+        check(queue.labels().count==object_label_limit,"chest names missing or unbounded");
         for(unsigned i=0;i<40;++i) queue.remember(make(2000+i,locked));
         const auto limitedNames=queue.labels();
         check(queue.count==141 && limitedNames.count==object_label_limit,"name limit removed other cues");
