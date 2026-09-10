@@ -14,7 +14,7 @@ REPOSITORY = "https://github.com/Phroster/d2gl-mxl-dx12"
 PLAYER_FILES = frozenset({
     "glide3x.dll", "ddraw.dll", "d2gl.mpq", "d2gl.ini", "d2fps.ini",
     "mxl-native-loot.ini", "LICENSES.txt",
-    "mxl-loot-filter.json",
+    "mxl-smooth-motion-filter.json",
 })
 
 
@@ -69,7 +69,7 @@ def main():
         "d2gl.mpq": ROOT / "d2gl/d2gl.mpq",
         "d2fps.ini": ROOT / "defaults/d2fps.ini",
         "mxl-native-loot.ini": ROOT / "mxl-native-loot.ini",
-        "mxl-loot-filter.json": ROOT / "defaults/mxl-loot-filter.json",
+        "mxl-smooth-motion-filter.json": ROOT / "defaults/mxl-smooth-motion-filter.json",
     }
     files = {name: path.read_bytes() for name, path in inputs.items()}
     # Also reject stale DLLs left by a recording-enabled build.
@@ -86,7 +86,7 @@ def main():
         raise ValueError("Release effect pickup must default to on")
     if loot.getint("NativeLoot", "ObjectLabels") != 1:
         raise ValueError("Release chest and shrine highlights must default to on")
-    profile = json.loads(files["mxl-loot-filter.json"])
+    profile = json.loads(files["mxl-smooth-motion-filter.json"])
     if set(profile) != {"name", "rules", "default_show_items"} or not profile["default_show_items"] or not profile["rules"]:
         raise ValueError("Expected one portable native filter profile")
     if any(not r["show_item"] and (r["notify"] or r["automap"]) for r in profile["rules"]):

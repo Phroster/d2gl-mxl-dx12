@@ -9,7 +9,7 @@ inline Appearance appearance(unsigned profile) {
     const auto& p=profiles[profile];return {p.rank,p.colour,p.style,profile};
 }
 inline bool useful_potion(unsigned grade,unsigned playerLevel) {
-    // Same progression as SimpleFilterSoftNotify+ Progression. Better grades
+    // Same progression as MXL Smooth Motion Progression. Better grades
     // remain useful at lower levels; never infer value from a potion's name.
     constexpr unsigned cutoff[]={0,20,40,70,110,UINT32_MAX};
     return grade>=1 && grade<=5 && playerLevel<cutoff[grade];

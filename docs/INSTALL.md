@@ -20,10 +20,10 @@ Chest and shrine highlights are also enabled. Set `ObjectLabels=0` in `mxl-nativ
 
 ## Loot filter
 
-The optional `mxl-loot-filter.json` keeps valuable drops and removes lower-tier
+The optional `mxl-smooth-motion-filter.json` keeps valuable drops and removes lower-tier
 clutter as you level. It includes native notifications and map markers.
 Copy the file's contents, then open **Game Settings → Loot Filter Settings →
-Import Configuration from Clipboard** and select **SimpleFilterSoftNotify+ Progression**.
+Import Configuration from Clipboard** and select **MXL Smooth Motion Progression**.
 Copying the file into the game folder alone does not activate it.
 
 Keep your previous filter profile if you want to switch back. The renderer's
