@@ -210,7 +210,7 @@ DWORD WINAPI writer(void*) {
             fflush(file);if(inputs)fflush(inputs);if(reveals)fflush(reveals);if(assets)fflush(assets);if(native)fflush(native);last_summary=now;
             FILE* out=nullptr;const auto path=s.directory+L"\\status.txt";
             if(!_wfopen_s(&out,path.c_str(),L"wb") && out) {
-                fprintf(out,"MXL Smooth Motion DX12 1.15 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\nevent_parts_written=%u\nretention_overwrites=%u\n",
+                fprintf(out,"MXL Smooth Motion DX12 1.16 diagnostics\nstate=%s\nrecords=%llu\nslow_frames=%llu\ndropped_records=%llu\nevent_parts_written=%u\nretention_overwrites=%u\n",
                     s.quitting?"stopped":"recording",(unsigned long long)written,(unsigned long long)slow,(unsigned long long)s.dropped.load(),part+1,part>=s.event_parts?part-s.event_parts+1:0);fclose(out);
             }
             if(GetFileAttributesW((s.directory+L"\\STOP").c_str())!=INVALID_FILE_ATTRIBUTES) {
@@ -272,7 +272,7 @@ bool start(HWND window,const std::wstring& test_directory) {
     }
     FILE* file=nullptr;
     if(!_wfopen_s(&file,(s.directory+L"\\session.txt").c_str(),L"wb") && file) {
-        fprintf(file,"MXL Smooth Motion DX12 1.15 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
+        fprintf(file,"MXL Smooth Motion DX12 1.16 diagnostics\npid=%lu\nqpc_frequency=%lld\nqpc_start=%llu\n",
             GetCurrentProcessId(),(long long)s.frequency.QuadPart,(unsigned long long)s.started);
         fputs("build_kind=MXL_PRIVATE_LOOT_DIAGNOSTICS_V1\nSaved filter/settings snapshots are launch-time state only; later menu changes are not observed directly.\n",file);
         fprintf(file,"comprehensive_schema=1\ncomprehensive=%u\nevent_parts=%u\nevent_capacity_mb=%u\n",unsigned(s.comprehensive),s.event_parts,s.event_parts*32);

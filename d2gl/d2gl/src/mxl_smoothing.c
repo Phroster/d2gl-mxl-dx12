@@ -449,7 +449,7 @@ void __stdcall MxlSmoothing_Initialize(void) {
     log_file=CreateFileW(log_path,GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,
                         CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
     SYSTEMTIME now; GetLocalTime(&now);
-    log_line("MXL Smooth Motion DX12 1.15 / x86 / %04u-%02u-%02u %02u:%02u:%02u",
+    log_line("MXL Smooth Motion DX12 1.16 / x86 / %04u-%02u-%02u %02u:%02u:%02u",
               now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond);
 #endif
     HMODULE client=GetModuleHandleW(L"D2Client.dll"), fps=GetModuleHandleW(L"d2fps.dll");

@@ -1,6 +1,6 @@
 # Native loot effects implementation
 
-Release 1.15 uses animated Diablo sprites for real ground items, with readable
+Release 1.16 uses animated Diablo sprites for real ground items, with readable
 names and optional click-to-pickup interaction. The included 2,468-base catalog
 has 66 item profiles. See the [loot guide](loot-effects-guide.md) for categories,
 progression rules and controls. These categories describe visual importance,
