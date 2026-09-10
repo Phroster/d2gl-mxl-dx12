@@ -3,6 +3,7 @@
 #include <array>
 #include <algorithm>
 #include <cstdint>
+#include <string_view>
 #include "native_loot_layer.h"
 #include "native_loot_pickup.h"
 
@@ -70,6 +71,23 @@ inline bool object_has_label(const ObjectLook& look) {
 }
 inline bool object_uses_pulse(const ObjectLook& look) {
     return look.rank>0 && look.pulseRank>0;
+}
+inline bool object_placeholder_name(std::wstring_view name) {
+    auto same=[](wchar_t a,wchar_t b) {
+        if(a>=L'a' && a<=L'z') a-=L'a'-L'A';
+        if(b>=L'a' && b<=L'z') b-=L'a'-L'A';
+        return a==b;
+    };
+    while(!name.empty() && name.front()==L' ') name.remove_prefix(1);
+    while(!name.empty() && name.back()==L' ') name.remove_suffix(1);
+    if(name.empty()) return true;
+    for(auto token:{std::wstring_view(L"Dummy"),std::wstring_view(L"not used"),std::wstring_view(L"FLYING POLAR BUFFALO ERROR")})
+        if(name.size()==token.size() && std::equal(name.begin(),name.end(),token.begin(),same)) return true;
+    return false;
+}
+inline const wchar_t* object_fallback_name(ObjectKind kind) {
+    return kind==ObjectKind::Shrine?L"Shrine":kind==ObjectKind::Well?L"Well":
+        kind==ObjectKind::Special?L"Quest Object":L"Container";
 }
 struct ObjectIndicator {
     GroundEntry identity{};

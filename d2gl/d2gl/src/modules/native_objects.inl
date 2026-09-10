@@ -79,11 +79,8 @@ void captureObject(d2::UnitAny* unit,int x,int y)
     std::memcpy(entry.name.data(),table+0x40,64*sizeof(wchar_t));
     entry.name.back()=0;
     for(auto& c:entry.name) { if(c==L'\r' || c==L'\n' || c==L'\t') c=L' '; }
-    if(!entry.name[0]) {
-        const wchar_t* fallback=look.kind==mxl::native_loot::ObjectKind::Shrine?L"Shrine":
-            look.kind==mxl::native_loot::ObjectKind::Waypoint?L"Waypoint":
-            look.kind==mxl::native_loot::ObjectKind::Well?L"Well":
-            look.kind==mxl::native_loot::ObjectKind::Stash?L"Stash":L"Container";
+    if(mxl::native_loot::object_placeholder_name(entry.name.data())) {
+        const wchar_t* fallback=mxl::native_loot::object_fallback_name(look.kind);
         std::wcsncpy(entry.name.data(),fallback,entry.name.size()-1);
     }
     objectIndicators.remember(entry);

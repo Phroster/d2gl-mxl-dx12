@@ -8,6 +8,10 @@ using namespace mxl::native_loot;
 void check(bool ok,const char* why) { if(!ok) throw std::runtime_error(why); }
 int main() {
     try {
+        check(object_placeholder_name(L"FLYING POLAR BUFFALO ERROR"),"Median Dummy translation leaked into object name");
+        check(object_placeholder_name(L" dummy ") && object_placeholder_name(L"not used") && object_placeholder_name(L""),"placeholder fallback missed");
+        check(!object_placeholder_name(L"Experience Shrine") && !object_placeholder_name(L"Chest"),"real object name replaced");
+        check(std::wstring_view(object_fallback_name(ObjectKind::Shrine))==L"Shrine","placeholder shrine not named as shrine");
         ObjectSpriteAnchor body;
         body.observe(80,200,-12,64);
         check(body.x==100 && body.y==200,"asymmetric native body not centred");
