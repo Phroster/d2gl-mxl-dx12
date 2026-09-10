@@ -26,10 +26,11 @@ struct ObjectLook {
 };
 inline ObjectLook object_look(const ObjectFacts& f) {
     if(!f.drawn || !f.selectable || f.mode>=8 || f.door || (f.subclass&0x80)) return {};
-    // Reusable objects remain useful after activation; consumed containers
-    // and shrines lose their cue when they leave neutral.
-    if((f.subclass&0x40) || f.operate==23) return {ObjectKind::Waypoint,1,3,0,8};
-    if(f.operate==32) return {ObjectKind::Stash,1,0,0,7};
+    // Routine navigation and personal storage do not need discovery cues.
+    // Identify personal storage by operation, not its name: hidden stashes
+    // are actual loot containers and must keep their indicator.
+    if((f.subclass&0x40) || f.operate==23 || f.operate==32
+        || f.operate==15 || f.operate==34 || f.operate==43 || f.operate==46) return {};
     if((f.subclass&1) || f.operate==2) return f.mode==0?ObjectLook{ObjectKind::Shrine,2,3,1,24}:ObjectLook{};
     if((f.subclass&0x20) || f.operate==22) return {ObjectKind::Well,1,3,1,6};
     // Breakable/openable supplies keep only the lowest-priority pulse.

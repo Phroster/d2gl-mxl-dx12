@@ -6,9 +6,10 @@ Set it to `0` to return to the normal item-only display.
 Ordinary chests, urns, barrels, racks and other usable objects get a small
 native glint. Locked, large and special containers also get a readable name;
 special containers have a stronger glow. Usable shrines get a name and pulse.
-Wells have a quiet cue; waypoints and your stash have a name. Exploding
+Wells have a quiet cue. Exploding
 containers use a red cue. Opened/broken loot containers, spent shrines,
-doors and non-interactive scenery are excluded. Existing dropped-item labels are unchanged.
+doors, waypoints, portals, personal stash and non-interactive scenery are excluded.
+Hidden stashes remain highlighted as loot containers. Existing dropped-item labels are unchanged.
 
 Names share the loot layout. Object names and effects are clickable when
 `ClickEffects=1`. Actual dropped items and native character targets

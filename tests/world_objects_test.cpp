@@ -35,7 +35,7 @@ int main() {
         invalid=chest;invalid.drawn=false;check(!object_look(invalid).rank,"invisible object marked");
         invalid=chest;invalid.door=true;check(!object_look(invalid).rank,"door clutter");
         invalid=chest;invalid.subclass=0x80;check(!object_look(invalid).rank,"door subclass clutter");
-        for(unsigned op:{0u,8u,11u,13u,15u}) {
+        for(unsigned op:{0u,8u,11u,13u}) {
             auto f=chest;f.subclass=0;f.operate=op;
             check(object_look(f).rank==1 && !object_has_label(object_look(f)),"unknown usable object missing quiet cue");
             f.mode=2;check(object_look(f).rank==1,"reusable interactable lost cue after activation");
@@ -52,7 +52,17 @@ int main() {
         check(object_look(shrine).kind==ObjectKind::Shrine && object_look(shrine).rank==2,"shrine not visible");
         shrine.mode=2;check(!object_look(shrine).rank,"spent shrine still marked");
         auto waypoint=chest;waypoint.subclass=64;waypoint.operate=23;waypoint.mode=2;
-        check(object_look(waypoint).rank==1 && !object_look(waypoint).pulseRank,"waypoint missing or too loud");
+        check(!object_look(waypoint).rank,"waypoint clutter");
+        for(unsigned op:{15u,23u,32u,34u,43u,46u}) {
+            for(unsigned mode=0;mode<8;++mode) {
+                auto f=chest;f.subclass=0;f.operate=op;f.mode=mode;
+                check(!object_look(f).rank,"routine storage or travel object highlighted");
+            }
+        }
+        for(unsigned op:{4u,14u,51u}) {
+            auto f=chest;f.subclass=0;f.operate=op;
+            check(object_look(f).rank>0,"lootable hidden stash excluded with personal stash");
+        }
         ObjectIndicators queue;
         auto make=[&](unsigned id,ObjectFacts f) {
             ObjectIndicator e{};e.identity={id,f.classId,123,456,0,0,{40,1600,900,0,false}};
