@@ -11,13 +11,17 @@ containers use a red cue. Opened/broken loot containers, spent shrines,
 doors, waypoints, portals, personal stash and non-interactive scenery are excluded.
 Hidden stashes remain highlighted as loot containers. Existing dropped-item labels are unchanged.
 Object effects follow the centre of the native body sprite when available.
+Nearby objects share one glow and a count label, including mixed containers.
+Groups stay within 64 by 32 game pixels. Their count updates as objects open;
+each object remains individually clickable. Clicking a shared name selects its
+most important remaining object. Explosive containers keep a separate red cue.
 
 Names share the loot layout. Object names and effects are clickable when
 `ClickEffects=1`. Actual dropped items and native character targets
 keep priority. The game still handles walking, opening and activation normally.
 
 The experiment keeps current-frame snapshots for up to 1024 visible objects;
-the twelve-name limit applies only to labels, not ordinary object cues.
+the twelve-name limit applies to individual/group labels, not object cues.
 It does not scan rooms or retain unit pointers. It reuses the existing immutable
 native pulse cells and font atlas. No new artwork, file loading during play,
 automatic gameplay actions, or diagnostic recording is added. Object metadata is read

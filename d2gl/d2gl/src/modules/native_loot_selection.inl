@@ -45,8 +45,13 @@ void __stdcall updateSelection()
     int worldX=0,worldY=0;
     if(worldMouse(&worldX,&worldY)) return;
     auto* selected=d2::getSelectedUnit();
-    if(selected && selected->dwType!=d2::UnitType::Item) return;
     const int x=*d2::mouse_x,y=*d2::mouse_y;
+    if(selected && selected->dwType!=d2::UnitType::Item) {
+        // A shared name identifies one member even if a different object's
+        // sprite lies beneath it. Elsewhere keep the native target unchanged.
+        if(selected->dwType==d2::UnitType::Object) selectObjectAt(x,y,true);
+        return;
+    }
     const auto viewport=view();
     mxl::native_loot::PickChoice choice;
     for(unsigned i=0;i<pickCount;++i) {

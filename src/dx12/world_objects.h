@@ -94,7 +94,11 @@ struct ObjectIndicator {
     int x=0,y=0;
     ObjectLook look{};
     std::array<wchar_t,65> name{};
+    unsigned group=0,members=1;
 };
+inline bool object_has_label(const ObjectIndicator& object) {
+    return object.members>1 || object_has_label(object.look);
+}
 inline HitRect object_hitbox(const ObjectIndicator& e) {
     const bool pulse=object_uses_pulse(e.look);
     const int half=pulse?64:14;
@@ -126,7 +130,7 @@ struct ObjectIndicators {
     struct Labels { std::array<unsigned,object_label_limit> indices{};unsigned count=0; };
     Labels labels() const {
         Labels result;
-        for(unsigned i=0;i<count;++i) if(object_has_label(entries[i].look)) {
+        for(unsigned i=0;i<count;++i) if(object_has_label(entries[i])) {
             unsigned at=0;
             while(at<result.count && !before(entries[i],entries[result.indices[at]])) ++at;
             if(at==object_label_limit) continue;

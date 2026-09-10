@@ -2,6 +2,8 @@
 // Included inside NativeLoot's private namespace after its native draw state.
 bool objectIndicatorsEnabled=false;
 mxl::native_loot::ObjectIndicators objectIndicators;
+mxl::native_loot::ObjectGroups objectGroups;
+mxl::native_loot::ObjectNameCoverage objectNameCoverage;
 std::array<mxl::native_loot::HoverLabel,mxl::native_loot::object_label_limit> oldObjectLabels{};
 unsigned oldObjectLabelCount=0;
 bool objectsPainted=false,hoveredObjectValid=false;
@@ -92,9 +94,10 @@ void paintObjectEffects()
     if(!objectIndicatorsEnabled || !objectIndicators.count || !landingAnimations || !floorPainted
         || App.game.draw_stage!=DrawStage::World || d2::isEscMenuOpen() || option::Menu::instance().isVisible()) return;
     const auto viewport=view();
+    objectGroups.rebuild(objectIndicators);
     objectsPainted=true;
-    for(unsigned i=0;i<objectIndicators.count;++i) {
-        const auto& entry=objectIndicators.entries[i];
+    for(unsigned i=0;i<objectGroups.markers.count;++i) {
+        const auto& entry=objectGroups.markers.entries[i];
         if(!(entry.identity.view==viewport)) continue;
         auditObjectDraw(entry,1);
         if(!mxl::native_loot::object_uses_pulse(entry.look)) {

@@ -12,6 +12,7 @@
 #include "native_loot_render.h"
 #include "native_loot_texture.h"
 #include "world_objects.h"
+#include "world_object_groups.h"
 #include "diagnostics.h"
 #include "option/menu.h"
 #include "hd_text.h"
@@ -595,6 +596,7 @@ void beginFrame()
 {
     ++frameRevision;
     objectIndicators.clear();
+    objectGroups.clear();
     objectsPainted=false;
     labelsPainted=false;
     // Sigma has completed loading/patching by the first world frame.
@@ -609,7 +611,7 @@ void beginFrame()
     auto* player=inGame?d2::getPlayerUnit():nullptr;
     playerLevel=player?d2::getUnitStat(player,12):0;
     if (wasInGame && !inGame) { report("left game");flushObjectAudit(); }
-    if (!inGame) { sampleFrame=0;pulseHistory.clear();pickCount=0;hoveredValid=false;label={};selectionCache={};names={};groundLabelCount=0;oldObjectLabelCount=0; }
+    if (!inGame) { sampleFrame=0;pulseHistory.clear();pickCount=0;hoveredValid=false;label={};selectionCache={};names={};groundLabelCount=0;oldObjectLabelCount=0;objectNameCoverage.clear(); }
     else {
         ++sampleFrame;
         // Only three startup samples per game, then no frame-loop disk writes.
@@ -723,6 +725,7 @@ void drawLabels()
     const auto previousObjects=oldObjectLabels;
     const auto previousObjectCount=oldObjectLabelCount;
     oldObjectLabelCount=0;
+    objectNameCoverage.clear();
     labelsPainted=true;groundLabelCount=0;
     if(d2::isEscMenuOpen() || option::Menu::instance().isVisible()) return;
     const auto viewport=view();const auto now=GetTickCount();
@@ -764,11 +767,11 @@ void drawLabels()
         const auto color=mxl::native_loot::loot_label_color(itemColor(unit),look.colour,base.gear || base.jewel);
         draws[count++]={i,look.rank,color,unit->v110.dwMode,pos,name.text.data(),selected==unit};
     }
-    const auto objectNames=objectIndicators.labels();
+    const auto objectNames=objectGroups.markers.labels();
     if(objectIndicatorsEnabled) for(unsigned n=0;n<objectNames.count;++n) {
         const unsigned i=objectNames.indices[n];
-        const auto& object=objectIndicators.entries[i];
-        if(!mxl::native_loot::object_has_label(object.look)) continue;
+        const auto& object=objectGroups.markers.entries[i];
+        if(!mxl::native_loot::object_has_label(object)) continue;
         const auto& entry=object.identity;
         if(!(entry.view==viewport)) continue;
         // Keep the clickable label in place while selected. Removing it on
@@ -800,8 +803,9 @@ void drawLabels()
         const auto& bounds=request.placed;
         if(!HDText::Instance().drawLootLabel(draw.name,bounds.left,bounds.top,draw.colour,draw.rank,draw.hovered,draw.object)) continue;
         if(draw.object) {
-            auditObjectDraw(objectIndicators.entries[draw.item],2);
-            oldObjectLabels[oldObjectLabelCount++]={objectIndicators.entries[draw.item].identity,
+            auditObjectDraw(objectGroups.markers.entries[draw.item],2);
+            objectNameCoverage.add(objectIndicators,objectGroups.markers.entries[draw.item],oldObjectLabelCount);
+            oldObjectLabels[oldObjectLabelCount++]={objectGroups.markers.entries[draw.item].identity,
                 {bounds.left-draw.anchor.x,bounds.top-draw.anchor.y,bounds.right-draw.anchor.x,bounds.bottom-draw.anchor.y},now,true};
             continue; // Object names never become item-pickup targets.
         }

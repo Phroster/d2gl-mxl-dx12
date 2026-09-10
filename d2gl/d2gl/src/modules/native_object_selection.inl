@@ -3,14 +3,19 @@
 // become targets; no room scans, synthetic clicks or direct operate calls.
 bool suppressObjectHoverLabel(d2::UnitAny* selected)
 {
-    if(!objectIndicatorsEnabled || !selected || selected->dwType!=d2::UnitType::Object) return false;
+    if(!objectIndicatorsEnabled || !oldObjectLabelCount
+        || !selected || selected->dwType!=d2::UnitType::Object) return false;
     const auto viewport=view();const auto now=GetTickCount();
     // Suppress only a duplicate of a name we actually painted. Unlabelled
     // objects, names outside the draw budget and expired targets keep theirs.
-    for(unsigned i=0;i<oldObjectLabelCount;++i) {
-        const auto& name=oldObjectLabels[i];
-        if(name.valid && uint32_t(now-name.painted)<=120 && name.item.view==viewport
-            && name.item.id==selected->v110.dwUnitId && resolveObject(name.item)==selected) return true;
+    for(unsigned i=0;i<objectNameCoverage.count;++i) {
+        const auto& member=objectNameCoverage.members[i];
+        if(member.label>=oldObjectLabelCount || member.identity.id!=selected->v110.dwUnitId
+            || !(member.identity.view==viewport)) continue;
+        const auto& name=oldObjectLabels[member.label];
+        if(name.valid && uint32_t(now-name.painted)<=120
+            && mxl::native_loot::same_ground(name.item,objectNameCoverage.leaders[member.label])
+            && resolveObject(member.identity)==selected) return true;
     }
     return false;
 }
@@ -28,13 +33,20 @@ const mxl::native_loot::ObjectIndicator* objectTarget(const mxl::native_loot::Gr
 }
 bool onObjectLabel(const mxl::native_loot::ObjectIndicator& entry,int x,int y,uint32_t now)
 {
+    const auto* marker=objectGroups.marker(entry);
+    if(!marker || !mxl::native_loot::same_ground(marker->identity,entry.identity)) return false;
     for(unsigned i=0;i<oldObjectLabelCount;++i)
-        if(oldObjectLabels[i].contains(entry.identity,entry.x,entry.y,x,y,now)) return true;
+        if(oldObjectLabels[i].contains(marker->identity,marker->x,marker->y,x,y,now)) return true;
     return false;
+}
+bool onObjectGlow(const mxl::native_loot::ObjectIndicator& entry,int x,int y)
+{
+    const auto* marker=objectGroups.marker(entry);
+    return mxl::native_loot::object_hitbox(marker && marker->members>1?*marker:entry).contains(x,y);
 }
 bool objectContains(const mxl::native_loot::ObjectIndicator& entry,int x,int y,uint32_t now)
 {
-    return onObjectLabel(entry,x,y,now) || mxl::native_loot::object_hitbox(entry).contains(x,y);
+    return onObjectLabel(entry,x,y,now) || onObjectGlow(entry,x,y);
 }
 bool retainObjectHover()
 {
@@ -42,7 +54,7 @@ bool retainObjectHover()
     auto* unit=resolveObject(hoveredObject);
     return unit && d2::getSelectedUnit()==unit;
 }
-void selectObjectAt(int x,int y)
+void selectObjectAt(int x,int y,bool groupLabelOnly=false)
 {
     if(!objectTargetsAvailable()) return;
     const auto viewport=view();const auto now=GetTickCount();
@@ -51,7 +63,10 @@ void selectObjectAt(int x,int y)
         const auto& e=objectIndicators.entries[i];
         if(!(e.identity.view==viewport)) continue;
         const bool label=onObjectLabel(e,x,y,now);
-        if(!label && !mxl::native_loot::object_hitbox(e).contains(x,y)) continue;
+        if(groupLabelOnly) {
+            const auto* marker=objectGroups.marker(e);
+            if(!label || !marker || marker->members<2) continue;
+        } else if(!label && !onObjectGlow(e,x,y)) continue;
         if(!resolveObject(e.identity)) continue;
         choice.offer(int(i),e.identity.id,x,y,e.x,e.y,label);
     }

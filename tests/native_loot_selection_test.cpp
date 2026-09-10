@@ -6,6 +6,7 @@
 #include "native_loot_cells.h"
 #include "native_loot_pickup.h"
 #include "world_objects.h"
+#include "world_object_groups.h"
 #include "diagnostics.h"
 #include <iostream>
 #include <stdexcept>
@@ -30,10 +31,13 @@ uint64_t selectionCalls=0,hoverChecks=0,hoverSelections=0,panelHoverSelections=0
 bool hoveredValid=false,carried=false,alive=true;
 bool objectIndicatorsEnabled=true,objectsPainted=false,hoveredObjectValid=false,objectAlive=true;
 ObjectIndicators objectIndicators;
+ObjectGroups objectGroups;
+ObjectNameCoverage objectNameCoverage;
 std::array<HoverLabel,object_label_limit> oldObjectLabels{};
 unsigned oldObjectLabelCount=0,objectLookups=0;
 GroundEntry hoveredObject{};
 d2::UnitAny objectUnit{d2::UnitType::Object,{0,17}};
+d2::UnitAny urnUnit{d2::UnitType::Object,{0,18}},secondUrn{d2::UnitType::Object,{0,19}};
 SelectionCache selectionCache;
 std::array<GroundEntry,60> pickItems{};
 GroundEntry hovered{};
@@ -54,6 +58,8 @@ bool selectable(d2::UnitAny*,int,int,int) { return alive && !carried; }
 void selectNative(d2::UnitAny* unit) { d2::selected=unit; }
 d2::UnitAny* resolveObject(const GroundEntry& id) {
     ++objectLookups;
+    if(!carried && id.id==18 && id.seed==94 && urnUnit.v110.dwMode==0) return &urnUnit;
+    if(!carried && id.id==19 && id.seed==95 && secondUrn.v110.dwMode==0) return &secondUrn;
     return objectAlive && objectUnit.v110.dwMode==0 && id.id==17 && id.seed==93 && !carried?&objectUnit:nullptr;
 }
 
@@ -128,11 +134,13 @@ void scenarios() {
     pickCount=0;d2::mx=400;d2::my=294;objectsPainted=true;++frameRevision;
     ObjectIndicator e{};e.identity={17,4,93,1,0,0,view()};e.x=400;e.y=300;
     e.look={ObjectKind::Shrine,2,3,1,24};e.name[0]=L'S';objectIndicators.remember(e);
+    objectGroups.rebuild(objectIndicators);
     updateSelection();
     require(hoveredObjectValid && !hoveredValid && d2::selected==&objectUnit,"Shrine effect cannot be selected without item loot.");
     auto objectCalls=nativeCalls;updateSelection();
     require(nativeCalls==objectCalls && hoveredObjectValid,"Object hover flickers between identical polls.");
     oldObjectLabels[0]={e.identity,{-70,-80,70,-50},100,true};oldObjectLabelCount=1;
+    objectNameCoverage.add(objectIndicators,objectGroups.markers.entries[0],0);
     require(suppressObjectHoverLabel(&objectUnit),"Visible permanent object name retained a duplicate native hover name.");
     require(!suppressObjectHoverLabel(nullptr) && !suppressObjectHoverLabel(&d2::unit)
         && !suppressObjectHoverLabel(&d2::nativeUnit),"Object-name suppression affected another unit type.");
@@ -174,6 +182,58 @@ void scenarios() {
     require(nativeCalls==1000000 && inventoryQueries==1000 && objectLookups==0,
         "Missed object hovers resolve game objects or poll inventory between frames.");
     std::cout << "Object input: glow/name clicks, consumed/removed/recycled targets, UI/held-item gates and 1000000 missed polls passed.\n";
+    // The shared label targets its named leader at the GROUP centre. The
+    // original sprites/effects continue to select each constituent separately.
+    objectIndicators.clear();objectIndicators.remember(e);
+    auto urn=e;urn.identity.id=18;urn.identity.seed=94;urn.x=448;urn.y=314;
+    urn.look={ObjectKind::Container,1,5,1,4};std::wcscpy(urn.name.data(),L"Urn");objectIndicators.remember(urn);
+    auto urn2=urn;urn2.identity.id=19;urn2.identity.seed=95;urn2.x=432;urn2.y=310;objectIndicators.remember(urn2);
+    objectGroups.rebuild(objectIndicators);
+    auto group=objectGroups.markers.entries[0];
+    require(group.members==3 && group.identity.id==17,"Mixed group's named target is not its important member.");
+    oldObjectLabels[0]={group.identity,{-70,-80,70,-50},100,true};oldObjectLabelCount=1;
+    objectNameCoverage.clear();objectNameCoverage.add(objectIndicators,group,0);
+    d2::mx=group.x+69;d2::my=group.y-51;++frameRevision;updateSelection();
+    require(hoveredObjectValid && d2::selected==&objectUnit,"Shared count label is not clickable at its displayed position.");
+    beforeObjectClick(d2::mx,d2::my);require(d2::selected==&objectUnit,"Group name did not preserve its one normal native target.");
+    d2::nativeResult=&urnUnit;++frameRevision;updateSelection();
+    require(d2::selected==&objectUnit,"Native urn behind a mixed group name stole its named target.");
+    d2::nativeResult=nullptr;
+    require(suppressObjectHoverLabel(&objectUnit) && suppressObjectHoverLabel(&urnUnit)
+        && suppressObjectHoverLabel(&secondUrn),"Group members retained duplicate hover names.");
+    objectGroups.clear();objectsPainted=false;
+    require(suppressObjectHoverLabel(&objectUnit) && suppressObjectHoverLabel(&urnUnit)
+        && suppressObjectHoverLabel(&secondUrn),"Native hover names reappeared before the next world pass finished.");
+    objectGroups.rebuild(objectIndicators);objectsPainted=true;
+    d2::mx=448;d2::my=314;d2::nativeResult=&urnUnit;++frameRevision;updateSelection();
+    require(d2::selected==&urnUnit,"Group stole a native click on an individual urn.");
+    d2::nativeResult=nullptr;++frameRevision;updateSelection();
+    require(hoveredObjectValid && d2::selected==&urnUnit,"Shared glow cannot select an individual urn.");
+    beforeObjectClick(d2::mx,d2::my);require(d2::selected==&urnUnit,"Group member lost its normal click.");
+    objectUnit.v110.dwMode=2;objectIndicators.clear();objectIndicators.remember(urn);objectIndicators.remember(urn2);
+    objectGroups.rebuild(objectIndicators);group=objectGroups.markers.entries[0];
+    require(group.members==2 && group.identity.id==18,"Opening the leader left a stale group count or target.");
+    oldObjectLabels[0]={group.identity,{-70,-80,70,-50},100,true};
+    objectNameCoverage.clear();objectNameCoverage.add(objectIndicators,group,0);
+    d2::mx=group.x;d2::my=group.y-60;++frameRevision;updateSelection();
+    require(d2::selected==&urnUnit && !suppressObjectHoverLabel(&objectUnit),"Shrunken group retained its opened member.");
+    urnUnit.v110.dwMode=2;objectIndicators.clear();objectIndicators.remember(urn2);objectGroups.rebuild(objectIndicators);
+    oldObjectLabelCount=0;d2::mx=urn2.x;d2::my=urn2.y;++frameRevision;updateSelection();
+    require(d2::selected==&secondUrn && !suppressObjectHoverLabel(&secondUrn),"Last urn lost its individual native name or click.");
+    objectIndicators.clear();objectGroups.clear();objectsPainted=false;++frameRevision;updateSelection();
+    require(!hoveredObjectValid && !d2::selected,"Empty group retained an input target.");
+    // Small native glints form a shared pulse too; its centre/outer edge must
+    // not have dead zones between their smaller individual hitboxes.
+    urnUnit.v110.dwMode=secondUrn.v110.dwMode=0;
+    urn.look=urn2.look={ObjectKind::Usable,1,5,0,1};urn.x=400;urn.y=300;urn2.x=464;urn2.y=332;
+    objectIndicators.remember(urn);objectIndicators.remember(urn2);objectGroups.rebuild(objectIndicators);objectsPainted=true;
+    group=objectGroups.markers.entries[0];
+    d2::mx=group.x;d2::my=group.y;++frameRevision;updateSelection();
+    require(hoveredObjectValid && d2::selected==&urnUnit,"Shared glow has an unclickable centre between small glints.");
+    d2::mx=group.x-60;d2::my=group.y+20;++frameRevision;updateSelection();
+    require(hoveredObjectValid && d2::selected==&urnUnit,"Shared glow has an unclickable outer edge.");
+    beforeObjectClick(d2::mx,d2::my);require(d2::selected==&urnUnit,"Shared glow edge rejected a valid normal click.");
+    std::cout << "Grouped object input: centred label, individual native/glow clicks, duplicate-name suppression and shrinking groups passed.\n";
 }
 }
 int main() {
